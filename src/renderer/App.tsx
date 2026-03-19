@@ -33,6 +33,30 @@ export function App() {
     });
   }, []);
 
+  // Auto-save state on changes (debounced 2 seconds)
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const unsub = useStore.subscribe((state) => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        stateApi.save({
+          groups: state.groups.map((g) => ({
+            ...g,
+            savedTerminals: g.terminalIds.map((tid) => {
+              const t = state.terminals[tid];
+              return t ? { command: t.command, cwd: t.cwd } : null;
+            }).filter(Boolean),
+          })),
+          activeGroupId: state.activeGroupId,
+          activeTerminalId: null,
+          sidebarWidth: state.sidebarWidth,
+        });
+      }, 2000);
+    });
+    return () => unsub();
+  }, [stateApi]);
+
   // Listen for PTY exit events
   useEffect(() => {
     const cleanup = pty.onExit((id, code, _signal) => {
