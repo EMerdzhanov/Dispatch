@@ -1,0 +1,20 @@
+appId: com.dispatch.app
+productName: Dispatch
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - package.json
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+  hardenedRuntime: true
+linux:
+  category: Development
+  target:
+    - AppImage
+    - deb
+  maintainer: dispatch
