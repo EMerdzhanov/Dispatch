@@ -1,18 +1,80 @@
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
+import { TabBar } from './components/TabBar';
+import { Sidebar } from './components/Sidebar';
+import { TerminalArea } from './components/TerminalArea';
+import { useStore } from './store';
+import { usePty, useStateApi } from './hooks/usePty';
+import { TerminalStatus } from '../shared/types';
+import { colors } from './theme/colors';
 
 export function App() {
+  const pty = usePty();
+  const stateApi = useStateApi();
+  const addTerminal = useStore((s) => s.addTerminal);
+  const findOrCreateGroup = useStore((s) => s.findOrCreateGroup);
+  const setActiveTerminal = useStore((s) => s.setActiveTerminal);
+  const updateTerminalStatus = useStore((s) => s.updateTerminalStatus);
+  const activeGroupId = useStore((s) => s.activeGroupId);
+  const groups = useStore((s) => s.groups);
+
+  // Load saved state on mount
+  useEffect(() => {
+    stateApi.load().then((data: any) => {
+      if (data?.presets) useStore.getState().setPresets(data.presets);
+      if (data?.settings) useStore.getState().setSettings(data.settings);
+      if (data?.state?.groups) {
+        for (const g of data.state.groups) {
+          useStore.getState().addGroup(g.cwd, g.label);
+        }
+      }
+    });
+  }, []);
+
+  // Listen for PTY exit events
+  useEffect(() => {
+    const cleanup = pty.onExit((id, code, _signal) => {
+      updateTerminalStatus(id, TerminalStatus.EXITED, code);
+    });
+    return cleanup;
+  }, []);
+
+  const handleSpawn = useCallback(async (command: string, env?: Record<string, string>) => {
+    const activeGroup = groups.find((g) => g.id === activeGroupId);
+    const cwd = activeGroup?.cwd || '/';
+    const groupId = activeGroup?.id || findOrCreateGroup(cwd);
+
+    const id = await pty.spawn({ cwd, command, env });
+
+    addTerminal(groupId, {
+      id,
+      command,
+      cwd,
+      status: TerminalStatus.RUNNING,
+    });
+    setActiveTerminal(id);
+  }, [activeGroupId, groups, pty, addTerminal, findOrCreateGroup, setActiveTerminal]);
+
   return (
-    <div className="flex flex-col h-screen bg-[#0a0a1a] text-white">
-      <div className="h-10 bg-[#1a1a2e] border-b border-[#333] flex items-center px-4 text-sm text-gray-400">
-        Dispatch
+    <div className="flex flex-col h-screen" style={{ backgroundColor: colors.bg.primary, color: colors.text.primary }}>
+      {/* Title bar drag region */}
+      <div className="h-8 flex items-center justify-between px-4 shrink-0"
+        style={{ backgroundColor: colors.bg.tertiary, WebkitAppRegion: 'drag' } as React.CSSProperties}>
+        <span className="text-[11px]" style={{ color: colors.text.muted }}>Dispatch</span>
+        <div className="flex gap-2 text-[10px]" style={{ color: colors.text.dim, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+          <span>⌘K Search</span>
+          <span>⌘N New</span>
+        </div>
       </div>
+
+      {/* Tab bar */}
+      <TabBar />
+
+      {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-56 bg-[#0f0f23] border-r border-[#333]">
-          Sidebar
+        <div className="w-56 shrink-0">
+          <Sidebar onSpawn={handleSpawn} />
         </div>
-        <div className="flex-1 bg-[#0a0a1a] flex items-center justify-center text-gray-600">
-          No terminal open
-        </div>
+        <TerminalArea />
       </div>
     </div>
   );
