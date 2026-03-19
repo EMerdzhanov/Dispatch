@@ -19,7 +19,6 @@ export function TabBar({ onSpawnInCwd, onOpenFolder }: TabBarProps) {
     const group = groups.find((g) => g.id === groupId);
     if (!group) return;
 
-    // Find first terminal in group
     const firstTerminal = group.terminalIds[0];
     if (firstTerminal) {
       setActiveTerminal(firstTerminal);
@@ -30,8 +29,14 @@ export function TabBar({ onSpawnInCwd, onOpenFolder }: TabBarProps) {
 
   return (
     <div
-      className="flex items-end gap-0.5 px-2 overflow-x-auto shrink-0"
-      style={{ backgroundColor: colors.bg.tertiary, borderBottom: `2px solid ${colors.border.default}` }}
+      style={{
+        display: 'flex', alignItems: 'flex-end', gap: 2,
+        padding: '0 8px',
+        backgroundColor: colors.bg.tertiary,
+        borderBottom: `1px solid ${colors.border.default}`,
+        overflowX: 'auto', flexShrink: 0,
+        height: 38,
+      }}
       role="tablist"
     >
       {groups.map((group) => {
@@ -42,24 +47,33 @@ export function TabBar({ onSpawnInCwd, onOpenFolder }: TabBarProps) {
             key={group.id}
             role="tab"
             aria-selected={isActive}
-            className="px-4 py-2 text-xs rounded-t-md shrink-0 transition-colors flex items-center gap-1.5"
             style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '0 14px', height: 30,
+              fontSize: 11, flexShrink: 0,
+              borderRadius: '4px 4px 0 0',
+              border: 'none', cursor: 'pointer',
+              transition: 'background-color 0.12s',
               backgroundColor: isActive ? colors.bg.elevated : 'transparent',
-              color: isActive ? colors.accent.primary : colors.text.muted,
+              color: isActive ? colors.text.primary : colors.text.muted,
               borderBottom: isActive ? `2px solid ${colors.accent.primary}` : '2px solid transparent',
             }}
             onClick={() => handleTabClick(group.id)}
             title={group.cwd || group.label}
           >
-            {group.isCustom && '🔧 '}{group.label}
+            {/* Folder icon */}
+            <span style={{ fontSize: 11, opacity: 0.7 }}>
+              {group.isCustom ? '⚙' : '⌂'}
+            </span>
+            {group.label}
             {count > 0 && (
-              <span
-                className="text-[9px] px-1 rounded-full"
-                style={{
-                  backgroundColor: isActive ? colors.accent.primary : colors.border.default,
-                  color: isActive ? '#fff' : colors.text.dim,
-                }}
-              >
+              <span style={{
+                fontSize: 9,
+                padding: '1px 5px',
+                borderRadius: 8,
+                backgroundColor: isActive ? 'rgba(233,69,96,0.25)' : 'rgba(255,255,255,0.08)',
+                color: isActive ? colors.accent.primary : colors.text.dim,
+              }}>
                 {count}
               </span>
             )}
@@ -67,8 +81,12 @@ export function TabBar({ onSpawnInCwd, onOpenFolder }: TabBarProps) {
         );
       })}
       <button
-        className="px-4 py-2 text-xs transition-colors"
-        style={{ color: colors.text.dim }}
+        style={{
+          padding: '0 12px', height: 30,
+          fontSize: 16, color: colors.text.dim,
+          border: 'none', backgroundColor: 'transparent',
+          cursor: 'pointer', flexShrink: 0,
+        }}
         onClick={onOpenFolder}
         title="Open project folder (⌘T)"
       >

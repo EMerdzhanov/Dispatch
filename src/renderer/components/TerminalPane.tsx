@@ -15,6 +15,13 @@ interface TerminalPaneProps {
   onSpawnInCwd?: (cwd: string, command?: string) => void;
 }
 
+/** Extract the last path segment (folder name) from a full path */
+function folderName(cwd: string): string {
+  if (!cwd) return '';
+  const parts = cwd.replace(/\/$/, '').split('/');
+  return parts[parts.length - 1] || cwd;
+}
+
 export function TerminalPane({ terminalId }: TerminalPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
@@ -31,14 +38,14 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
     const term = new Terminal({
       theme: xtermTheme,
       fontSize: 13,
-      fontFamily: "'Menlo', 'Monaco', 'Courier New', monospace",
+      fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Monaco, 'Courier New', monospace",
       lineHeight: 1.2,
       cursorBlink: true,
       cursorStyle: 'bar',
       scrollback: 10000,
       convertEol: true,
       allowProposedApi: true,
-      macOptionIsMeta: true,        // Option key works as Meta (for alt shortcuts in shell)
+      macOptionIsMeta: true,
       macOptionClickForcesSelection: true,
       rightClickSelectsWord: true,
       drawBoldTextInBrightColors: true,
@@ -65,23 +72,16 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
     // Open terminal in container
     term.open(containerRef.current);
 
-    // Using canvas renderer (WebGL addon crashes in Electron on dispose)
-
     // CRITICAL: Prevent browser from intercepting Tab, arrow keys, etc.
-    // All keyboard events should go to the PTY, not the browser
     term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
-      // Let Cmd/Ctrl shortcuts through to our app shortcuts handler
       if ((event.metaKey || event.ctrlKey) && !event.altKey) {
         const key = event.key.toLowerCase();
-        // These are our app shortcuts — let them bubble up
         if (['k', 'n', 't', 'w', 'd', 'p', ','].includes(key)) return false;
         if (event.shiftKey && ['[', ']', 'p', 'd', 'enter'].includes(key)) return false;
         if (key >= '1' && key <= '9') return false;
-        // Cmd+C (copy) and Cmd+V (paste) — let the browser handle these
         if (key === 'c' && term.hasSelection()) return false;
         if (key === 'v') return false;
       }
-      // Everything else (including Tab) goes to the terminal
       return true;
     });
 
@@ -89,13 +89,11 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
     fitRef.current = fit;
     searchRef.current = search;
 
-    // Fit after the container has rendered
     requestAnimationFrame(() => {
       try { fit.fit(); } catch {}
       setMounted(true);
     });
 
-    // Refit on container resize
     const resizeObserver = new ResizeObserver(() => {
       try { fit.fit(); } catch {}
     });
@@ -117,24 +115,20 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
 
     const term = termRef.current;
 
-    // Receive data from PTY → write to xterm
     const cleanupData = pty.onData((id, data) => {
       if (id === terminalId) {
         term.write(data);
       }
     });
 
-    // User types in xterm → send to PTY
     const inputDisposable = term.onData((data) => {
       pty.write(terminalId, data);
     });
 
-    // Terminal resize → tell PTY
     const resizeDisposable = term.onResize(({ cols, rows }) => {
       pty.resize(terminalId, cols, rows);
     });
 
-    // Sync initial size
     if (fitRef.current) {
       try {
         fitRef.current.fit();
@@ -142,7 +136,6 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
       } catch {}
     }
 
-    // Focus the terminal so user can type immediately
     term.focus();
 
     return () => {
@@ -155,32 +148,44 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
   if (!entry) return null;
 
   const isExited = entry.status === TerminalStatus.EXITED;
+  const isClaude = entry.command === 'claude' || entry.command.startsWith('claude ');
+
+  // Dot color: blue for claude, green for shell
+  const dotColor = isClaude ? colors.accent.blueLight : colors.accent.green;
+
+  // Short command label (first word)
+  const shortCommand = entry.command.split(' ')[0].split('/').pop() || entry.command;
+
+  // Folder name only for display; full path in title tooltip
+  const folder = folderName(entry.cwd);
+  const headerLabel = `${shortCommand}${folder ? ` — ${folder}` : ''}`;
+  const headerTooltip = `${entry.command} — ${entry.cwd}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 12px', flexShrink: 0,
-        backgroundColor: colors.bg.tertiary, borderBottom: `1px solid ${colors.border.default}`
+        padding: '0 12px', height: 32, flexShrink: 0,
+        backgroundColor: colors.bg.tertiary, borderBottom: `1px solid ${colors.border.default}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: colors.accent.primary }}>●</span>
-          <span style={{ fontSize: 12, color: colors.text.secondary }}>
-            {entry.command} — {entry.cwd}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }} title={headerTooltip}>
+          <span style={{ fontSize: 8, color: dotColor, lineHeight: 1 }}>●</span>
+          <span style={{ fontSize: 11, color: colors.text.secondary }}>
+            {headerLabel}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 12, fontSize: 12, color: colors.text.dim }}>
-          <span>Split ⌘D</span>
-          <span>Close ⌘W</span>
+        <div style={{ display: 'flex', gap: 12, fontSize: 10, color: colors.text.dim }}>
+          <span style={{ cursor: 'default' }}>Split ⌘D</span>
+          <span style={{ cursor: 'default' }}>Close ⌘W</span>
         </div>
       </div>
 
-      {/* Terminal container — uses absolute positioning to guarantee pixel dimensions for xterm */}
-      <div style={{ position: 'relative', flex: '1 1 0%', minHeight: 0 }}>
+      {/* Terminal container */}
+      <div style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, overflow: 'hidden' }}>
         <div
           ref={containerRef}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: 0 }}
           onClick={() => termRef.current?.focus()}
         />
         {isExited && (

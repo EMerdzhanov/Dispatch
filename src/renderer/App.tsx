@@ -164,15 +164,26 @@ export function App() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.bg.primary, color: colors.text.primary }}>
       {/* Title bar drag region */}
       <div style={{
-        height: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', flexShrink: 0,
+        height: 36, display: 'flex', alignItems: 'center',
+        padding: '0 16px', flexShrink: 0, position: 'relative',
         backgroundColor: colors.bg.tertiary, WebkitAppRegion: 'drag'
       } as React.CSSProperties}>
-        <span style={{ fontSize: 11, color: colors.text.muted }}>Dispatch</span>
-        <div style={{ display: 'flex', gap: 8, fontSize: 10, color: colors.text.dim, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        {/* Left: keyboard hints */}
+        <div style={{
+          display: 'flex', gap: 10, fontSize: 10, color: colors.text.dim,
+          WebkitAppRegion: 'no-drag', position: 'relative', zIndex: 1,
+        } as React.CSSProperties}>
           <span>⌘K Search</span>
           <span>⌘N New</span>
         </div>
+        {/* Center: app name */}
+        <span style={{
+          fontSize: 12, fontWeight: 500, color: colors.text.muted,
+          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+          pointerEvents: 'none',
+        }}>
+          Dispatch
+        </span>
       </div>
 
       {/* Tab bar */}
@@ -181,7 +192,7 @@ export function App() {
       {/* Main content */}
       {hasGroups ? (
         <div style={{ display: 'flex', flex: '1 1 0%', minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ width: 224, flexShrink: 0 }}>
+          <div style={{ width: 240, flexShrink: 0 }}>
             <Sidebar onSpawn={handleSpawn} onSpawnInCwd={handleSpawnInCwd} />
           </div>
           <TerminalArea onSpawnInCwd={handleSpawnInCwd} />

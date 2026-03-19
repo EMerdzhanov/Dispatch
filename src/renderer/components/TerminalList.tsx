@@ -3,7 +3,11 @@ import { useStore } from '../store';
 import { TerminalEntry } from './TerminalEntry';
 import { colors } from '../theme/colors';
 
-export function TerminalList() {
+interface TerminalListProps {
+  onSpawnInCwd?: (cwd: string, command?: string) => void;
+}
+
+export function TerminalList({ onSpawnInCwd }: TerminalListProps) {
   const groups = useStore((s) => s.groups);
   const activeGroupId = useStore((s) => s.activeGroupId);
   const terminals = useStore((s) => s.terminals);
@@ -20,24 +24,42 @@ export function TerminalList() {
     : terminalIds;
 
   return (
-    <div className="flex-1 overflow-y-auto px-1.5">
-      <div className="px-1.5 mb-1.5 flex items-center justify-between">
-        <span className="text-[9px] uppercase tracking-widest" style={{ color: colors.text.dim }}>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px 4px' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 6, padding: '0 2px',
+      }}>
+        <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: colors.text.dim }}>
           Terminals ({terminalIds.length})
         </span>
       </div>
-      <input
-        type="text"
-        placeholder="Filter terminals..."
-        value={filterText}
-        onChange={(e) => setFilterText(e.target.value)}
-        className="w-full px-2 py-1 mb-2 rounded text-xs border outline-none"
-        style={{
-          backgroundColor: colors.bg.tertiary,
-          borderColor: colors.border.default,
-          color: colors.text.primary,
-        }}
-      />
+
+      {/* Filter input with search icon */}
+      <div style={{ position: 'relative', marginBottom: 8 }}>
+        <span style={{
+          position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 10, color: colors.text.dim, pointerEvents: 'none', userSelect: 'none',
+        }}>
+          ⌕
+        </span>
+        <input
+          type="text"
+          placeholder="Filter terminals…"
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            padding: '4px 8px 4px 22px',
+            borderRadius: 5,
+            fontSize: 11,
+            border: `1px solid ${colors.border.subtle}`,
+            backgroundColor: colors.bg.primary,
+            color: colors.text.secondary,
+            outline: 'none',
+          }}
+        />
+      </div>
+
       {filtered.map((id) => (
         <TerminalEntry key={id} terminalId={id} />
       ))}
