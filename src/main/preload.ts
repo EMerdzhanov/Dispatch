@@ -31,4 +31,7 @@ contextBridge.exposeInMainWorld('dispatch', {
     },
     attach: (pid: number) => ipcRenderer.invoke(IPC.SCANNER_ATTACH, pid),
   },
+  tmux: {
+    isAvailable: () => ipcRenderer.invoke('tmux:check'),
+  },
 });

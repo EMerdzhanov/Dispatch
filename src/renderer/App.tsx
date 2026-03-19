@@ -84,6 +84,17 @@ export function App() {
 
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
+  const [tmuxNotice, setTmuxNotice] = React.useState(false);
+
+  useEffect(() => {
+    (window as any).dispatch?.tmux?.isAvailable().then((available: boolean) => {
+      useStore.getState().setTmuxAvailable(available);
+      if (!available) {
+        setTmuxNotice(true);
+        setTimeout(() => setTmuxNotice(false), 8000);
+      }
+    });
+  }, []);
 
   const removeTerminal = useStore((s) => s.removeTerminal);
   const addGroup = useStore((s) => s.addGroup);
@@ -136,6 +147,18 @@ export function App() {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSpawn={handleSpawn} />
       <QuickSwitcher open={searchOpen} onClose={() => setSearchOpen(false)} />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {tmuxNotice && (
+        <div
+          className="fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg border text-xs max-w-sm"
+          style={{ backgroundColor: colors.bg.elevated, borderColor: colors.border.default, color: colors.text.secondary }}
+        >
+          <strong style={{ color: colors.accent.yellow }}>tmux not found.</strong>{' '}
+          Install tmux to enable attaching to external terminals.
+          <button className="ml-3" style={{ color: colors.text.dim }} onClick={() => setTmuxNotice(false)}>
+            Dismiss
+          </button>
+        </div>
+      )}
     </div>
   );
 }

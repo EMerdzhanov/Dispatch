@@ -67,6 +67,10 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
 
   setTimeout(startScanning, 3000);
 
+  ipcMain.handle('tmux:check', async () => {
+    return TmuxHelper.isAvailable();
+  });
+
   ipcMain.handle(IPC.SCANNER_ATTACH, async (_event, pid: number) => {
     const session = TmuxHelper.findSessionForPid(pid);
     if (session) {
