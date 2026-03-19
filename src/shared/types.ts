@@ -47,6 +47,7 @@ export interface SpawnOptions {
   cwd: string;
   command?: string;
   env?: Record<string, string>;
+  noTmux?: boolean; // bypass tmux (used in tests)
 }
 
 export interface Settings {
@@ -59,7 +60,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  shell: process.env.SHELL || '/bin/sh',
+  shell: typeof process !== 'undefined' && process.env?.SHELL ? process.env.SHELL : '/bin/sh',
   fontFamily: 'monospace',
   fontSize: 13,
   lineHeight: 1.2,

@@ -15,21 +15,26 @@ export function useTerminal(containerRef: React.RefObject<HTMLDivElement | null>
   const fitRef = useRef<FitAddon | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Don't re-create if already initialized
+    if (termRef.current) return;
 
     const term = new Terminal({
       theme: xtermTheme,
       fontSize: opts?.fontSize ?? 13,
-      fontFamily: opts?.fontFamily ?? 'monospace',
+      fontFamily: opts?.fontFamily ?? "'Menlo', 'Monaco', 'Courier New', monospace",
       lineHeight: opts?.lineHeight ?? 1.2,
       cursorBlink: true,
       allowProposedApi: true,
+      convertEol: true,
     });
 
     const fit = new FitAddon();
     term.loadAddon(fit);
 
-    term.open(containerRef.current);
+    term.open(container);
 
     // Try WebGL, fall back to canvas
     try {
@@ -40,22 +45,32 @@ export function useTerminal(containerRef: React.RefObject<HTMLDivElement | null>
       // Canvas renderer is the default fallback
     }
 
-    fit.fit();
     termRef.current = term;
     fitRef.current = fit;
 
-    const resizeObserver = new ResizeObserver(() => fit.fit());
-    resizeObserver.observe(containerRef.current);
+    // Fit after a short delay to ensure container has dimensions
+    const fitTimer = setTimeout(() => {
+      try { fit.fit(); } catch { /* ignore if container not ready */ }
+    }, 100);
+
+    // Also fit on subsequent resizes
+    const resizeObserver = new ResizeObserver(() => {
+      try { fit.fit(); } catch { /* ignore */ }
+    });
+    resizeObserver.observe(container);
 
     return () => {
+      clearTimeout(fitTimer);
       resizeObserver.disconnect();
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
     };
-  }, [containerRef, opts?.fontSize, opts?.fontFamily, opts?.lineHeight]);
+  }, []);  // Only run once on mount
 
-  const fit = useCallback(() => fitRef.current?.fit(), []);
+  const fit = useCallback(() => {
+    try { fitRef.current?.fit(); } catch { /* ignore */ }
+  }, []);
 
   return { terminal: termRef, fit };
 }

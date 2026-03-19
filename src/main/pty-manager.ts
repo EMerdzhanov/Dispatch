@@ -54,7 +54,7 @@ export class PtyManager {
     let shellArgs: string[];
     let commandToType: string | undefined;
 
-    if (this.tmuxAvailable) {
+    if (this.tmuxAvailable && !opts.noTmux) {
       // Use tmux for session persistence
       const sessionName = `dispatch-${id}`;
 

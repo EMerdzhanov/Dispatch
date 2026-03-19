@@ -10,7 +10,7 @@ export interface ExternalTerminal {
   emulator?: string;
 }
 
-const KNOWN_SHELLS = ['bash', 'zsh', 'fish', 'sh', 'dash'];
+const KNOWN_SHELLS = ['bash', 'zsh', 'fish', 'sh', 'dash', 'claude'];
 
 export class ProcessScanner {
   async scan(): Promise<ExternalTerminal[]> {
@@ -37,13 +37,15 @@ export class ProcessScanner {
         const comm = parts.slice(2).join(' ');
 
         if (tty === '??' || tty === '-') continue;
-        const basename = path.basename(comm);
+        // Strip leading dash from login shells (e.g. "-zsh" -> "zsh")
+        let basename = path.basename(comm);
+        if (basename.startsWith('-')) basename = basename.slice(1);
         if (!KNOWN_SHELLS.includes(basename)) continue;
 
         let cwd = '';
         try {
-          const lsofOut = execSync(`lsof -p ${pid} -d cwd -Fn 2>/dev/null`, { encoding: 'utf-8', timeout: 2000 });
-          const cwdLine = lsofOut.split('\n').find((l) => l.startsWith('n'));
+          const lsofOut = execSync(`lsof -a -p ${pid} -d cwd -F n 2>/dev/null`, { encoding: 'utf-8', timeout: 2000 });
+          const cwdLine = lsofOut.split('\n').find((l) => l.startsWith('n/'));
           if (cwdLine) cwd = cwdLine.slice(1);
         } catch {
           cwd = os.homedir();

@@ -4,7 +4,11 @@ import { SplitContainer } from './SplitContainer';
 import { TerminalPane } from './TerminalPane';
 import { colors } from '../theme/colors';
 
-export function TerminalArea() {
+interface TerminalAreaProps {
+  onSpawnInCwd?: (cwd: string, command?: string) => void;
+}
+
+export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
   const activeTerminalId = useStore((s) => s.activeTerminalId);
   const splitLayout = useStore((s) => s.splitLayout);
   const zenMode = useStore((s) => s.zenMode);
@@ -16,10 +20,10 @@ export function TerminalArea() {
 
   if (!hasTerminals || !activeTerminalId) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: colors.bg.primary }}>
-        <div className="text-center">
+      <div style={{ flex: '1 1 0%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.primary }}>
+        <div style={{ textAlign: 'center' }}>
           <p style={{ color: colors.text.dim }}>No terminal open</p>
-          <p className="text-xs mt-2" style={{ color: colors.text.dim }}>
+          <p style={{ fontSize: 12, marginTop: 8, color: colors.text.dim }}>
             Use Quick Launch or press ⌘N
           </p>
         </div>
@@ -27,25 +31,9 @@ export function TerminalArea() {
     );
   }
 
-  if (zenMode) {
-    return (
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: colors.bg.primary }}>
-        <TerminalPane terminalId={activeTerminalId} />
-      </div>
-    );
-  }
-
-  if (splitLayout) {
-    return (
-      <div className="flex-1 flex overflow-hidden" style={{ backgroundColor: colors.bg.primary }}>
-        <SplitContainer node={splitLayout} path={[]} />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: colors.bg.primary }}>
-      <TerminalPane terminalId={activeTerminalId} />
+    <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', minHeight: 0, backgroundColor: colors.bg.primary }}>
+      <TerminalPane key={activeTerminalId} terminalId={activeTerminalId} onSpawnInCwd={onSpawnInCwd} />
     </div>
   );
 }
