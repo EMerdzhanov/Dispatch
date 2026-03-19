@@ -9,7 +9,6 @@ import { useStore } from './store';
 import { usePty, useStateApi, useDialogApi } from './hooks/usePty';
 import { useShortcuts } from './hooks/useShortcuts';
 import { TerminalStatus } from '../shared/types';
-import { colors } from './theme/colors';
 
 export function App() {
   const pty = usePty();
@@ -161,29 +160,16 @@ export function App() {
   const hasGroups = groups.length > 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.bg.primary, color: colors.text.primary }}>
+    <div className="d-app">
       {/* Title bar drag region */}
-      <div style={{
-        height: 36, display: 'flex', alignItems: 'center',
-        padding: '0 16px', flexShrink: 0, position: 'relative',
-        backgroundColor: colors.bg.tertiary, WebkitAppRegion: 'drag'
-      } as React.CSSProperties}>
+      <div className="d-titlebar">
         {/* Left: keyboard hints */}
-        <div style={{
-          display: 'flex', gap: 10, fontSize: 10, color: colors.text.dim,
-          WebkitAppRegion: 'no-drag', position: 'relative', zIndex: 1,
-        } as React.CSSProperties}>
+        <div className="d-titlebar__hints">
           <span>⌘K Search</span>
           <span>⌘N New</span>
         </div>
         {/* Center: app name */}
-        <span style={{
-          fontSize: 12, fontWeight: 500, color: colors.text.muted,
-          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-          pointerEvents: 'none',
-        }}>
-          Dispatch
-        </span>
+        <span className="d-titlebar__title">Dispatch</span>
       </div>
 
       {/* Tab bar */}
@@ -191,37 +177,15 @@ export function App() {
 
       {/* Main content */}
       {hasGroups ? (
-        <div style={{ display: 'flex', flex: '1 1 0%', minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ width: 240, flexShrink: 0 }}>
-            <Sidebar onSpawn={handleSpawn} onSpawnInCwd={handleSpawnInCwd} />
-          </div>
+        <div className="d-main">
+          <Sidebar onSpawn={handleSpawn} onSpawnInCwd={handleSpawnInCwd} />
           <TerminalArea onSpawnInCwd={handleSpawnInCwd} />
         </div>
       ) : (
-        <div style={{
-          flex: '1 1 0%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: 16,
-        }}>
-          <h1 style={{ fontSize: 24, fontWeight: 600, color: colors.text.primary, margin: 0 }}>
-            Welcome to Dispatch
-          </h1>
-          <p style={{ fontSize: 14, color: colors.text.muted, margin: 0 }}>
-            Open a project folder to get started
-          </p>
-          <button
-            onClick={handleOpenFolder}
-            style={{
-              marginTop: 8,
-              padding: '10px 24px',
-              borderRadius: 8,
-              backgroundColor: colors.accent.primary,
-              color: '#fff',
-              fontSize: 14,
-              fontWeight: 500,
-              cursor: 'pointer',
-              border: 'none',
-            }}
-          >
+        <div className="d-welcome">
+          <h1 className="d-welcome__title">Welcome to Dispatch</h1>
+          <p className="d-welcome__subtitle">Open a project folder to get started</p>
+          <button className="d-welcome__button" onClick={handleOpenFolder}>
             Open Folder
           </button>
         </div>
