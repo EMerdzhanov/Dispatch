@@ -1,7 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { TerminalPane } from './TerminalPane';
-import { colors } from '../theme/colors';
 import type { SplitNode } from '../store/types';
 
 interface SplitContainerProps {
@@ -20,8 +19,8 @@ export function SplitContainer({ node, path }: SplitContainerProps) {
   const ratio = node.ratio;
 
   return (
-    <div className={`flex flex-1 overflow-hidden ${isHorizontal ? 'flex-row' : 'flex-col'}`}>
-      <div style={{ flex: `${ratio} 1 0%` }} className="overflow-hidden flex">
+    <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isHorizontal ? 'row' : 'column' }}>
+      <div style={{ flex: `${ratio} 1 0%`, overflow: 'hidden', display: 'flex' }}>
         <SplitContainer node={node.children[0]} path={[...path, 0]} />
       </div>
       <DragDivider
@@ -31,7 +30,7 @@ export function SplitContainer({ node, path }: SplitContainerProps) {
           updateSplitRatio(path, newRatio);
         }}
       />
-      <div style={{ flex: `${1 - ratio} 1 0%` }} className="overflow-hidden flex">
+      <div style={{ flex: `${1 - ratio} 1 0%`, overflow: 'hidden', display: 'flex' }}>
         <SplitContainer node={node.children[1]} path={[...path, 1]} />
       </div>
     </div>
@@ -69,8 +68,13 @@ function DragDivider({ direction, onDrag }: { direction: 'horizontal' | 'vertica
   return (
     <div
       ref={divRef}
-      className={`shrink-0 ${direction === 'horizontal' ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'}`}
-      style={{ backgroundColor: dragging ? colors.accent.primary : colors.border.default }}
+      style={{
+        flexShrink: 0,
+        width: direction === 'horizontal' ? 4 : undefined,
+        height: direction === 'vertical' ? 4 : undefined,
+        cursor: direction === 'horizontal' ? 'col-resize' : 'row-resize',
+        backgroundColor: dragging ? 'var(--accent-primary)' : 'var(--border-default)',
+      }}
       onMouseDown={handleMouseDown}
     />
   );
