@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { useStore } from '../store';
-import { colors } from '../theme/colors';
 import type { Preset } from '../../shared/types';
 
 interface CommandPaletteProps {
@@ -41,12 +40,9 @@ export function CommandPalette({ open, onClose, onSpawn }: CommandPaletteProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24" onClick={onClose}>
-      <div
-        className="w-[500px] rounded-lg shadow-2xl border overflow-hidden"
-        style={{ backgroundColor: colors.bg.tertiary, borderColor: colors.border.default }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="d-overlay">
+      <div className="d-overlay__backdrop" onClick={onClose} />
+      <div className="d-overlay__panel" onClick={(e) => e.stopPropagation()}>
         <input
           ref={inputRef}
           type="text"
@@ -54,27 +50,19 @@ export function CommandPalette({ open, onClose, onSpawn }: CommandPaletteProps) 
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full px-4 py-3 text-sm border-b outline-none"
-          style={{
-            backgroundColor: colors.bg.tertiary,
-            borderColor: colors.border.default,
-            color: colors.text.primary,
-          }}
+          className="d-overlay__input"
         />
-        <div className="max-h-64 overflow-y-auto">
+        <div className="d-overlay__list">
           {results.map((preset) => (
             <button
               key={preset.name}
-              className="w-full px-4 py-2.5 flex items-center gap-3 text-left hover:opacity-80 transition-colors"
-              style={{ backgroundColor: 'transparent' }}
+              className="d-overlay__item"
               onClick={() => { onSpawn(preset.command, preset.env); onClose(); }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.bg.elevated)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: preset.color }} />
+              <span className="d-overlay__item-dot" style={{ backgroundColor: preset.color }} />
               <div>
-                <div className="text-sm" style={{ color: colors.text.primary }}>{preset.name}</div>
-                <div className="text-xs" style={{ color: colors.text.dim }}>{preset.command}</div>
+                <div className="d-overlay__item-label">{preset.name}</div>
+                <div className="d-overlay__item-sublabel">{preset.command}</div>
               </div>
             </button>
           ))}

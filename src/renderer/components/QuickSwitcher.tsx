@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { useStore } from '../store';
-import { colors } from '../theme/colors';
 
 interface QuickSwitcherProps {
   open: boolean;
@@ -66,12 +65,9 @@ export function QuickSwitcher({ open, onClose }: QuickSwitcherProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24" onClick={onClose}>
-      <div
-        className="w-[500px] rounded-lg shadow-2xl border overflow-hidden"
-        style={{ backgroundColor: colors.bg.tertiary, borderColor: colors.border.default }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="d-overlay">
+      <div className="d-overlay__backdrop" onClick={onClose} />
+      <div className="d-overlay__panel" onClick={(e) => e.stopPropagation()}>
         <input
           ref={inputRef}
           type="text"
@@ -79,29 +75,22 @@ export function QuickSwitcher({ open, onClose }: QuickSwitcherProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full px-4 py-3 text-sm border-b outline-none"
-          style={{
-            backgroundColor: colors.bg.tertiary,
-            borderColor: colors.border.default,
-            color: colors.text.primary,
-          }}
+          className="d-overlay__input"
         />
-        <div className="max-h-64 overflow-y-auto">
+        <div className="d-overlay__list">
           {results.map((item) => (
             <button
               key={`${item.type}-${item.id}`}
-              className="w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors"
+              className="d-overlay__item"
               onClick={() => handleSelect(item)}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.bg.elevated)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <span className="text-[10px] uppercase w-14" style={{ color: colors.text.dim }}>
+              <span className="d-overlay__item-type">
                 {item.type === 'group' ? 'Project' : 'Term'}
               </span>
               <div>
-                <div className="text-sm" style={{ color: colors.text.primary }}>{item.label}</div>
+                <div className="d-overlay__item-label">{item.label}</div>
                 {item.sublabel && (
-                  <div className="text-xs" style={{ color: colors.text.dim }}>{item.sublabel}</div>
+                  <div className="d-overlay__item-sublabel">{item.sublabel}</div>
                 )}
               </div>
             </button>
