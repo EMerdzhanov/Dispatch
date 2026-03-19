@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { TerminalArea } from './components/TerminalArea';
 import { useStore } from './store';
 import { usePty, useStateApi } from './hooks/usePty';
+import { useShortcuts } from './hooks/useShortcuts';
 import { TerminalStatus } from '../shared/types';
 import { colors } from './theme/colors';
 
@@ -53,6 +54,34 @@ export function App() {
     });
     setActiveTerminal(id);
   }, [activeGroupId, groups, pty, addTerminal, findOrCreateGroup, setActiveTerminal]);
+
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
+
+  const removeTerminal = useStore((s) => s.removeTerminal);
+  const addGroup = useStore((s) => s.addGroup);
+  const splitTerminal = useStore((s) => s.splitTerminal);
+  const toggleZenMode = useStore((s) => s.toggleZenMode);
+  const setSettingsOpen = useStore((s) => s.setSettingsOpen);
+
+  useShortcuts({
+    onNewTerminal: () => handleSpawn('$SHELL'),
+    onNewTab: () => addGroup(undefined, 'New Group'),
+    onCloseTerminal: () => {
+      const id = useStore.getState().activeTerminalId;
+      if (id) {
+        pty.kill(id);
+        removeTerminal(id);
+      }
+    },
+    onOpenSearch: () => setSearchOpen(true),
+    onOpenPalette: () => setPaletteOpen(true),
+    onSplitHorizontal: () => splitTerminal('horizontal'),
+    onSplitVertical: () => splitTerminal('vertical'),
+    onToggleZenMode: () => toggleZenMode(),
+    onOpenSettings: () => setSettingsOpen(true),
+    onMovePaneFocus: (_dir) => { /* pane focus navigation — future enhancement */ },
+  });
 
   return (
     <div className="flex flex-col h-screen" style={{ backgroundColor: colors.bg.primary, color: colors.text.primary }}>
