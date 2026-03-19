@@ -1,0 +1,58 @@
+{
+  "name": "dispatch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main/index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev:renderer": "webpack serve --config webpack.renderer.config.ts",
+    "dev:main": "webpack --config webpack.main.config.ts --watch",
+    "build:renderer": "NODE_ENV=production webpack --config webpack.renderer.config.ts",
+    "build:main": "NODE_ENV=production webpack --config webpack.main.config.ts",
+    "build": "npm run build:main && npm run build:renderer",
+    "start": "electron dist/main/index.js",
+    "test": "vitest",
+    "postinstall": "electron-rebuild"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^41.0.3",
+    "fuse.js": "^7.1.0",
+    "node-pty": "^1.1.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0",
+    "xterm-addon-webgl": "^0.16.0",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.4.27",
+    "css-loader": "^7.1.4",
+    "electron-builder": "^26.8.1",
+    "electron-rebuild": "^3.2.9",
+    "happy-dom": "^20.8.4",
+    "html-webpack-plugin": "^5.6.6",
+    "jsdom": "^29.0.0",
+    "postcss-loader": "^8.2.1",
+    "style-loader": "^4.0.0",
+    "tailwindcss": "^4.2.2",
+    "ts-loader": "^9.5.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0",
+    "webpack": "^5.105.4",
+    "webpack-cli": "^7.0.2",
+    "webpack-dev-server": "^5.2.3"
+  }
+}
