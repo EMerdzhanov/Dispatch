@@ -1,6 +1,5 @@
 import React from 'react';
 import { useStore } from '../store';
-import { colors } from '../theme/colors';
 
 /** Show at most N path segments, truncated from the start with … */
 function shortPath(fullPath: string | undefined, maxLen = 28): string {
@@ -21,19 +20,8 @@ export function StatusBar() {
   const cwd = activeGroup?.cwd;
 
   return (
-    <div
-      style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '4px 10px',
-        fontSize: 9, color: colors.text.dim,
-        borderTop: `1px solid ${colors.border.subtle}`,
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}
-        title={cwd}
-      >
+    <div className="d-statusbar">
+      <span className="d-statusbar__path" title={cwd}>
         {shortPath(cwd) || 'No folder open'}
       </span>
       <span style={{ flexShrink: 0 }}>
