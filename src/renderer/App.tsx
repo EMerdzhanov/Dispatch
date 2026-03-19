@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { TerminalArea } from './components/TerminalArea';
 import { CommandPalette } from './components/CommandPalette';
 import { QuickSwitcher } from './components/QuickSwitcher';
+import { SettingsPanel } from './components/SettingsPanel';
 import { useStore } from './store';
 import { usePty, useStateApi } from './hooks/usePty';
 import { useShortcuts } from './hooks/useShortcuts';
@@ -89,6 +90,7 @@ export function App() {
   const splitTerminal = useStore((s) => s.splitTerminal);
   const toggleZenMode = useStore((s) => s.toggleZenMode);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
+  const settingsOpen = useStore((s) => s.settingsOpen);
 
   useShortcuts({
     onNewTerminal: () => handleSpawn('$SHELL'),
@@ -133,6 +135,7 @@ export function App() {
       </div>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSpawn={handleSpawn} />
       <QuickSwitcher open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
