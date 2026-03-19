@@ -2,7 +2,6 @@ import React from 'react';
 import { useStore } from '../store';
 import { SplitContainer } from './SplitContainer';
 import { TerminalPane } from './TerminalPane';
-import { colors } from '../theme/colors';
 
 interface TerminalAreaProps {
   onSpawnInCwd?: (cwd: string, command?: string) => void;
@@ -20,10 +19,10 @@ export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
 
   if (!hasTerminals || !activeTerminalId) {
     return (
-      <div style={{ flex: '1 1 0%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg.primary }}>
+      <div className="d-terminal-area--empty">
         <div style={{ textAlign: 'center' }}>
-          <p style={{ color: colors.text.dim }}>No terminal open</p>
-          <p style={{ fontSize: 12, marginTop: 8, color: colors.text.dim }}>
+          <p style={{ color: 'var(--text-dim)' }}>No terminal open</p>
+          <p style={{ fontSize: 12, marginTop: 8, color: 'var(--text-dim)' }}>
             Use Quick Launch or press ⌘N
           </p>
         </div>
@@ -32,7 +31,7 @@ export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', minHeight: 0, backgroundColor: colors.bg.primary }}>
+    <div className="d-terminal-area">
       <TerminalPane key={activeTerminalId} terminalId={activeTerminalId} onSpawnInCwd={onSpawnInCwd} />
     </div>
   );

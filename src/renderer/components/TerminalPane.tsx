@@ -7,7 +7,6 @@ import { SerializeAddon } from 'xterm-addon-serialize';
 import { usePty } from '../hooks/usePty';
 import { useStore } from '../store';
 import { TerminalStatus } from '../../shared/types';
-import { colors } from '../theme/colors';
 import { xtermTheme } from '../theme/xterm-theme';
 
 interface TerminalPaneProps {
@@ -151,7 +150,7 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
   const isClaude = entry.command === 'claude' || entry.command.startsWith('claude ');
 
   // Dot color: blue for claude, green for shell
-  const dotColor = isClaude ? colors.accent.blueLight : colors.accent.green;
+  const dotColor = isClaude ? '#53a8ff' : '#4caf50';
 
   // Short command label (first word)
   const shortCommand = entry.command.split(' ')[0].split('/').pop() || entry.command;
@@ -162,45 +161,31 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
   const headerTooltip = `${entry.command} — ${entry.cwd}`;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', overflow: 'hidden' }}>
+    <div className="d-termpane">
       {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 12px', height: 32, flexShrink: 0,
-        backgroundColor: colors.bg.tertiary, borderBottom: `1px solid ${colors.border.default}`,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }} title={headerTooltip}>
-          <span style={{ fontSize: 8, color: dotColor, lineHeight: 1 }}>●</span>
-          <span style={{ fontSize: 11, color: colors.text.secondary }}>
-            {headerLabel}
-          </span>
+      <div className="d-termpane__header">
+        <div className="d-termpane__header-left" title={headerTooltip}>
+          <span className="d-termpane__dot" style={{ color: dotColor }}>●</span>
+          <span className="d-termpane__title">{headerLabel}</span>
         </div>
-        <div style={{ display: 'flex', gap: 12, fontSize: 10, color: colors.text.dim }}>
-          <span style={{ cursor: 'default' }}>Split ⌘D</span>
-          <span style={{ cursor: 'default' }}>Close ⌘W</span>
+        <div className="d-termpane__shortcuts">
+          <span>Split ⌘D</span>
+          <span>Close ⌘W</span>
         </div>
       </div>
 
       {/* Terminal container */}
-      <div style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, overflow: 'hidden' }}>
+      <div className="d-termpane__container">
         <div
           ref={containerRef}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: 0 }}
+          className="d-termpane__xterm"
           onClick={() => termRef.current?.focus()}
         />
         {isExited && (
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 10
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ color: colors.text.muted }}>
-                Process exited with code {entry.exitCode ?? 'unknown'}
-              </p>
-              <p style={{ marginTop: 8, fontSize: 12, color: colors.text.dim }}>
-                Press any key to close or click Restart
-              </p>
+          <div className="d-termpane__exit-overlay">
+            <div className="d-termpane__exit-text">
+              <p>Process exited with code {entry.exitCode ?? 'unknown'}</p>
+              <p className="d-termpane__exit-hint">Press any key to close or click Restart</p>
             </div>
           </div>
         )}
