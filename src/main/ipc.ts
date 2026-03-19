@@ -1,8 +1,7 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, dialog, app } from 'electron';
 import { PtyManager } from './pty-manager';
 import { SessionStore } from './session-store';
 import { IPC } from '../shared/types';
-import { ProcessScanner } from './process-scanner';
 import { TmuxHelper } from './tmux';
 
 export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
@@ -45,39 +44,17 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
     win?.webContents.send(IPC.PTY_EXIT, id, code, signal);
   });
 
-  const scanner = new ProcessScanner();
-
-  // Start background scanning after 3-second delay
-  let scanInterval: NodeJS.Timeout | null = null;
-
-  const startScanning = async () => {
-    const settings = await store.loadSettings();
-    const interval = settings.scanInterval || 10000;
-
-    scanInterval = setInterval(async () => {
-      const results = await scanner.scan();
-      const enriched = results.map((r) => ({
-        ...r,
-        tmuxSession: TmuxHelper.findSessionForPid(r.pid),
-      }));
-      const win = BrowserWindow.getAllWindows()[0];
-      win?.webContents.send(IPC.SCANNER_RESULTS, enriched);
-    }, interval);
-  };
-
-  setTimeout(startScanning, 3000);
-
   ipcMain.handle('tmux:check', async () => {
     return TmuxHelper.isAvailable();
   });
 
-  ipcMain.handle(IPC.SCANNER_ATTACH, async (_event, pid: number) => {
-    const session = TmuxHelper.findSessionForPid(pid);
-    if (session) {
-      const cmd = TmuxHelper.getAttachCommand(session);
-      const id = ptyManager.spawn({ cwd: process.env.HOME || '/', command: cmd });
-      return { id, attached: true };
-    }
-    return { attached: false };
+  ipcMain.handle('dialog:openFolder', async () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    const result = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory'],
+      title: 'Open Project Folder',
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
   });
 }

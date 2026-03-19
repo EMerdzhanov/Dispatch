@@ -5,6 +5,7 @@ import { colors } from '../theme/colors';
 
 interface TerminalEntryProps {
   terminalId: string;
+  onSpawnInCwd?: (cwd: string, command?: string) => void;
 }
 
 const statusConfig = {
@@ -23,8 +24,11 @@ export function TerminalEntry({ terminalId }: TerminalEntryProps) {
   if (!terminal) return null;
 
   const isActive = terminalId === activeTerminalId;
-  const isExternal = terminal.isExternal;
   const status = statusConfig[terminal.status];
+
+  const isClaude = terminal.command === 'claude' || terminal.command.startsWith('claude ');
+  const typeName = isClaude ? 'Claude Code' : 'Shell';
+  const typeColor = isClaude ? colors.accent.blueLight : colors.text.muted;
 
   return (
     <button
@@ -32,23 +36,30 @@ export function TerminalEntry({ terminalId }: TerminalEntryProps) {
       style={{
         backgroundColor: isActive ? colors.bg.elevated : 'transparent',
         borderLeft: isActive ? `3px solid ${colors.accent.primary}` : '3px solid transparent',
-        opacity: isExternal ? 0.6 : 1,
       }}
       onClick={() => setActiveTerminal(terminalId)}
+      title={terminal.command}
     >
-      <div className="text-[11px]" style={{ color: isActive ? colors.text.primary : colors.text.secondary }}>
-        {terminal.command.includes('claude') ? 'Claude Code' : 'Shell'}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 500, color: typeColor }}>
+          {typeName}
+        </span>
       </div>
-      <div className="text-[9px] mt-0.5 truncate" style={{ color: colors.text.dim }}>
+      <div style={{ fontSize: 9, marginTop: 2, color: colors.text.dim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {terminal.command}
       </div>
-      <div className="mt-1">
-        <span
-          className="text-[8px] px-1.5 py-0.5 rounded"
-          style={{ backgroundColor: status.bg, color: status.text }}
-        >
+      <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{
+          fontSize: 8, padding: '2px 6px', borderRadius: 3,
+          backgroundColor: status.bg, color: status.text
+        }}>
           {status.label}
         </span>
+        {terminal.pid && (
+          <span style={{ fontSize: 8, color: colors.text.dim }}>
+            PID {terminal.pid}
+          </span>
+        )}
       </div>
     </button>
   );

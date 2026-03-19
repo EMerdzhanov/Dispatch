@@ -1,20 +1,39 @@
 import * as pty from 'node-pty';
 import os from 'os';
 import fs from 'fs';
+import { execSync } from 'child_process';
 import { randomUUID } from 'crypto';
 import type { SpawnOptions } from '../shared/types';
 
 type DataCallback = (id: string, data: string) => void;
 type ExitCallback = (id: string, exitCode: number, signal: number) => void;
 
+function isTmuxAvailable(): boolean {
+  try {
+    execSync('which tmux', { stdio: 'ignore', timeout: 2000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function tmuxSessionExists(sessionName: string): boolean {
+  try {
+    execSync(`tmux has-session -t ${sessionName}`, { stdio: 'ignore', timeout: 2000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export class PtyManager {
   private terminals = new Map<string, pty.IPty>();
   private dataCallbacks: DataCallback[] = [];
   private exitCallbacks: ExitCallback[] = [];
+  private tmuxAvailable = isTmuxAvailable();
 
   spawn(opts: SpawnOptions): string {
     const id = randomUUID();
-    let shell = opts.shell || process.env.SHELL || '/bin/sh';
     let cwd = opts.cwd;
 
     // Validate CWD exists, fallback to home
@@ -22,24 +41,66 @@ export class PtyManager {
       cwd = os.homedir();
     }
 
+    // Build environment — inherit everything from the system
+    const env: Record<string, string> = {
+      ...process.env as Record<string, string>,
+      ...opts.env,
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+      LANG: process.env.LANG || 'en_US.UTF-8',
+    };
+
+    let shellPath: string;
+    let shellArgs: string[];
+    let commandToType: string | undefined;
+
+    if (this.tmuxAvailable) {
+      // Use tmux for session persistence
+      const sessionName = `dispatch-${id}`;
+
+      if (tmuxSessionExists(sessionName)) {
+        // Re-attach to existing session
+        shellPath = 'tmux';
+        shellArgs = ['attach-session', '-t', sessionName];
+      } else {
+        // Create a new tmux session
+        shellPath = 'tmux';
+        shellArgs = ['new-session', '-s', sessionName, '-c', cwd];
+      }
+
+      // If a command needs to be typed inside the tmux shell (e.g. claude)
+      if (opts.command && opts.command !== '$SHELL') {
+        commandToType = opts.command;
+      }
+    } else {
+      // Fallback: plain shell without tmux
+      const userShell = process.env.SHELL || '/bin/zsh';
+      shellPath = userShell;
+      shellArgs = ['--login'];
+
+      if (opts.command && opts.command !== '$SHELL') {
+        commandToType = opts.command;
+      }
+    }
+
     let term: pty.IPty;
     try {
-      term = pty.spawn(shell, [], {
+      term = pty.spawn(shellPath, shellArgs, {
         name: 'xterm-256color',
         cols: 80,
         rows: 24,
         cwd,
-        env: { ...process.env, ...opts.env } as Record<string, string>,
+        env,
       });
     } catch {
-      // Fallback to /bin/sh if the requested shell fails
-      shell = '/bin/sh';
-      term = pty.spawn(shell, [], {
+      // Fallback to plain shell
+      const userShell = process.env.SHELL || '/bin/zsh';
+      term = pty.spawn(userShell, ['--login'], {
         name: 'xterm-256color',
         cols: 80,
         rows: 24,
         cwd,
-        env: { ...process.env, ...opts.env } as Record<string, string>,
+        env,
       });
     }
 
@@ -54,12 +115,25 @@ export class PtyManager {
       for (const cb of this.exitCallbacks) cb(id, exitCode ?? 0, signal ?? 0);
     });
 
-    // If a command was specified, send it
-    if (opts.command) {
-      term.write(opts.command + '\r');
+    // If there's a command to type, send it after a short delay
+    // so the shell (and tmux shell) has time to initialize
+    if (commandToType) {
+      const delay = this.tmuxAvailable ? 600 : 300;
+      setTimeout(() => {
+        term.write(commandToType + '\r');
+      }, delay);
     }
 
     return id;
+  }
+
+  /** Get all PIDs of terminals spawned by Dispatch */
+  getOwnPids(): Set<number> {
+    const pids = new Set<number>();
+    for (const term of this.terminals.values()) {
+      pids.add(term.pid);
+    }
+    return pids;
   }
 
   write(id: string, data: string): void {

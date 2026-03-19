@@ -16,9 +16,11 @@ declare global {
         load: () => Promise<unknown>;
         save: (state: unknown) => Promise<void>;
       };
-      scanner: {
-        onResults: (cb: (results: unknown[]) => void) => void;
-        attach: (pid: number) => Promise<void>;
+      dialog: {
+        openFolder: () => Promise<string | null>;
+      };
+      tmux: {
+        isAvailable: () => Promise<boolean>;
       };
     };
   }
@@ -32,8 +34,8 @@ export function useStateApi() {
   return window.dispatch.state;
 }
 
-export function useScannerApi() {
-  return window.dispatch.scanner;
+export function useDialogApi() {
+  return window.dispatch.dialog;
 }
 
 export function useAppApi() {

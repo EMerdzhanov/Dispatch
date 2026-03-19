@@ -6,7 +6,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { QuickSwitcher } from './components/QuickSwitcher';
 import { SettingsPanel } from './components/SettingsPanel';
 import { useStore } from './store';
-import { usePty, useStateApi } from './hooks/usePty';
+import { usePty, useStateApi, useDialogApi } from './hooks/usePty';
 import { useShortcuts } from './hooks/useShortcuts';
 import { TerminalStatus } from '../shared/types';
 import { colors } from './theme/colors';
@@ -14,6 +14,7 @@ import { colors } from './theme/colors';
 export function App() {
   const pty = usePty();
   const stateApi = useStateApi();
+  const dialogApi = useDialogApi();
   const addTerminal = useStore((s) => s.addTerminal);
   const findOrCreateGroup = useStore((s) => s.findOrCreateGroup);
   const setActiveTerminal = useStore((s) => s.setActiveTerminal);
@@ -66,9 +67,14 @@ export function App() {
     return cleanup;
   }, []);
 
+  const [homedir, setHomedir] = React.useState('/');
+  useEffect(() => {
+    window.dispatch?.app?.getHomedir().then((h: string) => setHomedir(h));
+  }, []);
+
   const handleSpawn = useCallback(async (command: string, env?: Record<string, string>) => {
     const activeGroup = groups.find((g) => g.id === activeGroupId);
-    const cwd = activeGroup?.cwd || '/';
+    const cwd = activeGroup?.cwd || homedir;
     const groupId = activeGroup?.id || findOrCreateGroup(cwd);
 
     const id = await pty.spawn({ cwd, command, env });
@@ -80,19 +86,49 @@ export function App() {
       status: TerminalStatus.RUNNING,
     });
     setActiveTerminal(id);
-  }, [activeGroupId, groups, pty, addTerminal, findOrCreateGroup, setActiveTerminal]);
+  }, [activeGroupId, groups, pty, addTerminal, findOrCreateGroup, setActiveTerminal, homedir]);
+
+  const handleSpawnInCwd = useCallback(async (cwd: string, command?: string) => {
+    const cmd = command || '$SHELL';
+    const groupId = findOrCreateGroup(cwd);
+
+    const id = await pty.spawn({ cwd, command: cmd });
+
+    addTerminal(groupId, {
+      id,
+      command: cmd,
+      cwd,
+      status: TerminalStatus.RUNNING,
+    });
+    useStore.getState().setActiveGroup(groupId);
+    setActiveTerminal(id);
+  }, [pty, addTerminal, findOrCreateGroup, setActiveTerminal]);
+
+  // Open a folder via the system dialog, create a tab, and auto-spawn a shell
+  const handleOpenFolder = useCallback(async () => {
+    const folderPath = await dialogApi.openFolder();
+    if (!folderPath) return;
+
+    // findOrCreateGroup returns the group ID (and creates the group if needed)
+    const groupId = useStore.getState().findOrCreateGroup(folderPath);
+    useStore.getState().setActiveGroup(groupId);
+
+    const id = await pty.spawn({ cwd: folderPath, command: '$SHELL' });
+    addTerminal(groupId, {
+      id,
+      command: '$SHELL',
+      cwd: folderPath,
+      status: TerminalStatus.RUNNING,
+    });
+    setActiveTerminal(id);
+  }, [dialogApi, pty, addTerminal, setActiveTerminal]);
 
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
-  const [tmuxNotice, setTmuxNotice] = React.useState(false);
 
   useEffect(() => {
     (window as any).dispatch?.tmux?.isAvailable().then((available: boolean) => {
       useStore.getState().setTmuxAvailable(available);
-      if (!available) {
-        setTmuxNotice(true);
-        setTimeout(() => setTmuxNotice(false), 8000);
-      }
     });
   }, []);
 
@@ -105,7 +141,7 @@ export function App() {
 
   useShortcuts({
     onNewTerminal: () => handleSpawn('$SHELL'),
-    onNewTab: () => addGroup(undefined, 'New Group'),
+    onNewTab: () => handleOpenFolder(),
     onCloseTerminal: () => {
       const id = useStore.getState().activeTerminalId;
       if (id) {
@@ -122,43 +158,67 @@ export function App() {
     onMovePaneFocus: (_dir) => { /* pane focus navigation — future enhancement */ },
   });
 
+  const hasGroups = groups.length > 0;
+
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: colors.bg.primary, color: colors.text.primary }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: colors.bg.primary, color: colors.text.primary }}>
       {/* Title bar drag region */}
-      <div className="h-8 flex items-center justify-between px-4 shrink-0"
-        style={{ backgroundColor: colors.bg.tertiary, WebkitAppRegion: 'drag' } as React.CSSProperties}>
-        <span className="text-[11px]" style={{ color: colors.text.muted }}>Dispatch</span>
-        <div className="flex gap-2 text-[10px]" style={{ color: colors.text.dim, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+      <div style={{
+        height: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px', flexShrink: 0,
+        backgroundColor: colors.bg.tertiary, WebkitAppRegion: 'drag'
+      } as React.CSSProperties}>
+        <span style={{ fontSize: 11, color: colors.text.muted }}>Dispatch</span>
+        <div style={{ display: 'flex', gap: 8, fontSize: 10, color: colors.text.dim, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <span>⌘K Search</span>
           <span>⌘N New</span>
         </div>
       </div>
 
       {/* Tab bar */}
-      <TabBar />
+      <TabBar onSpawnInCwd={handleSpawnInCwd} onOpenFolder={handleOpenFolder} />
 
       {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
-        <div className="w-56 shrink-0">
-          <Sidebar onSpawn={handleSpawn} />
+      {hasGroups ? (
+        <div style={{ display: 'flex', flex: '1 1 0%', minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ width: 224, flexShrink: 0 }}>
+            <Sidebar onSpawn={handleSpawn} onSpawnInCwd={handleSpawnInCwd} />
+          </div>
+          <TerminalArea onSpawnInCwd={handleSpawnInCwd} />
         </div>
-        <TerminalArea />
-      </div>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSpawn={handleSpawn} />
-      <QuickSwitcher open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      {tmuxNotice && (
-        <div
-          className="fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg border text-xs max-w-sm"
-          style={{ backgroundColor: colors.bg.elevated, borderColor: colors.border.default, color: colors.text.secondary }}
-        >
-          <strong style={{ color: colors.accent.yellow }}>tmux not found.</strong>{' '}
-          Install tmux to enable attaching to external terminals.
-          <button className="ml-3" style={{ color: colors.text.dim }} onClick={() => setTmuxNotice(false)}>
-            Dismiss
+      ) : (
+        <div style={{
+          flex: '1 1 0%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexDirection: 'column', gap: 16,
+        }}>
+          <h1 style={{ fontSize: 24, fontWeight: 600, color: colors.text.primary, margin: 0 }}>
+            Welcome to Dispatch
+          </h1>
+          <p style={{ fontSize: 14, color: colors.text.muted, margin: 0 }}>
+            Open a project folder to get started
+          </p>
+          <button
+            onClick={handleOpenFolder}
+            style={{
+              marginTop: 8,
+              padding: '10px 24px',
+              borderRadius: 8,
+              backgroundColor: colors.accent.primary,
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              border: 'none',
+            }}
+          >
+            Open Folder
           </button>
         </div>
       )}
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSpawn={handleSpawn} />
+      <QuickSwitcher open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

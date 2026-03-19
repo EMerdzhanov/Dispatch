@@ -25,11 +25,8 @@ contextBridge.exposeInMainWorld('dispatch', {
     load: () => ipcRenderer.invoke(IPC.STATE_LOAD),
     save: (state: unknown) => ipcRenderer.invoke(IPC.STATE_SAVE, state),
   },
-  scanner: {
-    onResults: (cb: (results: unknown[]) => void) => {
-      ipcRenderer.on(IPC.SCANNER_RESULTS, (_event, results) => cb(results));
-    },
-    attach: (pid: number) => ipcRenderer.invoke(IPC.SCANNER_ATTACH, pid),
+  dialog: {
+    openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
   },
   tmux: {
     isAvailable: () => ipcRenderer.invoke('tmux:check'),
