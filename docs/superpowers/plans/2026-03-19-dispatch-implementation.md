@@ -35,9 +35,11 @@ src/
 │   │   ├── TerminalList.tsx        # Terminal entries with filter
 │   │   ├── TerminalEntry.tsx       # Single terminal list item
 │   │   ├── TerminalArea.tsx        # Split pane container
+│   │   ├── SplitContainer.tsx     # Recursive split pane layout with draggable dividers
 │   │   ├── TerminalPane.tsx        # Single xterm.js instance + header
 │   │   ├── CommandPalette.tsx      # Cmd+Shift+P palette
 │   │   ├── QuickSwitcher.tsx       # Cmd+K switcher
+│   │   ├── SettingsPanel.tsx       # Settings UI (presets, font, shell, keybindings)
 │   │   └── StatusBar.tsx           # Bottom status bar
 │   ├── hooks/
 │   │   ├── useTerminal.ts          # xterm.js lifecycle hook
@@ -958,6 +960,9 @@ contextBridge.exposeInMainWorld('dispatch', {
       ipcRenderer.on(IPC.PTY_EXIT, (_event, id, code, signal) => cb(id, code, signal));
     },
   },
+  app: {
+    getHomedir: () => ipcRenderer.invoke('app:homedir'),
+  },
   state: {
     load: () => ipcRenderer.invoke(IPC.STATE_LOAD),
     save: (state: unknown) => ipcRenderer.invoke(IPC.STATE_SAVE, state),
@@ -1155,15 +1160,36 @@ Expected: FAIL — module not found
 // src/renderer/store/types.ts
 import type { TerminalEntry, ProjectGroup, Preset, Settings } from '../../shared/types';
 
+// Split pane data model — recursive tree structure
+export type SplitDirection = 'horizontal' | 'vertical';
+
+export interface SplitLeaf {
+  type: 'leaf';
+  terminalId: string;
+}
+
+export interface SplitBranch {
+  type: 'branch';
+  direction: SplitDirection;
+  children: SplitNode[];
+  ratio: number; // 0-1, position of the divider
+}
+
+export type SplitNode = SplitLeaf | SplitBranch;
+
 export interface StoreState {
   groups: ProjectGroup[];
   terminals: Record<string, TerminalEntry>;
   activeGroupId: string | null;
   activeTerminalId: string | null;
+  splitLayout: SplitNode | null; // current split pane tree for active group
+  zenMode: boolean; // true = maximize active terminal, hide sidebar
   presets: Preset[];
   settings: Settings;
   sidebarWidth: number;
   filterText: string;
+  settingsOpen: boolean;
+  tmuxAvailable: boolean;
 }
 
 export interface StoreActions {
@@ -1180,6 +1206,12 @@ export interface StoreActions {
   setPresets: (presets: Preset[]) => void;
   setSettings: (settings: Settings) => void;
   setFilterText: (text: string) => void;
+  splitTerminal: (direction: SplitDirection) => void;
+  setSplitLayout: (layout: SplitNode | null) => void;
+  updateSplitRatio: (path: number[], ratio: number) => void;
+  toggleZenMode: () => void;
+  setSettingsOpen: (open: boolean) => void;
+  setTmuxAvailable: (available: boolean) => void;
 }
 ```
 
@@ -2060,19 +2092,106 @@ git commit -m "feat: add Sidebar with QuickLaunch, TerminalList, and StatusBar"
 ### Task 11: TerminalArea (Split Panes)
 
 **Files:**
-- Create: `src/renderer/components/TerminalArea.tsx`
+- Create: `src/renderer/components/SplitContainer.tsx`, `src/renderer/components/TerminalArea.tsx`
 
-- [ ] **Step 1: Implement TerminalArea with split pane support**
+- [ ] **Step 1: Implement SplitContainer (recursive split pane renderer with draggable dividers)**
+
+```typescript
+// src/renderer/components/SplitContainer.tsx
+import React, { useCallback, useRef, useState } from 'react';
+import { useStore } from '../store';
+import { TerminalPane } from './TerminalPane';
+import { colors } from '../theme/colors';
+import type { SplitNode } from '../store/types';
+
+interface SplitContainerProps {
+  node: SplitNode;
+  path: number[]; // path into the split tree for ratio updates
+}
+
+export function SplitContainer({ node, path }: SplitContainerProps) {
+  const updateSplitRatio = useStore((s) => s.updateSplitRatio);
+
+  if (node.type === 'leaf') {
+    return <TerminalPane terminalId={node.terminalId} />;
+  }
+
+  const isHorizontal = node.direction === 'horizontal';
+  const ratio = node.ratio;
+
+  return (
+    <div className={`flex flex-1 overflow-hidden ${isHorizontal ? 'flex-row' : 'flex-col'}`}>
+      <div style={{ flex: `${ratio} 1 0%` }} className="overflow-hidden flex">
+        <SplitContainer node={node.children[0]} path={[...path, 0]} />
+      </div>
+      <DragDivider
+        direction={node.direction}
+        onDrag={(delta) => {
+          // Convert pixel delta to ratio delta based on parent size
+          const newRatio = Math.max(0.15, Math.min(0.85, ratio + delta));
+          updateSplitRatio(path, newRatio);
+        }}
+      />
+      <div style={{ flex: `${1 - ratio} 1 0%` }} className="overflow-hidden flex">
+        <SplitContainer node={node.children[1]} path={[...path, 1]} />
+      </div>
+    </div>
+  );
+}
+
+function DragDivider({ direction, onDrag }: { direction: 'horizontal' | 'vertical'; onDrag: (delta: number) => void }) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    const startPos = direction === 'horizontal' ? e.clientX : e.clientY;
+    const parentSize = direction === 'horizontal'
+      ? divRef.current?.parentElement?.clientWidth ?? 1
+      : divRef.current?.parentElement?.clientHeight ?? 1;
+
+    const handleMouseMove = (me: MouseEvent) => {
+      const currentPos = direction === 'horizontal' ? me.clientX : me.clientY;
+      const delta = (currentPos - startPos) / parentSize;
+      onDrag(delta);
+    };
+
+    const handleMouseUp = () => {
+      setDragging(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [direction, onDrag]);
+
+  return (
+    <div
+      ref={divRef}
+      className={`shrink-0 ${direction === 'horizontal' ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'}`}
+      style={{ backgroundColor: dragging ? colors.accent.primary : colors.border.default }}
+      onMouseDown={handleMouseDown}
+    />
+  );
+}
+```
+
+- [ ] **Step 2: Implement TerminalArea that uses SplitContainer**
 
 ```typescript
 // src/renderer/components/TerminalArea.tsx
 import React from 'react';
 import { useStore } from '../store';
+import { SplitContainer } from './SplitContainer';
 import { TerminalPane } from './TerminalPane';
 import { colors } from '../theme/colors';
 
 export function TerminalArea() {
   const activeTerminalId = useStore((s) => s.activeTerminalId);
+  const splitLayout = useStore((s) => s.splitLayout);
+  const zenMode = useStore((s) => s.zenMode);
   const groups = useStore((s) => s.groups);
   const activeGroupId = useStore((s) => s.activeGroupId);
 
@@ -2092,6 +2211,24 @@ export function TerminalArea() {
     );
   }
 
+  // Zen mode: show only the active terminal, full size
+  if (zenMode) {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: colors.bg.primary }}>
+        <TerminalPane terminalId={activeTerminalId} />
+      </div>
+    );
+  }
+
+  // If there's a split layout, render it; otherwise single pane
+  if (splitLayout) {
+    return (
+      <div className="flex-1 flex overflow-hidden" style={{ backgroundColor: colors.bg.primary }}>
+        <SplitContainer node={splitLayout} path={[]} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: colors.bg.primary }}>
       <TerminalPane terminalId={activeTerminalId} />
@@ -2100,11 +2237,68 @@ export function TerminalArea() {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 3: Add splitTerminal and related actions to the Zustand store**
+
+Add to the store `create()` body:
+
+```typescript
+splitLayout: null,
+zenMode: false,
+settingsOpen: false,
+tmuxAvailable: false,
+
+splitTerminal: (direction) => {
+  const { activeTerminalId, splitLayout } = get();
+  if (!activeTerminalId) return;
+  // For now, prompt a new terminal spawn — the caller will create a new terminal
+  // and then call setSplitLayout with the updated tree
+  // This action wraps the current active pane into a branch with a new leaf
+  const newLeaf: SplitLeaf = { type: 'leaf', terminalId: '' }; // placeholder, caller fills in
+  if (!splitLayout) {
+    // Currently single pane — create first split
+    set({
+      splitLayout: {
+        type: 'branch',
+        direction,
+        children: [
+          { type: 'leaf', terminalId: activeTerminalId },
+          newLeaf,
+        ],
+        ratio: 0.5,
+      },
+    });
+  }
+  // For deeper splits, find the leaf containing activeTerminalId and replace it with a branch
+},
+
+setSplitLayout: (layout) => set({ splitLayout: layout }),
+
+updateSplitRatio: (path, ratio) => {
+  set((s) => {
+    if (!s.splitLayout || s.splitLayout.type !== 'branch') return s;
+    // Deep clone and update ratio at path
+    const updated = JSON.parse(JSON.stringify(s.splitLayout));
+    let node = updated;
+    for (const idx of path) {
+      if (node.type === 'branch' && node.children[idx]) {
+        node = node.children[idx];
+      }
+    }
+    if (node.type === 'branch') node.ratio = ratio;
+    return { splitLayout: updated };
+  });
+},
+
+toggleZenMode: () => set((s) => ({ zenMode: !s.zenMode })),
+setSettingsOpen: (open) => set({ settingsOpen: open }),
+setTmuxAvailable: (available) => set({ tmuxAvailable: available }),
+```
+
+- [ ] **Step 4: Commit**
 
 ```bash
-git add src/renderer/components/TerminalArea.tsx
-git commit -m "feat: add TerminalArea component"
+git add src/renderer/components/SplitContainer.tsx src/renderer/components/TerminalArea.tsx src/renderer/store/
+git commit -m "feat: add split pane support with draggable dividers and zen mode"
 ```
 
 ---
@@ -2160,7 +2354,8 @@ export function App() {
 
   const handleSpawn = useCallback(async (command: string, env?: Record<string, string>) => {
     const activeGroup = groups.find((g) => g.id === activeGroupId);
-    const cwd = activeGroup?.cwd || process.env.HOME || '/';
+    // Note: process.env.HOME is not available in renderer. Use the preload API or a stored value.
+    const cwd = activeGroup?.cwd || '/';
     const groupId = activeGroup?.id || findOrCreateGroup(cwd);
 
     const id = await pty.spawn({ cwd, command, env });
@@ -2234,6 +2429,11 @@ interface ShortcutHandlers {
   onCloseTerminal: () => void;
   onOpenSearch: () => void;
   onOpenPalette: () => void;
+  onSplitHorizontal: () => void;
+  onSplitVertical: () => void;
+  onToggleZenMode: () => void;
+  onOpenSettings: () => void;
+  onMovePaneFocus: (direction: 'up' | 'down' | 'left' | 'right') => void;
 }
 
 export function useShortcuts(handlers: ShortcutHandlers) {
@@ -2315,6 +2515,41 @@ export function useShortcuts(handlers: ShortcutHandlers) {
         }
         return;
       }
+
+      // Cmd+D: Split horizontal
+      if (meta && e.key === 'd' && !e.shiftKey) {
+        e.preventDefault();
+        handlers.onSplitHorizontal();
+        return;
+      }
+
+      // Cmd+Shift+D: Split vertical
+      if (meta && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        handlers.onSplitVertical();
+        return;
+      }
+
+      // Cmd+Shift+Enter: Zen mode (maximize/restore)
+      if (meta && e.shiftKey && e.key === 'Enter') {
+        e.preventDefault();
+        handlers.onToggleZenMode();
+        return;
+      }
+
+      // Cmd+,: Open settings
+      if (meta && e.key === ',') {
+        e.preventDefault();
+        handlers.onOpenSettings();
+        return;
+      }
+
+      // Cmd+Alt+Arrow: Move focus between split panes
+      if (meta && e.altKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        handlers.onMovePaneFocus(e.key.replace('Arrow', '').toLowerCase() as 'up' | 'down' | 'left' | 'right');
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -2333,6 +2568,9 @@ const [paletteOpen, setPaletteOpen] = React.useState(false);
 
 const removeTerminal = useStore((s) => s.removeTerminal);
 const addGroup = useStore((s) => s.addGroup);
+const splitTerminal = useStore((s) => s.splitTerminal);
+const toggleZenMode = useStore((s) => s.toggleZenMode);
+const setSettingsOpen = useStore((s) => s.setSettingsOpen);
 
 useShortcuts({
   onNewTerminal: () => handleSpawn('$SHELL'),
@@ -2346,6 +2584,11 @@ useShortcuts({
   },
   onOpenSearch: () => setSearchOpen(true),
   onOpenPalette: () => setPaletteOpen(true),
+  onSplitHorizontal: () => splitTerminal('horizontal'),
+  onSplitVertical: () => splitTerminal('vertical'),
+  onToggleZenMode: () => toggleZenMode(),
+  onOpenSettings: () => setSettingsOpen(true),
+  onMovePaneFocus: (_dir) => { /* TODO: implement pane focus navigation in split tree */ },
 });
 ```
 
@@ -3057,6 +3300,7 @@ Add to `App.tsx`:
 
 ```typescript
 // Auto-save state on changes (debounced 2 seconds)
+// Note: Window bounds are saved via IPC from the main process (see below)
 const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
 useEffect(() => {
@@ -3064,16 +3308,73 @@ useEffect(() => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       stateApi.save({
-        groups: state.groups,
+        groups: state.groups.map((g) => ({
+          ...g,
+          // Save terminal commands/cwds for lazy re-spawn on next launch
+          savedTerminals: g.terminalIds.map((tid) => {
+            const t = state.terminals[tid];
+            return t ? { command: t.command, cwd: t.cwd } : null;
+          }).filter(Boolean),
+        })),
         activeGroupId: state.activeGroupId,
         activeTerminalId: null,
-        windowBounds: { x: 0, y: 0, width: 1200, height: 800 },
         sidebarWidth: state.sidebarWidth,
       });
     }, 2000);
   });
   return () => unsub();
 }, [stateApi]);
+```
+
+Also add to the main process (`src/main/index.ts`) — save window bounds on move/resize:
+
+```typescript
+// In createWindow(), after mainWindow is created:
+const saveBounds = () => {
+  if (mainWindow) {
+    const bounds = mainWindow.getBounds();
+    store.loadState().then((state) => {
+      store.saveState({ ...state, windowBounds: bounds });
+    });
+  }
+};
+mainWindow.on('resize', debounce(saveBounds, 1000));
+mainWindow.on('move', debounce(saveBounds, 1000));
+
+// On launch, restore saved bounds:
+const savedState = await store.loadState();
+if (savedState.windowBounds) {
+  mainWindow.setBounds(savedState.windowBounds);
+}
+```
+
+And update the restore logic in `App.tsx` to lazy-spawn saved terminals:
+
+```typescript
+// In the stateApi.load() handler:
+stateApi.load().then(async (data: any) => {
+  if (data?.presets) useStore.getState().setPresets(data.presets);
+  if (data?.settings) useStore.getState().setSettings(data.settings);
+  if (data?.state?.groups) {
+    for (const g of data.state.groups) {
+      useStore.getState().addGroup(g.cwd, g.label);
+      // Lazy spawn: only spawn terminals for the first (active) group
+      const isActiveGroup = g.id === data.state.activeGroupId || data.state.groups.indexOf(g) === 0;
+      if (isActiveGroup && g.savedTerminals) {
+        for (const t of g.savedTerminals) {
+          const id = await pty.spawn({ cwd: t.cwd, command: t.command });
+          const groupId = useStore.getState().groups.find((grp) => grp.cwd === g.cwd)?.id;
+          if (groupId) {
+            useStore.getState().addTerminal(groupId, {
+              id, command: t.command, cwd: t.cwd, status: TerminalStatus.RUNNING,
+            });
+          }
+        }
+      }
+      // Background tab terminals are spawned when their tab is first focused (handled in setActiveGroup)
+    }
+  }
+});
 ```
 
 - [ ] **Step 2: Verify build**
@@ -3182,7 +3483,302 @@ git commit -m "feat: add vitest config with happy-dom for renderer tests"
 
 ---
 
-### Task 22: Integration Smoke Test
+### Task 22: Settings Panel
+
+**Files:**
+- Create: `src/renderer/components/SettingsPanel.tsx`
+
+- [ ] **Step 1: Implement SettingsPanel component**
+
+```typescript
+// src/renderer/components/SettingsPanel.tsx
+import React, { useState } from 'react';
+import { useStore } from '../store';
+import { colors } from '../theme/colors';
+import type { Preset } from '../../shared/types';
+
+interface SettingsPanelProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
+  const settings = useStore((s) => s.settings);
+  const setSettings = useStore((s) => s.setSettings);
+  const presets = useStore((s) => s.presets);
+  const setPresets = useStore((s) => s.setPresets);
+  const [editingPreset, setEditingPreset] = useState<Preset | null>(null);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+      <div
+        className="w-[600px] max-h-[80vh] rounded-lg shadow-2xl border overflow-y-auto"
+        style={{ backgroundColor: colors.bg.tertiary, borderColor: colors.border.default }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: colors.border.default }}>
+          <h2 className="text-sm font-medium" style={{ color: colors.text.primary }}>Settings</h2>
+          <button onClick={onClose} className="text-xs" style={{ color: colors.text.dim }}>Close (Esc)</button>
+        </div>
+
+        {/* Terminal section */}
+        <div className="px-6 py-4 border-b" style={{ borderColor: colors.border.default }}>
+          <h3 className="text-xs uppercase tracking-widest mb-3" style={{ color: colors.text.dim }}>Terminal</h3>
+          <div className="space-y-3">
+            <label className="flex items-center justify-between">
+              <span className="text-sm" style={{ color: colors.text.secondary }}>Font Family</span>
+              <input
+                type="text"
+                value={settings.fontFamily}
+                onChange={(e) => setSettings({ ...settings, fontFamily: e.target.value })}
+                className="w-48 px-2 py-1 rounded text-xs border outline-none"
+                style={{ backgroundColor: colors.bg.primary, borderColor: colors.border.default, color: colors.text.primary }}
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span className="text-sm" style={{ color: colors.text.secondary }}>Font Size</span>
+              <input
+                type="number"
+                value={settings.fontSize}
+                onChange={(e) => setSettings({ ...settings, fontSize: parseInt(e.target.value, 10) })}
+                className="w-20 px-2 py-1 rounded text-xs border outline-none"
+                style={{ backgroundColor: colors.bg.primary, borderColor: colors.border.default, color: colors.text.primary }}
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span className="text-sm" style={{ color: colors.text.secondary }}>Line Height</span>
+              <input
+                type="number"
+                step="0.1"
+                value={settings.lineHeight}
+                onChange={(e) => setSettings({ ...settings, lineHeight: parseFloat(e.target.value) })}
+                className="w-20 px-2 py-1 rounded text-xs border outline-none"
+                style={{ backgroundColor: colors.bg.primary, borderColor: colors.border.default, color: colors.text.primary }}
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span className="text-sm" style={{ color: colors.text.secondary }}>Default Shell</span>
+              <input
+                type="text"
+                value={settings.shell}
+                onChange={(e) => setSettings({ ...settings, shell: e.target.value })}
+                className="w-48 px-2 py-1 rounded text-xs border outline-none"
+                style={{ backgroundColor: colors.bg.primary, borderColor: colors.border.default, color: colors.text.primary }}
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span className="text-sm" style={{ color: colors.text.secondary }}>Scan Interval (ms)</span>
+              <input
+                type="number"
+                step="1000"
+                value={settings.scanInterval}
+                onChange={(e) => setSettings({ ...settings, scanInterval: parseInt(e.target.value, 10) })}
+                className="w-20 px-2 py-1 rounded text-xs border outline-none"
+                style={{ backgroundColor: colors.bg.primary, borderColor: colors.border.default, color: colors.text.primary }}
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* Presets section */}
+        <div className="px-6 py-4">
+          <h3 className="text-xs uppercase tracking-widest mb-3" style={{ color: colors.text.dim }}>Presets</h3>
+          <div className="space-y-2">
+            {presets.map((preset, i) => (
+              <div key={i} className="flex items-center gap-3 p-2 rounded" style={{ backgroundColor: colors.bg.primary }}>
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: preset.color }} />
+                <div className="flex-1">
+                  <div className="text-sm" style={{ color: colors.text.primary }}>{preset.name}</div>
+                  <div className="text-xs" style={{ color: colors.text.dim }}>{preset.command}</div>
+                </div>
+                <button
+                  className="text-xs px-2 py-1 rounded"
+                  style={{ color: colors.accent.primary }}
+                  onClick={() => {
+                    const updated = presets.filter((_, j) => j !== i);
+                    setPresets(updated);
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              className="w-full py-2 rounded text-xs border border-dashed"
+              style={{ borderColor: colors.border.default, color: colors.text.dim }}
+              onClick={() => {
+                setPresets([...presets, { name: 'New Preset', command: '', color: '#888', icon: 'terminal' }]);
+              }}
+            >
+              + Add Preset
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: Wire SettingsPanel into App.tsx**
+
+Add to App.tsx return:
+```typescript
+<SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+```
+
+Where `settingsOpen` comes from the store:
+```typescript
+const settingsOpen = useStore((s) => s.settingsOpen);
+const setSettingsOpen = useStore((s) => s.setSettingsOpen);
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/renderer/components/SettingsPanel.tsx src/renderer/App.tsx
+git commit -m "feat: add Settings panel with font, shell, and preset management"
+```
+
+---
+
+### Task 23: tmux Availability Notice
+
+**Files:**
+- Modify: `src/main/ipc.ts`, `src/main/preload.ts`, `src/renderer/App.tsx`
+
+- [ ] **Step 1: Add tmux check IPC channel**
+
+Add to `src/main/ipc.ts`:
+```typescript
+ipcMain.handle('tmux:check', async () => {
+  return TmuxHelper.isAvailable();
+});
+```
+
+Add to `src/main/preload.ts` dispatch API:
+```typescript
+tmux: {
+  isAvailable: () => ipcRenderer.invoke('tmux:check'),
+},
+```
+
+- [ ] **Step 2: Check tmux on app mount and show notice**
+
+Add to `App.tsx` useEffect on mount:
+```typescript
+// Check tmux availability
+window.dispatch.tmux.isAvailable().then((available: boolean) => {
+  useStore.getState().setTmuxAvailable(available);
+  if (!available) {
+    // Show non-blocking notification (auto-dismiss after 8 seconds)
+    setTmuxNotice(true);
+    setTimeout(() => setTmuxNotice(false), 8000);
+  }
+});
+```
+
+Add the notice JSX:
+```typescript
+const [tmuxNotice, setTmuxNotice] = React.useState(false);
+
+// In the return, before closing </div>:
+{tmuxNotice && (
+  <div
+    className="fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg border text-xs max-w-sm"
+    style={{ backgroundColor: colors.bg.elevated, borderColor: colors.border.default, color: colors.text.secondary }}
+  >
+    <strong style={{ color: colors.accent.yellow }}>tmux not found.</strong>{' '}
+    Install tmux to enable attaching to external terminals.
+    <button
+      className="ml-3"
+      style={{ color: colors.text.dim }}
+      onClick={() => setTmuxNotice(false)}
+    >
+      Dismiss
+    </button>
+  </div>
+)}
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/main/ipc.ts src/main/preload.ts src/renderer/App.tsx
+git commit -m "feat: check tmux availability on launch and show notice if missing"
+```
+
+---
+
+### Task 24: Fix Preload IPC Cleanup (Listener Leak Prevention)
+
+**Files:**
+- Modify: `src/main/preload.ts`
+
+- [ ] **Step 1: Add removeListener support to preload API**
+
+Update the preload to return cleanup functions:
+
+```typescript
+// In the pty section of contextBridge:
+pty: {
+  spawn: (opts: unknown) => ipcRenderer.invoke(IPC.PTY_SPAWN, opts),
+  write: (id: string, data: string) => ipcRenderer.send(IPC.PTY_DATA, id, data),
+  resize: (id: string, cols: number, rows: number) => ipcRenderer.send(IPC.PTY_RESIZE, id, cols, rows),
+  kill: (id: string) => ipcRenderer.send(IPC.PTY_KILL, id),
+  onData: (cb: (id: string, data: string) => void) => {
+    const handler = (_event: any, id: string, data: string) => cb(id, data);
+    ipcRenderer.on(IPC.PTY_DATA, handler);
+    return () => ipcRenderer.removeListener(IPC.PTY_DATA, handler);
+  },
+  onExit: (cb: (id: string, code: number, signal: number) => void) => {
+    const handler = (_event: any, id: string, code: number, signal: number) => cb(id, code, signal);
+    ipcRenderer.on(IPC.PTY_EXIT, handler);
+    return () => ipcRenderer.removeListener(IPC.PTY_EXIT, handler);
+  },
+},
+```
+
+- [ ] **Step 2: Use cleanup in TerminalPane useEffect**
+
+Update `TerminalPane.tsx` to call the cleanup function:
+
+```typescript
+useEffect(() => {
+  if (!terminal.current) return;
+
+  const cleanupData = pty.onData((id, data) => {
+    if (id === terminalId) terminal.current?.write(data);
+  });
+
+  const disposable = terminal.current.onData((data) => {
+    pty.write(terminalId, data);
+  });
+
+  const resizeDisposable = terminal.current.onResize(({ cols, rows }) => {
+    pty.resize(terminalId, cols, rows);
+  });
+
+  return () => {
+    cleanupData();
+    disposable.dispose();
+    resizeDisposable.dispose();
+  };
+}, [terminal.current, terminalId, pty]);
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/main/preload.ts src/renderer/components/TerminalPane.tsx
+git commit -m "fix: add IPC listener cleanup to prevent memory leaks"
+```
+
+---
+
+### Task 25: Integration Smoke Test
 
 **Files:**
 - None (manual verification)
@@ -3201,9 +3797,21 @@ Click a Quick Launch button. Expected: xterm.js terminal appears with the comman
 
 - [ ] **Step 3: Verify keyboard shortcuts**
 
-Test `Cmd+N` (new terminal), `Cmd+K` (switcher), `Cmd+Shift+P` (palette), `Cmd+W` (close).
+Test `Cmd+N` (new terminal), `Cmd+K` (switcher), `Cmd+Shift+P` (palette), `Cmd+W` (close), `Cmd+D` (split), `Cmd+Shift+Enter` (zen mode), `Cmd+,` (settings).
 
-- [ ] **Step 4: Final commit**
+- [ ] **Step 4: Verify split panes**
+
+Open a terminal, press `Cmd+D`. Expected: terminal splits horizontally with a draggable divider. Drag the divider to resize.
+
+- [ ] **Step 5: Verify settings panel**
+
+Press `Cmd+,`. Expected: Settings panel opens with font, shell, and preset management options.
+
+- [ ] **Step 6: Verify session persistence**
+
+Open terminals in multiple projects, close Dispatch, reopen. Expected: project groups and tabs restored, terminals re-spawned in the active tab.
+
+- [ ] **Step 7: Final commit**
 
 ```bash
 git add -A
