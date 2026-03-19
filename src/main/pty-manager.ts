@@ -51,7 +51,7 @@ export class PtyManager {
 
     term.onExit(({ exitCode, signal }) => {
       this.terminals.delete(id);
-      for (const cb of this.exitCallbacks) cb(id, exitCode, signal);
+      for (const cb of this.exitCallbacks) cb(id, exitCode ?? 0, signal ?? 0);
     });
 
     // If a command was specified, send it

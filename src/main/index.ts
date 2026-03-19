@@ -1,7 +1,16 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
+import os from 'os';
+import { PtyManager } from './pty-manager';
+import { SessionStore } from './session-store';
+import { registerIpc } from './ipc';
 
 let mainWindow: BrowserWindow | null = null;
+
+const ptyManager = new PtyManager();
+const store = new SessionStore(
+  path.join(app.getPath('home'), '.config', 'dispatch')
+);
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -25,9 +34,17 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  registerIpc(ptyManager, store);
+
+  // app:homedir handler
+  ipcMain.handle('app:homedir', () => os.homedir());
+
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
+  ptyManager.killAll();
   if (process.platform !== 'darwin') app.quit();
 });
 
