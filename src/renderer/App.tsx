@@ -2,6 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { TabBar } from './components/TabBar';
 import { Sidebar } from './components/Sidebar';
 import { TerminalArea } from './components/TerminalArea';
+import { CommandPalette } from './components/CommandPalette';
 import { useStore } from './store';
 import { usePty, useStateApi } from './hooks/usePty';
 import { useShortcuts } from './hooks/useShortcuts';
@@ -105,6 +106,7 @@ export function App() {
         </div>
         <TerminalArea />
       </div>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSpawn={handleSpawn} />
     </div>
   );
 }
