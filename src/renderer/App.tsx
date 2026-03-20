@@ -246,6 +246,23 @@ export function App() {
     });
   }, []);
 
+  // Load project data when active group changes
+  useEffect(() => {
+    const group = groups.find((g) => g.id === activeGroupId);
+    if (!group?.cwd) return;
+    const cwd = group.cwd;
+
+    (window as any).dispatch?.project?.loadTasks(cwd).then((t: any) => {
+      useStore.getState().setProjectTasks(t || []);
+    });
+    (window as any).dispatch?.project?.loadNotes(cwd).then((n: any) => {
+      useStore.getState().setProjectNotes(n || []);
+    });
+    (window as any).dispatch?.project?.loadVault(cwd).then((v: any) => {
+      useStore.getState().setProjectVault(v || []);
+    });
+  }, [activeGroupId]);
+
   const handleSaveTemplate = async (name: string) => {
     const state = useStore.getState();
     const group = state.groups.find((g) => g.id === state.activeGroupId);
