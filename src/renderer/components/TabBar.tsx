@@ -81,9 +81,17 @@ export function TabBar({ onSpawnInCwd, onOpenFolder }: TabBarProps) {
 
         <button
           className="d-tab d-tab--add"
+          onClick={() => useStore.getState().setShortcutsOpen(true)}
+          title="Keyboard Shortcuts (⌘?)"
+          style={{ fontSize: 16 }}
+        >
+          ?
+        </button>
+        <button
+          className="d-tab d-tab--add"
           onClick={() => useStore.getState().setSettingsOpen(true)}
           title="Settings (⌘,)"
-          style={{ fontSize: 15 }}
+          style={{ fontSize: 16 }}
         >
           ⚙
         </button>

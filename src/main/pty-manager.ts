@@ -120,13 +120,12 @@ export class PtyManager {
       for (const cb of this.exitCallbacks) cb(id, exitCode ?? 0, signal ?? 0);
     });
 
-    // If there's a command to type, send it after a short delay
-    // so the shell (and tmux shell) has time to initialize
+    // Type the command after a minimal delay — just enough for the
+    // PTY to initialize. The shell's input buffer queues the rest.
     if (commandToType) {
-      const delay = this.tmuxAvailable ? 600 : 300;
       setTimeout(() => {
         term.write(commandToType + '\r');
-      }, delay);
+      }, this.tmuxAvailable ? 200 : 100);
     }
 
     return id;

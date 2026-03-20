@@ -22,6 +22,7 @@ export interface StoreState {
   sidebarWidth: number;
   filterText: string;
   settingsOpen: boolean;
+  shortcutsOpen: boolean;
   tmuxAvailable: boolean;
   terminalStatuses: Record<string, TerminalActivityStatus>;
   templates: Template[];
@@ -58,6 +59,7 @@ export interface StoreActions {
   updateSplitRatio: (path: number[], ratio: number) => void;
   toggleZenMode: () => void;
   setSettingsOpen: (open: boolean) => void;
+  setShortcutsOpen: (open: boolean) => void;
   setTmuxAvailable: (available: boolean) => void;
   setTerminalStatus: (id: string, status: TerminalActivityStatus) => void;
   setTemplates: (templates: Template[]) => void;

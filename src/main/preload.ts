@@ -54,6 +54,9 @@ contextBridge.exposeInMainWorld('dispatch', {
     loadVault: (cwd: string) => ipcRenderer.invoke('project:loadVault', cwd),
     saveVault: (cwd: string, entries: unknown) => ipcRenderer.invoke('project:saveVault', cwd, entries),
   },
+  fs: {
+    readdir: (dirPath: string) => ipcRenderer.invoke('fs:readdir', dirPath),
+  },
   browser: {
     onDetected: (cb: (terminalId: string, url: string) => void) => {
       ipcRenderer.on('browser:detected', (_event: any, terminalId: string, url: string) => cb(terminalId, url));

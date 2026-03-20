@@ -11,6 +11,7 @@ interface ShortcutHandlers {
   onSplitVertical: () => void;
   onToggleZenMode: () => void;
   onOpenSettings: () => void;
+  onOpenShortcuts: () => void;
   onMovePaneFocus: (direction: 'up' | 'down' | 'left' | 'right') => void;
   onSaveTemplate: () => void;
 }
@@ -114,6 +115,12 @@ export function useShortcuts(handlers: ShortcutHandlers) {
       if (meta && e.key === ',') {
         e.preventDefault();
         handlers.onOpenSettings();
+        return;
+      }
+
+      if (meta && e.shiftKey && e.key === '/') {
+        e.preventDefault();
+        handlers.onOpenShortcuts();
         return;
       }
 

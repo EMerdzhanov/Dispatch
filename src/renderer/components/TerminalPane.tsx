@@ -55,6 +55,7 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
   const pty = usePty();
   const entry = useStore((s) => s.terminals[terminalId]);
   const [mounted, setMounted] = useState(false);
+  const resyncingRef = useRef(false);
 
   // Initialize xterm with all addons
   useEffect(() => {
@@ -101,10 +102,13 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
 
     // CRITICAL: Prevent browser from intercepting Tab, arrow keys, etc.
     term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      // Ctrl+Tab: cycle terminals — always let the app handle it
+      if (event.ctrlKey && event.key === 'Tab') return false;
+
       if ((event.metaKey || event.ctrlKey) && !event.altKey) {
         const key = event.key.toLowerCase();
         if (['k', 'n', 't', 'w', 'd', 'p', ','].includes(key)) return false;
-        if (event.shiftKey && ['[', ']', 'p', 'd', 'enter'].includes(key)) return false;
+        if (event.shiftKey && ['[', ']', 'p', 'd', 'enter', '/'].includes(key)) return false;
         if (key >= '1' && key <= '9') return false;
         if (key === 'c' && term.hasSelection()) return false;
         if (key === 'v') return false;
@@ -122,7 +126,10 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
     });
 
     const resizeObserver = new ResizeObserver(() => {
-      try { fit.fit(); } catch {}
+      try {
+        fit.fit();
+        pty.resize(terminalId, term.cols, term.rows);
+      } catch {}
     });
     resizeObserver.observe(containerRef.current);
 
@@ -143,7 +150,7 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
     const term = termRef.current;
 
     const cleanupData = pty.onData((id, data) => {
-      if (id === terminalId) {
+      if (id === terminalId && !resyncingRef.current) {
         term.write(data);
       }
     });
@@ -171,6 +178,40 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
       resizeDisposable.dispose();
     };
   }, [mounted, terminalId]);
+
+  // Force tmux to redraw when this terminal becomes active by sending two
+  // resize calls in separate event loop ticks: shrink by 1 col then restore.
+  // Data writes are suppressed during the cycle to prevent flicker.
+  const activeTerminalId = useStore((s) => s.activeTerminalId);
+  const activeGroupId = useStore((s) => s.activeGroupId);
+  useEffect(() => {
+    if (activeTerminalId !== terminalId || !mounted || !termRef.current || !fitRef.current) return;
+    const term = termRef.current;
+    const fit = fitRef.current;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    const doResync = () => {
+      try { fit.fit(); } catch {}
+      const cols = term.cols;
+      const rows = term.rows;
+      resyncingRef.current = true;
+      pty.resize(terminalId, Math.max(1, cols - 1), rows);
+      const inner = setTimeout(() => {
+        pty.resize(terminalId, cols, rows);
+        resyncingRef.current = false;
+        try { term.refresh(0, term.rows - 1); term.focus(); } catch {}
+      }, 16);
+      timers.push(inner);
+    };
+
+    doResync();
+    // Retry for freshly attached tmux sessions that need init time
+    timers.push(setTimeout(doResync, 500));
+    return () => {
+      timers.forEach(clearTimeout);
+      resyncingRef.current = false;
+    };
+  }, [activeTerminalId, activeGroupId, mounted, terminalId]);
 
   if (!entry) return null;
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
+import { DEFAULT_SETTINGS } from '../../shared/types';
 import type { Preset, Settings } from '../../shared/types';
 
 interface SettingsPanelProps {
@@ -118,6 +119,11 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               className="d-settings__input d-settings__input--wide"
             />
           </label>
+          <div style={{ marginTop: 12 }}>
+            <button className="d-settings__add-btn" onClick={() => persistSettings({ ...DEFAULT_SETTINGS })}>
+              Restore Defaults
+            </button>
+          </div>
         </div>
 
         {/* Notifications section */}

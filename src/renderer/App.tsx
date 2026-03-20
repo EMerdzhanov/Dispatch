@@ -5,6 +5,7 @@ import { TerminalArea } from './components/TerminalArea';
 import { CommandPalette } from './components/CommandPalette';
 import { QuickSwitcher } from './components/QuickSwitcher';
 import { SettingsPanel } from './components/SettingsPanel';
+import { ShortcutsPanel } from './components/ShortcutsPanel';
 import { SaveTemplateDialog } from './components/SaveTemplateDialog';
 import { ResumeModal } from './components/ResumeModal';
 import { useStore } from './store';
@@ -378,6 +379,8 @@ export function App() {
   const toggleZenMode = useStore((s) => s.toggleZenMode);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
   const settingsOpen = useStore((s) => s.settingsOpen);
+  const setShortcutsOpen = useStore((s) => s.setShortcutsOpen);
+  const shortcutsOpen = useStore((s) => s.shortcutsOpen);
 
   useShortcuts({
     onNewTerminal: () => handleSpawn('$SHELL'),
@@ -418,6 +421,7 @@ export function App() {
     },
     onToggleZenMode: () => toggleZenMode(),
     onOpenSettings: () => setSettingsOpen(true),
+    onOpenShortcuts: () => setShortcutsOpen(true),
     onMovePaneFocus: (_dir) => { /* pane focus navigation — future enhancement */ },
     onSaveTemplate: () => setSaveTemplateOpen(true),
   });
@@ -475,6 +479,7 @@ export function App() {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSpawn={handleSpawn} />
       <QuickSwitcher open={searchOpen} onClose={() => setSearchOpen(false)} />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <SaveTemplateDialog
         open={saveTemplateOpen}
         defaultName={groups.find((g) => g.id === activeGroupId)?.label || 'My Workspace'}

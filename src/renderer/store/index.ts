@@ -19,6 +19,7 @@ const initialState: StoreState = {
   sidebarWidth: 220,
   filterText: '',
   settingsOpen: false,
+  shortcutsOpen: false,
   tmuxAvailable: false,
   terminalStatuses: {},
   templates: [],
@@ -184,6 +185,7 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
 
   toggleZenMode: () => set((s) => ({ zenMode: !s.zenMode })),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
+  setShortcutsOpen: (open) => set({ shortcutsOpen: open }),
   setTmuxAvailable: (available) => set({ tmuxAvailable: available }),
 
   setTerminalStatus: (id, status) => set((s) => ({

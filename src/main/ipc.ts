@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow, dialog, app, Notification } from 'electron';
 import path from 'path';
 import os from 'os';
+import { readdir } from 'fs/promises';
 import { PtyManager } from './pty-manager';
 import { SessionStore } from './session-store';
 import { IPC } from '../shared/types';
@@ -108,6 +109,21 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
     monitor.clearPort(port);
   });
 
+  ipcMain.handle('fs:readdir', async (_event: any, dirPath: string) => {
+    if (typeof dirPath !== 'string' || dirPath.includes('\0')) return [];
+    const resolved = path.resolve(dirPath);
+    try {
+      const entries = await readdir(resolved, { withFileTypes: true });
+      return entries
+        .filter((e) => !e.name.startsWith('.'))
+        .map((e) => ({ name: e.name, isDirectory: e.isDirectory() }))
+        .sort((a, b) => {
+          if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+    } catch { return []; }
+  });
+
   ipcMain.handle('templates:load', async () => store.loadTemplates());
   ipcMain.handle('templates:save', async (_event: any, templates: any) => store.saveTemplates(templates));
 
@@ -126,4 +142,5 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
       }
     }
   });
+
 }
