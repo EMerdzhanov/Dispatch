@@ -9,6 +9,44 @@ import { useStore } from './store';
 import { usePty, useStateApi, useDialogApi } from './hooks/usePty';
 import { useShortcuts } from './hooks/useShortcuts';
 import { TerminalStatus } from '../shared/types';
+import type { SplitNode, SplitDirection } from '../shared/types';
+
+function splitLeafInTree(
+  node: SplitNode, targetId: string, newId: string, direction: SplitDirection
+): SplitNode {
+  if (node.type === 'leaf') {
+    if (node.terminalId === targetId) {
+      return {
+        type: 'branch',
+        direction,
+        ratio: 0.5,
+        children: [
+          { type: 'leaf', terminalId: targetId },
+          { type: 'leaf', terminalId: newId },
+        ],
+      };
+    }
+    return node;
+  }
+  return {
+    ...node,
+    children: [
+      splitLeafInTree(node.children[0], targetId, newId, direction),
+      splitLeafInTree(node.children[1], targetId, newId, direction),
+    ] as [SplitNode, SplitNode],
+  };
+}
+
+function removeLeafFromTree(node: SplitNode, targetId: string): SplitNode | null {
+  if (node.type === 'leaf') {
+    return node.terminalId === targetId ? null : node;
+  }
+  const left = removeLeafFromTree(node.children[0], targetId);
+  const right = removeLeafFromTree(node.children[1], targetId);
+  if (!left) return right;
+  if (!right) return left;
+  return { ...node, children: [left, right] as [SplitNode, SplitNode] };
+}
 
 export function App() {
   const pty = usePty();
@@ -133,7 +171,6 @@ export function App() {
 
   const removeTerminal = useStore((s) => s.removeTerminal);
   const addGroup = useStore((s) => s.addGroup);
-  const splitTerminal = useStore((s) => s.splitTerminal);
   const toggleZenMode = useStore((s) => s.toggleZenMode);
   const setSettingsOpen = useStore((s) => s.setSettingsOpen);
   const settingsOpen = useStore((s) => s.settingsOpen);
@@ -142,16 +179,80 @@ export function App() {
     onNewTerminal: () => handleSpawn('$SHELL'),
     onNewTab: () => handleOpenFolder(),
     onCloseTerminal: () => {
-      const id = useStore.getState().activeTerminalId;
-      if (id) {
-        pty.kill(id);
-        removeTerminal(id);
+      const state = useStore.getState();
+      const id = state.activeTerminalId;
+      if (!id) return;
+
+      const group = state.groups.find((g) => g.id === state.activeGroupId);
+      if (!group) return;
+
+      pty.kill(id);
+      removeTerminal(id);
+
+      // Update split tree
+      if (group.splitLayout) {
+        const newLayout = removeLeafFromTree(group.splitLayout, id);
+        state.setGroupSplitLayout(group.id, newLayout);
+      }
+
+      // Select another terminal
+      const remaining = group.terminalIds.filter((t) => t !== id);
+      if (remaining.length > 0) {
+        state.setActiveTerminal(remaining[0]);
       }
     },
     onOpenSearch: () => setSearchOpen(true),
     onOpenPalette: () => setPaletteOpen(true),
-    onSplitHorizontal: () => splitTerminal('horizontal'),
-    onSplitVertical: () => splitTerminal('vertical'),
+    onSplitHorizontal: async () => {
+      const state = useStore.getState();
+      const group = state.groups.find((g) => g.id === state.activeGroupId);
+      if (!group || !state.activeTerminalId) return;
+
+      const cwd = group.cwd || homedir;
+      const newId = await pty.spawn({ cwd, command: '$SHELL' });
+      state.addTerminal(group.id, { id: newId, command: '$SHELL', cwd, status: TerminalStatus.RUNNING });
+
+      const currentLayout = group.splitLayout;
+      if (!currentLayout) {
+        state.setGroupSplitLayout(group.id, {
+          type: 'branch',
+          direction: 'horizontal',
+          ratio: 0.5,
+          children: [
+            { type: 'leaf', terminalId: state.activeTerminalId },
+            { type: 'leaf', terminalId: newId },
+          ],
+        });
+      } else {
+        const newLayout = splitLeafInTree(currentLayout, state.activeTerminalId, newId, 'horizontal');
+        state.setGroupSplitLayout(group.id, newLayout);
+      }
+    },
+    onSplitVertical: async () => {
+      const state = useStore.getState();
+      const group = state.groups.find((g) => g.id === state.activeGroupId);
+      if (!group || !state.activeTerminalId) return;
+
+      const cwd = group.cwd || homedir;
+      const newId = await pty.spawn({ cwd, command: '$SHELL' });
+      state.addTerminal(group.id, { id: newId, command: '$SHELL', cwd, status: TerminalStatus.RUNNING });
+
+      const currentLayout = group.splitLayout;
+      if (!currentLayout) {
+        state.setGroupSplitLayout(group.id, {
+          type: 'branch',
+          direction: 'vertical',
+          ratio: 0.5,
+          children: [
+            { type: 'leaf', terminalId: state.activeTerminalId },
+            { type: 'leaf', terminalId: newId },
+          ],
+        });
+      } else {
+        const newLayout = splitLeafInTree(currentLayout, state.activeTerminalId, newId, 'vertical');
+        state.setGroupSplitLayout(group.id, newLayout);
+      }
+    },
     onToggleZenMode: () => toggleZenMode(),
     onOpenSettings: () => setSettingsOpen(true),
     onMovePaneFocus: (_dir) => { /* pane focus navigation — future enhancement */ },

@@ -15,6 +15,7 @@ export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
 
   const activeGroup = groups.find((g) => g.id === activeGroupId);
   const hasTerminals = activeGroup && activeGroup.terminalIds.length > 0;
+  const splitLayout = activeGroup?.splitLayout ?? null;
 
   if (!hasTerminals || !activeTerminalId) {
     return (
@@ -25,6 +26,14 @@ export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
             Use Quick Launch or press ⌘N
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (splitLayout) {
+    return (
+      <div className="d-terminal-area">
+        <SplitContainer node={splitLayout} path={[]} />
       </div>
     );
   }
