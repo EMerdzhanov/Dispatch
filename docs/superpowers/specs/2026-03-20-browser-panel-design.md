@@ -148,9 +148,15 @@ The `<webview>` tag is used instead of `BrowserView` because it's a DOM element 
 
 ## Store State
 
+Follows the same pattern as terminals: `ProjectGroup` holds an ID list, the store holds metadata.
+
 ```typescript
+// Add to ProjectGroup (in shared/types.ts):
+browserTabIds: string[];   // list of browser tab IDs in this group
+
 // Add to StoreState:
-activeBrowserTabId: string | null;  // null = showing terminals
+browserTabs: Record<string, BrowserTab>;   // all browser tabs by ID (mirrors terminals pattern)
+activeBrowserTabId: string | null;          // null = showing terminals view
 consoleMessages: Record<string, ConsoleMessage[]>;  // keyed by browser tab ID
 pipeToTerminal: boolean;
 
