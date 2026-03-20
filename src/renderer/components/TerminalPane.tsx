@@ -199,7 +199,7 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
       const inner = setTimeout(() => {
         pty.resize(terminalId, cols, rows);
         resyncingRef.current = false;
-        try { term.refresh(0, term.rows - 1); term.focus(); } catch {}
+        try { term.refresh(0, term.rows - 1); term.scrollToBottom(); term.focus(); } catch {}
       }, 16);
       timers.push(inner);
     };

@@ -3,7 +3,7 @@ import type { ITheme } from 'xterm';
 export const xtermTheme: ITheme = {
   background: '#0a0a1a',
   foreground: '#cccccc',
-  cursor: '#e94560',
+  cursor: '#cccccc',
   cursorAccent: '#0a0a1a',
   selectionBackground: '#16213e',
   selectionForeground: '#eeeeee',
