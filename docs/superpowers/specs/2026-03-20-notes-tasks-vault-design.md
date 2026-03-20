@@ -23,7 +23,15 @@ Each project gets a folder keyed by a deterministic hash of its CWD path:
 │   └── vault.json
 ```
 
-The hash is a short hex string derived from the CWD (e.g. first 12 chars of SHA-256). Same folder always maps to same project data.
+The hash is computed as: `SHA-256(absolute CWD path)`, hex-encoded, first 12 characters. Path is normalized to POSIX forward slashes before hashing for cross-platform consistency. Same folder always maps to same project data.
+
+**Error handling:**
+- Project directories are auto-created on first write (recursive `mkdir`)
+- Corrupted JSON files fall back to empty arrays (`[]`)
+- No file locking — single app instance assumed
+- Force-save on app exit (flush any pending debounce timers)
+
+**Lifecycle:** `ProjectDataStore` is a singleton created once in the main process alongside `SessionStore`. Data is loaded when the active project tab changes (CWD change) and cached in the renderer store. Switching tabs triggers a fresh load for the new CWD.
 
 ### tasks.json
 
@@ -74,6 +82,13 @@ class ProjectDataStore {
   async saveVault(cwd: string, entries: VaultEntry[]): Promise<void>
 }
 ```
+
+## Panel Behavior
+
+- **Tab state persists** when switching between Tasks/Notes/Vault — if you're editing a note and switch to Vault, switching back returns to the same note in edit mode
+- **Data reloads on CWD change** — when the user clicks a different project tab, all three panels reload data for the new project
+- **No delete confirmations** for Tasks, Notes, or Vault entries — these are lightweight tools, not critical data stores
+- **Debounce** resets on each keystroke. On app exit, pending saves are flushed immediately via `app.on('before-quit')`
 
 ## Tasks Panel
 
@@ -150,13 +165,14 @@ A key-value secret store with one-click copy.
 - "+ Add Secret" button at top
 - Scrollable list of entries: label on left, "Copy" button on right
 - Secret values never shown — just the label
-- Hover shows masked preview: `sk-abc1••••` (first 6 chars + dots)
+- Hover shows masked preview: first 6 chars + `••••` (if value < 6 chars, show all chars masked as `••••`)
 - Click Copy → copies value to clipboard, button briefly shows "✓ Copied"
 
 ### Add/Edit Flow
 
 - Click + → inline form: label input + value input + Save button
-- Right-click entry → "Edit" | "Delete"
+- Right-click entry → "Edit" | "Delete" (no confirmation, same as Tasks)
+- Edit form shows the full unmasked value in the input field
 - Edit → inline form pre-filled with current values
 
 ### Data Types
