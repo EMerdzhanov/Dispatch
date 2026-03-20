@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('dispatch', {
   state: {
     load: () => ipcRenderer.invoke(IPC.STATE_LOAD),
     save: (state: unknown) => ipcRenderer.invoke(IPC.STATE_SAVE, state),
+    saveSettings: (settings: unknown) => ipcRenderer.invoke('settings:save', settings),
   },
   dialog: {
     openFolder: () => ipcRenderer.invoke('dialog:openFolder'),

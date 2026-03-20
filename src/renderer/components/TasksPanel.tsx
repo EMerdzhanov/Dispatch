@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore } from '../store';
 import { useProjectApi } from '../hooks/usePty';
 import type { Task } from '../../shared/types';
-
-let saveTimer: any = null;
 
 export function TasksPanel() {
   const tasks = useStore((s) => s.projectTasks);
@@ -13,14 +11,15 @@ export function TasksPanel() {
   const [input, setInput] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const projectApi = useProjectApi();
+  const saveTimerRef = useRef<any>(null);
 
   const cwd = groups.find((g) => g.id === activeGroupId)?.cwd;
 
   const save = (updated: Task[]) => {
     setTasks(updated);
     if (cwd && projectApi) {
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => projectApi.saveTasks(cwd, updated), 500);
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => projectApi.saveTasks(cwd, updated), 500);
     }
   };
 

@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore } from '../store';
 import { useProjectApi } from '../hooks/usePty';
 import type { Note } from '../../shared/types';
-
-let saveTimer: any = null;
 
 export function NotesPanel() {
   const notes = useStore((s) => s.projectNotes);
@@ -14,14 +12,15 @@ export function NotesPanel() {
   const activeGroupId = useStore((s) => s.activeGroupId);
   const projectApi = useProjectApi();
   const [contextId, setContextId] = useState<string | null>(null);
+  const saveTimerRef = useRef<any>(null);
 
   const cwd = groups.find((g) => g.id === activeGroupId)?.cwd;
 
   const save = (updated: Note[]) => {
     setNotes(updated);
     if (cwd && projectApi) {
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => projectApi.saveNotes(cwd, updated), 500);
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => projectApi.saveNotes(cwd, updated), 500);
     }
   };
 

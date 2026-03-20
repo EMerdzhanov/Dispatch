@@ -2,11 +2,7 @@ import React from 'react';
 import { useStore } from '../store';
 import { TerminalEntry } from './TerminalEntry';
 
-interface TerminalListProps {
-  onSpawnInCwd?: (cwd: string, command?: string) => void;
-}
-
-export function TerminalList({ onSpawnInCwd }: TerminalListProps) {
+export function TerminalList() {
   const groups = useStore((s) => s.groups);
   const activeGroupId = useStore((s) => s.activeGroupId);
   const terminals = useStore((s) => s.terminals);

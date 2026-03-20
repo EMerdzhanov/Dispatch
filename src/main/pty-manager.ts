@@ -19,7 +19,7 @@ function isTmuxAvailable(): boolean {
 
 function tmuxSessionExists(sessionName: string): boolean {
   try {
-    execSync(`tmux has-session -t ${sessionName}`, { stdio: 'ignore', timeout: 2000 });
+    execSync(`tmux has-session -t "${sessionName}"`, { stdio: 'ignore', timeout: 2000 });
     return true;
   } catch {
     return false;
@@ -35,7 +35,7 @@ export class PtyManager {
 
   private getSessionName(cwd: string): string {
     const folderName = cwd.split('/').pop() || 'unknown';
-    const safe = folderName.replace(/[.:]/g, '-');
+    const safe = folderName.replace(/[^a-zA-Z0-9_-]/g, '-');
     const count = this.sessionCounter.get(safe) || 0;
     this.sessionCounter.set(safe, count + 1);
     return `dispatch-${safe}-${count}`;

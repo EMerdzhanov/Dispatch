@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
-import type { Preset } from '../../shared/types';
+import type { Preset, Settings } from '../../shared/types';
 
 interface SettingsPanelProps {
   open: boolean;
@@ -19,6 +19,11 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const setPresets = useStore((s) => s.setPresets);
   const templates = useStore((s) => s.templates);
   const setTemplates = useStore((s) => s.setTemplates);
+  const persistSettings = (updated: Settings) => {
+    setSettings(updated);
+    (window as any).dispatch?.state?.saveSettings(updated);
+  };
+
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [editCommand, setEditCommand] = useState('');
@@ -81,7 +86,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             <input
               type="text"
               value={settings.fontFamily}
-              onChange={(e) => setSettings({ ...settings, fontFamily: e.target.value })}
+              onChange={(e) => persistSettings({ ...settings, fontFamily: e.target.value })}
               className="d-settings__input d-settings__input--wide"
             />
           </label>
@@ -90,7 +95,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             <input
               type="number"
               value={settings.fontSize}
-              onChange={(e) => setSettings({ ...settings, fontSize: parseInt(e.target.value, 10) || 13 })}
+              onChange={(e) => persistSettings({ ...settings, fontSize: parseInt(e.target.value, 10) || 13 })}
               className="d-settings__input d-settings__input--narrow"
             />
           </label>
@@ -100,7 +105,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               type="number"
               step="0.1"
               value={settings.lineHeight}
-              onChange={(e) => setSettings({ ...settings, lineHeight: parseFloat(e.target.value) || 1.2 })}
+              onChange={(e) => persistSettings({ ...settings, lineHeight: parseFloat(e.target.value) || 1.2 })}
               className="d-settings__input d-settings__input--narrow"
             />
           </label>
@@ -109,7 +114,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             <input
               type="text"
               value={settings.shell}
-              onChange={(e) => setSettings({ ...settings, shell: e.target.value })}
+              onChange={(e) => persistSettings({ ...settings, shell: e.target.value })}
               className="d-settings__input d-settings__input--wide"
             />
           </label>
@@ -123,7 +128,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             <input
               type="checkbox"
               checked={settings.notificationsEnabled}
-              onChange={(e) => setSettings({ ...settings, notificationsEnabled: e.target.checked })}
+              onChange={(e) => persistSettings({ ...settings, notificationsEnabled: e.target.checked })}
             />
           </label>
           <label className="d-settings__row">
@@ -131,7 +136,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             <input
               type="checkbox"
               checked={settings.soundEnabled}
-              onChange={(e) => setSettings({ ...settings, soundEnabled: e.target.checked })}
+              onChange={(e) => persistSettings({ ...settings, soundEnabled: e.target.checked })}
             />
           </label>
         </div>

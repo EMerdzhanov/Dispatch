@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { TerminalStatus, DEFAULT_PRESETS, DEFAULT_SETTINGS } from '../../shared/types';
 import type { TerminalEntry } from '../../shared/types';
-import type { SplitNode } from '../../shared/types';
 import type { StoreState, StoreActions, SplitLeaf } from './types';
 
 const genId = () =>
@@ -55,7 +54,9 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
       return {
         groups: s.groups.filter((g) => g.id !== id),
         terminals: newTerminals,
-        activeGroupId: s.activeGroupId === id ? (s.groups[0]?.id ?? null) : s.activeGroupId,
+        activeGroupId: s.activeGroupId === id
+          ? (s.groups.filter((g) => g.id !== id)[0]?.id ?? null)
+          : s.activeGroupId,
       };
     });
   },
@@ -153,29 +154,8 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
   setSettings: (settings) => set({ settings }),
   setFilterText: (text) => set({ filterText: text }),
 
-  splitTerminal: (direction) => {
-    const { activeTerminalId, activeGroupId, groups } = get();
-    if (!activeTerminalId || !activeGroupId) return;
-    const group = groups.find((g) => g.id === activeGroupId);
-    if (!group) return;
-    const currentLayout = group.splitLayout;
-
-    if (!currentLayout) {
-      set((s) => ({
-        groups: s.groups.map((g) => g.id === activeGroupId ? {
-          ...g,
-          splitLayout: {
-            type: 'branch' as const,
-            direction,
-            children: [
-              { type: 'leaf' as const, terminalId: activeTerminalId },
-              { type: 'leaf' as const, terminalId: '' }, // placeholder
-            ] as [SplitNode, SplitNode],
-            ratio: 0.5,
-          },
-        } : g),
-      }));
-    }
+  splitTerminal: (_direction) => {
+    // Splits are handled by buildEqualSplit in App.tsx
   },
 
   setSplitLayout: (layout) => {

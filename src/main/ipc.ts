@@ -48,6 +48,10 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
     await store.saveState(state);
   });
 
+  ipcMain.handle('settings:save', async (_event, settings) => {
+    await store.saveSettings(settings);
+  });
+
   const monitor = new TerminalMonitor(
     (terminalId, status) => {
       const win = BrowserWindow.getAllWindows()[0];
@@ -80,6 +84,7 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   ptyManager.onExit((id, code, signal) => {
     const win = BrowserWindow.getAllWindows()[0];
     win?.webContents.send(IPC.PTY_EXIT, id, code, signal);
+    monitor.cleanup(id);
   });
 
   ipcMain.handle('tmux:check', async () => {

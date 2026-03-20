@@ -60,11 +60,13 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const settings = useStore.getState().settings;
+
     const term = new Terminal({
       theme: xtermTheme,
-      fontSize: 13,
-      fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Monaco, 'Courier New', monospace",
-      lineHeight: 1.2,
+      fontSize: settings.fontSize || 13,
+      fontFamily: settings.fontFamily || "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Monaco, 'Courier New', monospace",
+      lineHeight: settings.lineHeight || 1.2,
       cursorBlink: true,
       cursorStyle: 'bar',
       scrollback: 10000,

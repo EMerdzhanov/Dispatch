@@ -240,13 +240,19 @@ export function App() {
     });
   }, []);
 
+  const monitorRef = React.useRef(false);
   useEffect(() => {
+    if (monitorRef.current) return;
+    monitorRef.current = true;
     (window as any).dispatch?.monitor?.onStatus((id: string, status: string) => {
       useStore.getState().setTerminalStatus(id, status as any);
     });
   }, []);
 
+  const browserDetectRef = React.useRef(false);
   useEffect(() => {
+    if (browserDetectRef.current) return;
+    browserDetectRef.current = true;
     (window as any).dispatch?.browser?.onDetected((terminalId: string, url: string) => {
       const state = useStore.getState();
       const group = state.groups.find((g) => g.terminalIds.includes(terminalId));

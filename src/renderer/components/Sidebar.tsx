@@ -14,7 +14,7 @@ export function Sidebar({ onSpawn, onSpawnInCwd }: SidebarProps) {
     <div className="d-sidebar">
       <div style={{ display: 'flex', flexDirection: 'column', flex: '0 0 60%', minHeight: 0, overflow: 'hidden' }}>
         <QuickLaunch onSpawn={onSpawn} />
-        <TerminalList onSpawnInCwd={onSpawnInCwd} />
+        <TerminalList />
         <StatusBar />
       </div>
       <ProjectPanel />

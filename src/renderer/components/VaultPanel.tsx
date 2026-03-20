@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore } from '../store';
 import { useProjectApi } from '../hooks/usePty';
 import type { VaultEntry } from '../../shared/types';
-
-let saveTimer: any = null;
 
 export function VaultPanel() {
   const vault = useStore((s) => s.projectVault);
@@ -17,14 +15,15 @@ export function VaultPanel() {
   const [formValue, setFormValue] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [contextId, setContextId] = useState<string | null>(null);
+  const saveTimerRef = useRef<any>(null);
 
   const cwd = groups.find((g) => g.id === activeGroupId)?.cwd;
 
   const save = (updated: VaultEntry[]) => {
     setVault(updated);
     if (cwd && projectApi) {
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => projectApi.saveVault(cwd, updated), 500);
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => projectApi.saveVault(cwd, updated), 500);
     }
   };
 
