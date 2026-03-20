@@ -13,28 +13,28 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
     path.join(os.homedir(), '.config', 'dispatch', 'projects')
   );
 
-  ipcMain.handle('project:loadTasks', async (_event, cwd: string) => projectData.loadTasks(cwd));
-  ipcMain.handle('project:saveTasks', async (_event, cwd: string, tasks: unknown) => projectData.saveTasks(cwd, tasks as any));
-  ipcMain.handle('project:loadNotes', async (_event, cwd: string) => projectData.loadNotes(cwd));
-  ipcMain.handle('project:saveNotes', async (_event, cwd: string, notes: unknown) => projectData.saveNotes(cwd, notes as any));
-  ipcMain.handle('project:loadVault', async (_event, cwd: string) => projectData.loadVault(cwd));
-  ipcMain.handle('project:saveVault', async (_event, cwd: string, entries: unknown) => projectData.saveVault(cwd, entries as any));
+  ipcMain.handle('project:loadTasks', async (_event: any, cwd: string) => projectData.loadTasks(cwd));
+  ipcMain.handle('project:saveTasks', async (_event: any, cwd: string, tasks: unknown) => projectData.saveTasks(cwd, tasks as any));
+  ipcMain.handle('project:loadNotes', async (_event: any, cwd: string) => projectData.loadNotes(cwd));
+  ipcMain.handle('project:saveNotes', async (_event: any, cwd: string, notes: unknown) => projectData.saveNotes(cwd, notes as any));
+  ipcMain.handle('project:loadVault', async (_event: any, cwd: string) => projectData.loadVault(cwd));
+  ipcMain.handle('project:saveVault', async (_event: any, cwd: string, entries: unknown) => projectData.saveVault(cwd, entries as any));
 
-  ipcMain.handle(IPC.PTY_SPAWN, async (_event, opts) => {
+  ipcMain.handle(IPC.PTY_SPAWN, async (_event: any, opts) => {
     return ptyManager.spawn(opts);
   });
 
-  ipcMain.on(IPC.PTY_DATA, (_event, id: string, data: string) => {
+  ipcMain.on(IPC.PTY_DATA, (_event: any, id: string, data: string) => {
     ptyManager.write(id, data);
   });
 
-  ipcMain.on(IPC.PTY_RESIZE, (_event, id: string, cols: number, rows: number) => {
+  ipcMain.on(IPC.PTY_RESIZE, (_event: any, id: string, cols: number, rows: number) => {
     if (typeof id !== 'string' || typeof cols !== 'number' || typeof rows !== 'number') return;
     if (cols < 1 || cols > 500 || rows < 1 || rows > 200) return;
     ptyManager.resize(id, cols, rows);
   });
 
-  ipcMain.on(IPC.PTY_KILL, (_event, id: string) => {
+  ipcMain.on(IPC.PTY_KILL, (_event: any, id: string) => {
     ptyManager.kill(id);
   });
 
@@ -46,11 +46,11 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
     };
   });
 
-  ipcMain.handle(IPC.STATE_SAVE, async (_event, state) => {
+  ipcMain.handle(IPC.STATE_SAVE, async (_event: any, state) => {
     await store.saveState(state);
   });
 
-  ipcMain.handle('settings:save', async (_event, settings) => {
+  ipcMain.handle('settings:save', async (_event: any, settings) => {
     await store.saveSettings(settings);
   });
 
@@ -103,22 +103,22 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
     return result.filePaths[0];
   });
 
-  ipcMain.handle('browser:clearPort', async (_event, port: string) => {
+  ipcMain.handle('browser:clearPort', async (_event: any, port: string) => {
     if (typeof port !== 'string' || !/^\d{1,5}$/.test(port)) return;
     monitor.clearPort(port);
   });
 
   ipcMain.handle('templates:load', async () => store.loadTemplates());
-  ipcMain.handle('templates:save', async (_event, templates) => store.saveTemplates(templates));
+  ipcMain.handle('templates:save', async (_event: any, templates: any) => store.saveTemplates(templates));
 
   ipcMain.handle('resume:scan', async () => PtyManager.listDispatchSessions());
 
-  ipcMain.handle('resume:restore', async (_event, sessionName: string) => {
+  ipcMain.handle('resume:restore', async (_event: any, sessionName: string) => {
     if (typeof sessionName !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(sessionName)) return null;
     return ptyManager.attachSession(sessionName);
   });
 
-  ipcMain.handle('resume:cleanup', async (_event, sessionNames: string[]) => {
+  ipcMain.handle('resume:cleanup', async (_event: any, sessionNames: string[]) => {
     if (!Array.isArray(sessionNames)) return;
     for (const name of sessionNames) {
       if (typeof name === 'string' && /^[a-zA-Z0-9_-]+$/.test(name)) {
