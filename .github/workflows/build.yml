@@ -25,7 +25,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and package
+      - name: Build app
+        run: npm run build
+
+      - name: Package for Mac
         run: npx electron-builder --mac --${{ matrix.arch }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
