@@ -117,6 +117,26 @@ export const DEFAULT_PRESETS: Preset[] = [
   { name: 'Shell', command: '$SHELL', color: '#888888', icon: 'terminal', env: {} },
 ];
 
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  done: boolean;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  body: string;
+  updatedAt: number;
+}
+
+export interface VaultEntry {
+  id: string;
+  label: string;
+  value: string;
+}
+
 // IPC channel names
 export const IPC = {
   PTY_SPAWN: 'pty:spawn',
