@@ -12,6 +12,7 @@ interface ShortcutHandlers {
   onToggleZenMode: () => void;
   onOpenSettings: () => void;
   onMovePaneFocus: (direction: 'up' | 'down' | 'left' | 'right') => void;
+  onSaveTemplate: () => void;
 }
 
 export function useShortcuts(handlers: ShortcutHandlers) {
@@ -95,6 +96,12 @@ export function useShortcuts(handlers: ShortcutHandlers) {
       if (meta && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
         handlers.onSplitVertical();
+        return;
+      }
+
+      if (meta && e.shiftKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        handlers.onSaveTemplate();
         return;
       }
 

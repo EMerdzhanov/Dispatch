@@ -36,4 +36,8 @@ contextBridge.exposeInMainWorld('dispatch', {
       ipcRenderer.on('monitor:status', (_event, id, status) => cb(id, status));
     },
   },
+  templates: {
+    load: () => ipcRenderer.invoke('templates:load'),
+    save: (templates: unknown) => ipcRenderer.invoke('templates:save', templates),
+  },
 });

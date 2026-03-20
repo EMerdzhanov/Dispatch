@@ -5,11 +5,12 @@ import { TerminalArea } from './components/TerminalArea';
 import { CommandPalette } from './components/CommandPalette';
 import { QuickSwitcher } from './components/QuickSwitcher';
 import { SettingsPanel } from './components/SettingsPanel';
+import { SaveTemplateDialog } from './components/SaveTemplateDialog';
 import { useStore } from './store';
 import { usePty, useStateApi, useDialogApi } from './hooks/usePty';
 import { useShortcuts } from './hooks/useShortcuts';
 import { TerminalStatus } from '../shared/types';
-import type { SplitNode, SplitDirection } from '../shared/types';
+import type { SplitNode, SplitDirection, Template, TemplateNode } from '../shared/types';
 
 function splitLeafInTree(
   node: SplitNode, targetId: string, newId: string, direction: SplitDirection
@@ -46,6 +47,22 @@ function removeLeafFromTree(node: SplitNode, targetId: string): SplitNode | null
   if (!left) return right;
   if (!right) return left;
   return { ...node, children: [left, right] as [SplitNode, SplitNode] };
+}
+
+function splitNodeToTemplate(node: SplitNode, terminals: Record<string, any>): TemplateNode {
+  if (node.type === 'leaf') {
+    const term = terminals[node.terminalId];
+    return { type: 'leaf', command: term?.command || '$SHELL' };
+  }
+  return {
+    type: 'branch',
+    direction: node.direction,
+    ratio: node.ratio,
+    children: [
+      splitNodeToTemplate(node.children[0], terminals),
+      splitNodeToTemplate(node.children[1], terminals),
+    ] as [TemplateNode, TemplateNode],
+  };
 }
 
 export function App() {
@@ -162,6 +179,8 @@ export function App() {
 
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = React.useState(false);
+  const templates = useStore((s) => s.templates);
 
   useEffect(() => {
     (window as any).dispatch?.tmux?.isAvailable().then((available: boolean) => {
@@ -170,10 +189,72 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    (window as any).dispatch?.templates?.load().then((t: Template[]) => {
+      if (t) useStore.getState().setTemplates(t);
+    });
+  }, []);
+
+  useEffect(() => {
     (window as any).dispatch?.monitor?.onStatus((id: string, status: string) => {
       useStore.getState().setTerminalStatus(id, status as any);
     });
   }, []);
+
+  const handleSaveTemplate = async (name: string) => {
+    const state = useStore.getState();
+    const group = state.groups.find((g) => g.id === state.activeGroupId);
+    if (!group) return;
+
+    let templateLayout: TemplateNode | null = null;
+    if (group.splitLayout) {
+      templateLayout = splitNodeToTemplate(group.splitLayout, state.terminals);
+    } else if (group.terminalIds.length === 1) {
+      const term = state.terminals[group.terminalIds[0]];
+      templateLayout = { type: 'leaf', command: term?.command || '$SHELL' };
+    }
+
+    const template: Template = { name, cwd: group.cwd || '/', splitLayout: templateLayout };
+    const updated = [...state.templates, template];
+    state.setTemplates(updated);
+    await (window as any).dispatch.templates.save(updated);
+    setSaveTemplateOpen(false);
+  };
+
+  const handleRestoreTemplate = async (template: Template) => {
+    const groupId = findOrCreateGroup(template.cwd);
+    useStore.getState().setActiveGroup(groupId);
+
+    if (!template.splitLayout) {
+      const id = await pty.spawn({ cwd: template.cwd, command: '$SHELL' });
+      addTerminal(groupId, { id, command: '$SHELL', cwd: template.cwd, status: TerminalStatus.RUNNING });
+      setActiveTerminal(id);
+      return;
+    }
+
+    async function spawnFromTemplate(tNode: TemplateNode, cwd: string): Promise<SplitNode> {
+      if (tNode.type === 'leaf') {
+        const id = await pty.spawn({ cwd, command: tNode.command });
+        addTerminal(groupId, { id, command: tNode.command, cwd, status: TerminalStatus.RUNNING });
+        return { type: 'leaf', terminalId: id };
+      }
+      const left = await spawnFromTemplate(tNode.children[0], cwd);
+      const right = await spawnFromTemplate(tNode.children[1], cwd);
+      return {
+        type: 'branch',
+        direction: tNode.direction,
+        ratio: tNode.ratio,
+        children: [left, right] as [SplitNode, SplitNode],
+      };
+    }
+
+    const liveLayout = await spawnFromTemplate(template.splitLayout, template.cwd);
+    useStore.getState().setGroupSplitLayout(groupId, liveLayout);
+
+    function firstLeaf(n: SplitNode): string {
+      return n.type === 'leaf' ? n.terminalId : firstLeaf(n.children[0]);
+    }
+    setActiveTerminal(firstLeaf(liveLayout));
+  };
 
   const removeTerminal = useStore((s) => s.removeTerminal);
   const addGroup = useStore((s) => s.addGroup);
@@ -262,6 +343,7 @@ export function App() {
     onToggleZenMode: () => toggleZenMode(),
     onOpenSettings: () => setSettingsOpen(true),
     onMovePaneFocus: (_dir) => { /* pane focus navigation — future enhancement */ },
+    onSaveTemplate: () => setSaveTemplateOpen(true),
   });
 
   const hasGroups = groups.length > 0;
@@ -295,12 +377,33 @@ export function App() {
           <button className="d-welcome__button" onClick={handleOpenFolder}>
             Open Folder
           </button>
+          {templates.length > 0 && (
+            <div style={{ marginTop: 24, width: 400 }}>
+              <div className="d-quicklaunch__label">Saved Templates</div>
+              {templates.map((t, i) => (
+                <button key={i} className="d-entry" style={{ width: '100%', marginBottom: 4 }}
+                  onClick={() => handleRestoreTemplate(t)}>
+                  <div className="d-entry__header">
+                    <span className="d-entry__dot" style={{ backgroundColor: 'var(--accent-blue-light)' }} />
+                    <span className="d-entry__name">{t.name}</span>
+                  </div>
+                  <div className="d-entry__command">{t.cwd}</div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSpawn={handleSpawn} />
       <QuickSwitcher open={searchOpen} onClose={() => setSearchOpen(false)} />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SaveTemplateDialog
+        open={saveTemplateOpen}
+        defaultName={groups.find((g) => g.id === activeGroupId)?.label || 'My Workspace'}
+        onSave={handleSaveTemplate}
+        onClose={() => setSaveTemplateOpen(false)}
+      />
     </div>
   );
 }

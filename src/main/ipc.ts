@@ -75,4 +75,7 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
     if (result.canceled || result.filePaths.length === 0) return null;
     return result.filePaths[0];
   });
+
+  ipcMain.handle('templates:load', async () => store.loadTemplates());
+  ipcMain.handle('templates:save', async (_event, templates) => store.saveTemplates(templates));
 }
