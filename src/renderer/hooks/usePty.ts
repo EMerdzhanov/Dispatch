@@ -41,3 +41,7 @@ export function useDialogApi() {
 export function useAppApi() {
   return window.dispatch.app;
 }
+
+export function useProjectApi() {
+  return (window as any).dispatch?.project;
+}

@@ -24,6 +24,11 @@ const initialState: StoreState = {
   terminalStatuses: {},
   templates: [],
   resumeSessions: null,
+  projectTasks: [],
+  projectNotes: [],
+  projectVault: [],
+  activePanel: 'tasks' as const,
+  editingNoteId: null,
 };
 
 export const useStore = create<StoreState & StoreActions>()((set, get) => ({
@@ -217,6 +222,12 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
   setGroupSplitLayout: (groupId, layout) => set((s) => ({
     groups: s.groups.map((g) => g.id === groupId ? { ...g, splitLayout: layout } : g),
   })),
+
+  setProjectTasks: (tasks) => set({ projectTasks: tasks }),
+  setProjectNotes: (notes) => set({ projectNotes: notes }),
+  setProjectVault: (entries) => set({ projectVault: entries }),
+  setActivePanel: (panel) => set({ activePanel: panel }),
+  setEditingNoteId: (id) => set({ editingNoteId: id }),
 }));
 
 // Expose getInitialState for test resets

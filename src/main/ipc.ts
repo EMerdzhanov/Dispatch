@@ -1,11 +1,25 @@
 import { ipcMain, BrowserWindow, dialog, app, Notification } from 'electron';
+import path from 'path';
+import os from 'os';
 import { PtyManager } from './pty-manager';
 import { SessionStore } from './session-store';
 import { IPC } from '../shared/types';
 import { TmuxHelper } from './tmux';
 import { TerminalMonitor } from './terminal-monitor';
+import { ProjectDataStore } from './project-data-store';
 
 export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
+  const projectData = new ProjectDataStore(
+    path.join(os.homedir(), '.config', 'dispatch', 'projects')
+  );
+
+  ipcMain.handle('project:loadTasks', async (_event, cwd: string) => projectData.loadTasks(cwd));
+  ipcMain.handle('project:saveTasks', async (_event, cwd: string, tasks: unknown) => projectData.saveTasks(cwd, tasks as any));
+  ipcMain.handle('project:loadNotes', async (_event, cwd: string) => projectData.loadNotes(cwd));
+  ipcMain.handle('project:saveNotes', async (_event, cwd: string, notes: unknown) => projectData.saveNotes(cwd, notes as any));
+  ipcMain.handle('project:loadVault', async (_event, cwd: string) => projectData.loadVault(cwd));
+  ipcMain.handle('project:saveVault', async (_event, cwd: string, entries: unknown) => projectData.saveVault(cwd, entries as any));
+
   ipcMain.handle(IPC.PTY_SPAWN, async (_event, opts) => {
     return ptyManager.spawn(opts);
   });

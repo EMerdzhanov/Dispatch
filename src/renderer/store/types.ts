@@ -1,4 +1,4 @@
-import type { TerminalEntry, ProjectGroup, Preset, Settings, Template } from '../../shared/types';
+import type { TerminalEntry, ProjectGroup, Preset, Settings, Template, Task, Note, VaultEntry } from '../../shared/types';
 export type { SplitDirection, SplitLeaf, SplitBranch, SplitNode } from '../../shared/types';
 import type { SplitDirection, SplitNode } from '../../shared/types';
 
@@ -26,6 +26,11 @@ export interface StoreState {
   terminalStatuses: Record<string, TerminalActivityStatus>;
   templates: Template[];
   resumeSessions: ResumeSession[] | null;
+  projectTasks: Task[];
+  projectNotes: Note[];
+  projectVault: VaultEntry[];
+  activePanel: 'tasks' | 'notes' | 'vault';
+  editingNoteId: string | null;
 }
 
 export interface StoreActions {
@@ -55,4 +60,9 @@ export interface StoreActions {
   toggleResumeSession: (sessionName: string) => void;
   getGroupSplitLayout: (groupId: string) => SplitNode | null;
   setGroupSplitLayout: (groupId: string, layout: SplitNode | null) => void;
+  setProjectTasks: (tasks: Task[]) => void;
+  setProjectNotes: (notes: Note[]) => void;
+  setProjectVault: (entries: VaultEntry[]) => void;
+  setActivePanel: (panel: 'tasks' | 'notes' | 'vault') => void;
+  setEditingNoteId: (id: string | null) => void;
 }

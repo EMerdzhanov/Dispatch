@@ -45,4 +45,12 @@ contextBridge.exposeInMainWorld('dispatch', {
     restore: (sessionName: string) => ipcRenderer.invoke('resume:restore', sessionName),
     cleanup: (sessionNames: string[]) => ipcRenderer.invoke('resume:cleanup', sessionNames),
   },
+  project: {
+    loadTasks: (cwd: string) => ipcRenderer.invoke('project:loadTasks', cwd),
+    saveTasks: (cwd: string, tasks: unknown) => ipcRenderer.invoke('project:saveTasks', cwd, tasks),
+    loadNotes: (cwd: string) => ipcRenderer.invoke('project:loadNotes', cwd),
+    saveNotes: (cwd: string, notes: unknown) => ipcRenderer.invoke('project:saveNotes', cwd, notes),
+    loadVault: (cwd: string) => ipcRenderer.invoke('project:loadVault', cwd),
+    saveVault: (cwd: string, entries: unknown) => ipcRenderer.invoke('project:saveVault', cwd, entries),
+  },
 });
