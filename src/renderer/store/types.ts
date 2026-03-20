@@ -36,6 +36,7 @@ export interface StoreActions {
   findOrCreateGroup: (cwd: string) => string;
   addTerminal: (groupId: string, terminal: TerminalEntry) => void;
   removeTerminal: (id: string) => void;
+  renameTerminal: (id: string, label: string) => void;
   setActiveTerminal: (id: string) => void;
   updateTerminalStatus: (id: string, status: TerminalEntry['status'], exitCode?: number) => void;
   moveTerminal: (terminalId: string, fromGroupId: string, toGroupId: string) => void;

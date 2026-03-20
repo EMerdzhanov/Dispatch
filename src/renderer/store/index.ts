@@ -93,6 +93,15 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
     }));
   },
 
+  renameTerminal: (id, label) => {
+    set((s) => ({
+      terminals: {
+        ...s.terminals,
+        [id]: s.terminals[id] ? { ...s.terminals[id], label } : s.terminals[id],
+      },
+    }));
+  },
+
   setActiveTerminal: (id) => {
     set((s) => {
       const newTerminals = { ...s.terminals };

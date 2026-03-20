@@ -12,15 +12,23 @@ export function SplitContainer({ node, path }: SplitContainerProps) {
   const updateSplitRatio = useStore((s) => s.updateSplitRatio);
 
   if (node.type === 'leaf') {
-    return <TerminalPane terminalId={node.terminalId} />;
+    // key forces full remount so xterm initializes fresh for each pane
+    return <TerminalPane key={node.terminalId} terminalId={node.terminalId} />;
   }
 
   const isHorizontal = node.direction === 'horizontal';
   const ratio = node.ratio;
 
   return (
-    <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isHorizontal ? 'row' : 'column' }}>
-      <div style={{ flex: `${ratio} 1 0%`, overflow: 'hidden', display: 'flex' }}>
+    <div style={{
+      display: 'flex',
+      flex: '1 1 0%',
+      minWidth: 0,
+      minHeight: 0,
+      overflow: 'hidden',
+      flexDirection: isHorizontal ? 'row' : 'column',
+    }}>
+      <div style={{ flex: `${ratio} 1 0%`, overflow: 'hidden', display: 'flex', minWidth: 0, minHeight: 0 }}>
         <SplitContainer node={node.children[0]} path={[...path, 0]} />
       </div>
       <DragDivider
@@ -30,7 +38,7 @@ export function SplitContainer({ node, path }: SplitContainerProps) {
           updateSplitRatio(path, newRatio);
         }}
       />
-      <div style={{ flex: `${1 - ratio} 1 0%`, overflow: 'hidden', display: 'flex' }}>
+      <div style={{ flex: `${1 - ratio} 1 0%`, overflow: 'hidden', display: 'flex', minWidth: 0, minHeight: 0 }}>
         <SplitContainer node={node.children[1]} path={[...path, 1]} />
       </div>
     </div>

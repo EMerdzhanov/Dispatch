@@ -13,6 +13,35 @@ import { useShortcuts } from './hooks/useShortcuts';
 import { TerminalStatus } from '../shared/types';
 import type { SplitNode, SplitDirection, Template, TemplateNode } from '../shared/types';
 
+// Build an equal split layout from a list of terminal IDs
+function buildEqualSplit(terminalIds: string[], direction: SplitDirection): SplitNode {
+  if (terminalIds.length === 1) {
+    return { type: 'leaf', terminalId: terminalIds[0] };
+  }
+  if (terminalIds.length === 2) {
+    return {
+      type: 'branch',
+      direction,
+      ratio: 0.5,
+      children: [
+        { type: 'leaf', terminalId: terminalIds[0] },
+        { type: 'leaf', terminalId: terminalIds[1] },
+      ] as [SplitNode, SplitNode],
+    };
+  }
+  // 3+ terminals: split in half, recurse
+  const mid = Math.ceil(terminalIds.length / 2);
+  return {
+    type: 'branch',
+    direction,
+    ratio: mid / terminalIds.length,
+    children: [
+      buildEqualSplit(terminalIds.slice(0, mid), direction),
+      buildEqualSplit(terminalIds.slice(mid), direction),
+    ] as [SplitNode, SplitNode],
+  };
+}
+
 function splitLeafInTree(
   node: SplitNode, targetId: string, newId: string, direction: SplitDirection
 ): SplitNode {
@@ -309,79 +338,38 @@ export function App() {
     onNewTerminal: () => handleSpawn('$SHELL'),
     onNewTab: () => handleOpenFolder(),
     onCloseTerminal: () => {
+      // Cmd+W: if in split view, exit split view (don't kill terminal)
+      // If NOT in split view, do nothing (use right-click to kill terminals)
       const state = useStore.getState();
-      const id = state.activeTerminalId;
-      if (!id) return;
-
       const group = state.groups.find((g) => g.id === state.activeGroupId);
       if (!group) return;
 
-      pty.kill(id);
-      removeTerminal(id);
-
-      // Update split tree
       if (group.splitLayout) {
-        const newLayout = removeLeafFromTree(group.splitLayout, id);
-        state.setGroupSplitLayout(group.id, newLayout);
+        // Exit split view — go back to single pane showing active terminal
+        state.setGroupSplitLayout(group.id, null);
+        return;
       }
-
-      // Select another terminal
-      const remaining = group.terminalIds.filter((t) => t !== id);
-      if (remaining.length > 0) {
-        state.setActiveTerminal(remaining[0]);
-      }
+      // No split view — do nothing (terminals are closed via right-click context menu)
     },
     onOpenSearch: () => setSearchOpen(true),
     onOpenPalette: () => setPaletteOpen(true),
-    onSplitHorizontal: async () => {
+    onSplitHorizontal: () => {
+      // Cmd+D: arrange existing terminals into horizontal split (no new terminal spawned)
       const state = useStore.getState();
       const group = state.groups.find((g) => g.id === state.activeGroupId);
-      if (!group || !state.activeTerminalId) return;
+      if (!group || group.terminalIds.length < 2) return; // need at least 2 terminals to split
 
-      const cwd = group.cwd || homedir;
-      const newId = await pty.spawn({ cwd, command: '$SHELL' });
-      state.addTerminal(group.id, { id: newId, command: '$SHELL', cwd, status: TerminalStatus.RUNNING });
-
-      const currentLayout = group.splitLayout;
-      if (!currentLayout) {
-        state.setGroupSplitLayout(group.id, {
-          type: 'branch',
-          direction: 'horizontal',
-          ratio: 0.5,
-          children: [
-            { type: 'leaf', terminalId: state.activeTerminalId },
-            { type: 'leaf', terminalId: newId },
-          ],
-        });
-      } else {
-        const newLayout = splitLeafInTree(currentLayout, state.activeTerminalId, newId, 'horizontal');
-        state.setGroupSplitLayout(group.id, newLayout);
-      }
+      // Build a split tree from all terminals in the group
+      const layout = buildEqualSplit(group.terminalIds, 'horizontal');
+      state.setGroupSplitLayout(group.id, layout);
     },
-    onSplitVertical: async () => {
+    onSplitVertical: () => {
       const state = useStore.getState();
       const group = state.groups.find((g) => g.id === state.activeGroupId);
-      if (!group || !state.activeTerminalId) return;
+      if (!group || group.terminalIds.length < 2) return;
 
-      const cwd = group.cwd || homedir;
-      const newId = await pty.spawn({ cwd, command: '$SHELL' });
-      state.addTerminal(group.id, { id: newId, command: '$SHELL', cwd, status: TerminalStatus.RUNNING });
-
-      const currentLayout = group.splitLayout;
-      if (!currentLayout) {
-        state.setGroupSplitLayout(group.id, {
-          type: 'branch',
-          direction: 'vertical',
-          ratio: 0.5,
-          children: [
-            { type: 'leaf', terminalId: state.activeTerminalId },
-            { type: 'leaf', terminalId: newId },
-          ],
-        });
-      } else {
-        const newLayout = splitLeafInTree(currentLayout, state.activeTerminalId, newId, 'vertical');
-        state.setGroupSplitLayout(group.id, newLayout);
-      }
+      const layout = buildEqualSplit(group.terminalIds, 'vertical');
+      state.setGroupSplitLayout(group.id, layout);
     },
     onToggleZenMode: () => toggleZenMode(),
     onOpenSettings: () => setSettingsOpen(true),

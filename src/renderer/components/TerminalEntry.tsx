@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store';
 import { TerminalStatus } from '../../shared/types';
 import { usePty } from '../hooks/usePty';
@@ -12,8 +12,18 @@ export function TerminalEntry({ terminalId }: TerminalEntryProps) {
   const activeTerminalId = useStore((s) => s.activeTerminalId);
   const setActiveTerminal = useStore((s) => s.setActiveTerminal);
   const removeTerminal = useStore((s) => s.removeTerminal);
+  const renameTerminal = useStore((s) => s.renameTerminal);
   const pty = usePty();
   const [showMenu, setShowMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      setTimeout(() => inputRef.current?.select(), 50);
+    }
+  }, [editing]);
 
   if (!terminal) return null;
 
@@ -21,7 +31,8 @@ export function TerminalEntry({ terminalId }: TerminalEntryProps) {
   const isExited = terminal.status === TerminalStatus.EXITED;
 
   const isClaude = terminal.command === 'claude' || terminal.command.startsWith('claude ');
-  const typeName = isClaude ? 'Claude Code' : 'Shell';
+  const defaultName = isClaude ? 'Claude Code' : 'Shell';
+  const displayName = terminal.label || defaultName;
 
   const activityStatus = useStore((s) => s.terminalStatuses[terminalId]) || 'idle';
 
@@ -34,7 +45,7 @@ export function TerminalEntry({ terminalId }: TerminalEntryProps) {
   };
 
   const dotColor = activityColors[activityStatus] || 'var(--text-dim)';
-  const isRunning = activityStatus === 'running';
+  const isRunningAnim = activityStatus === 'running';
 
   const handleClose = () => {
     pty.kill(terminalId);
@@ -47,55 +58,65 @@ export function TerminalEntry({ terminalId }: TerminalEntryProps) {
     setShowMenu(true);
   };
 
+  const startRename = () => {
+    setEditName(terminal.label || defaultName);
+    setEditing(true);
+    setShowMenu(false);
+  };
+
+  const commitRename = () => {
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== defaultName) {
+      renameTerminal(terminalId, trimmed);
+    } else {
+      // Clear custom label to revert to default
+      renameTerminal(terminalId, '');
+    }
+    setEditing(false);
+  };
+
   return (
     <div style={{ position: 'relative' }}>
       <button
         className={`d-entry${isActive ? ' d-entry--active' : ''}${isExited ? ' d-entry--exited' : ''}`}
         onClick={() => setActiveTerminal(terminalId)}
+        onDoubleClick={startRename}
         onContextMenu={handleContextMenu}
-        title={terminal.command}
+        title={`${displayName} — ${terminal.command}`}
       >
         <div className="d-entry__header">
-          <span className={`d-entry__dot${isRunning ? ' d-entry__dot--running' : ''}`} style={{ backgroundColor: dotColor }} />
-          <span className="d-entry__name">{typeName}</span>
+          <span className={`d-entry__dot${isRunningAnim ? ' d-entry__dot--running' : ''}`} style={{ backgroundColor: dotColor }} />
+          {editing ? (
+            <input
+              ref={inputRef}
+              className="d-settings__input"
+              style={{ fontSize: 11, padding: '1px 4px', width: '100%' }}
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename();
+                if (e.key === 'Escape') setEditing(false);
+                e.stopPropagation();
+              }}
+              onBlur={commitRename}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span className="d-entry__name">{displayName}</span>
+          )}
         </div>
         <div className="d-entry__command">{terminal.command}</div>
       </button>
 
-      {/* Right-click context menu */}
       {showMenu && (
         <>
-          {/* Click-away overlay */}
-          <div
-            className="d-context-overlay"
-            onClick={() => setShowMenu(false)}
-          />
+          <div className="d-context-overlay" onClick={() => setShowMenu(false)} />
           <div className="d-context-menu">
-            <button
-              className="d-context-menu__item"
-              onClick={handleClose}
-            >
-              Close Terminal
+            <button className="d-context-menu__item" onClick={startRename}>
+              Rename
             </button>
-            <button
-              className="d-context-menu__item d-context-menu__item--danger"
-              onClick={() => {
-                pty.kill(terminalId);
-                removeTerminal(terminalId);
-                const state = useStore.getState();
-                const group = state.groups.find((g) => g.terminalIds.includes(terminalId));
-                if (group) {
-                  for (const tid of group.terminalIds) {
-                    if (tid !== terminalId) {
-                      pty.kill(tid);
-                      state.removeTerminal(tid);
-                    }
-                  }
-                }
-                setShowMenu(false);
-              }}
-            >
-              Close All in Tab
+            <button className="d-context-menu__item d-context-menu__item--danger" onClick={handleClose}>
+              Close Terminal
             </button>
           </div>
         </>

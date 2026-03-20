@@ -155,10 +155,12 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
   // Short command label (first word)
   const shortCommand = entry.command.split(' ')[0].split('/').pop() || entry.command;
 
-  // Folder name only for display; full path in title tooltip
+  // Use custom label if set, otherwise command + folder
   const folder = folderName(entry.cwd);
-  const headerLabel = `${shortCommand}${folder ? ` — ${folder}` : ''}`;
-  const headerTooltip = `${entry.command} — ${entry.cwd}`;
+  const headerLabel = entry.label
+    ? `${entry.label} — ${folder}`
+    : `${shortCommand}${folder ? ` — ${folder}` : ''}`;
+  const headerTooltip = `${entry.label || entry.command} — ${entry.cwd}`;
 
   return (
     <div className="d-termpane">

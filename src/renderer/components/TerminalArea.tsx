@@ -30,6 +30,7 @@ export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
     );
   }
 
+  // Split view: render the split tree
   if (splitLayout) {
     return (
       <div className="d-terminal-area">
@@ -38,9 +39,23 @@ export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
     );
   }
 
+  // Single pane view: render ALL terminals, show/hide with CSS
+  // This keeps xterm instances alive so content is preserved when switching
   return (
     <div className="d-terminal-area">
-      <TerminalPane key={activeTerminalId} terminalId={activeTerminalId} onSpawnInCwd={onSpawnInCwd} />
+      {activeGroup.terminalIds.map((tid) => (
+        <div
+          key={tid}
+          style={{
+            display: tid === activeTerminalId ? 'flex' : 'none',
+            flex: '1 1 0%',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}
+        >
+          <TerminalPane terminalId={tid} onSpawnInCwd={onSpawnInCwd} />
+        </div>
+      ))}
     </div>
   );
 }

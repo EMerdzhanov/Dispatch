@@ -52,6 +52,7 @@ export interface Preset {
 
 export interface TerminalEntry {
   id: string;
+  label?: string;       // custom name (e.g. "Security", "QA")
   presetName?: string;
   command: string;
   cwd: string;
