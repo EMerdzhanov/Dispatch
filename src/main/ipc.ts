@@ -78,4 +78,16 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
 
   ipcMain.handle('templates:load', async () => store.loadTemplates());
   ipcMain.handle('templates:save', async (_event, templates) => store.saveTemplates(templates));
+
+  ipcMain.handle('resume:scan', async () => PtyManager.listDispatchSessions());
+
+  ipcMain.handle('resume:restore', async (_event, sessionName: string) => {
+    return ptyManager.attachSession(sessionName);
+  });
+
+  ipcMain.handle('resume:cleanup', async (_event, sessionNames: string[]) => {
+    for (const name of sessionNames) {
+      PtyManager.killSession(name);
+    }
+  });
 }

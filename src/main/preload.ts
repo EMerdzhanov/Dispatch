@@ -40,4 +40,9 @@ contextBridge.exposeInMainWorld('dispatch', {
     load: () => ipcRenderer.invoke('templates:load'),
     save: (templates: unknown) => ipcRenderer.invoke('templates:save', templates),
   },
+  resume: {
+    scan: () => ipcRenderer.invoke('resume:scan'),
+    restore: (sessionName: string) => ipcRenderer.invoke('resume:restore', sessionName),
+    cleanup: (sessionNames: string[]) => ipcRenderer.invoke('resume:cleanup', sessionNames),
+  },
 });

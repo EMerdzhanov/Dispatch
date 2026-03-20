@@ -31,6 +31,15 @@ export class PtyManager {
   private dataCallbacks: DataCallback[] = [];
   private exitCallbacks: ExitCallback[] = [];
   private tmuxAvailable = isTmuxAvailable();
+  private sessionCounter = new Map<string, number>();
+
+  private getSessionName(cwd: string): string {
+    const folderName = cwd.split('/').pop() || 'unknown';
+    const safe = folderName.replace(/[.:]/g, '-');
+    const count = this.sessionCounter.get(safe) || 0;
+    this.sessionCounter.set(safe, count + 1);
+    return `dispatch-${safe}-${count}`;
+  }
 
   spawn(opts: SpawnOptions): string {
     const id = randomUUID();
@@ -56,7 +65,7 @@ export class PtyManager {
 
     if (this.tmuxAvailable && !opts.noTmux) {
       // Use tmux for session persistence
-      const sessionName = `dispatch-${id}`;
+      const sessionName = this.getSessionName(cwd);
 
       if (tmuxSessionExists(sessionName)) {
         // Re-attach to existing session
@@ -168,5 +177,58 @@ export class PtyManager {
 
   onExit(cb: ExitCallback): void {
     this.exitCallbacks.push(cb);
+  }
+
+  attachSession(sessionName: string): string {
+    const id = randomUUID();
+    const env = {
+      ...process.env as Record<string, string>,
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+    };
+
+    const term = pty.spawn('tmux', ['attach-session', '-t', sessionName], {
+      name: 'xterm-256color',
+      cols: 80,
+      rows: 24,
+      cwd: process.env.HOME || '/',
+      env,
+    });
+
+    this.terminals.set(id, term);
+    term.onData((data) => { for (const cb of this.dataCallbacks) cb(id, data); });
+    term.onExit(({ exitCode, signal }) => {
+      this.terminals.delete(id);
+      for (const cb of this.exitCallbacks) cb(id, exitCode ?? 0, signal ?? 0);
+    });
+
+    return id;
+  }
+
+  static listDispatchSessions(): { name: string; cwd: string }[] {
+    try {
+      const output = execSync(
+        'tmux list-sessions -F "#{session_name}" 2>/dev/null',
+        { encoding: 'utf-8', timeout: 3000 }
+      ).trim();
+      const sessions = output.split('\n').filter((s) => s.startsWith('dispatch-'));
+
+      return sessions.map((name) => {
+        let cwd = '';
+        try {
+          cwd = execSync(
+            `tmux display-message -t "${name}" -p "#{pane_current_path}" 2>/dev/null`,
+            { encoding: 'utf-8', timeout: 2000 }
+          ).trim();
+        } catch { cwd = ''; }
+        return { name, cwd };
+      });
+    } catch { return []; }
+  }
+
+  static killSession(name: string): void {
+    try {
+      execSync(`tmux kill-session -t "${name}" 2>/dev/null`, { timeout: 2000 });
+    } catch {}
   }
 }

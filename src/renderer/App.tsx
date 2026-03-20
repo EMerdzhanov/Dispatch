@@ -6,6 +6,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { QuickSwitcher } from './components/QuickSwitcher';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SaveTemplateDialog } from './components/SaveTemplateDialog';
+import { ResumeModal } from './components/ResumeModal';
 import { useStore } from './store';
 import { usePty, useStateApi, useDialogApi } from './hooks/usePty';
 import { useShortcuts } from './hooks/useShortcuts';
@@ -180,6 +181,7 @@ export function App() {
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = React.useState(false);
+  const [showResume, setShowResume] = React.useState(false);
   const templates = useStore((s) => s.templates);
 
   useEffect(() => {
@@ -191,6 +193,21 @@ export function App() {
   useEffect(() => {
     (window as any).dispatch?.templates?.load().then((t: Template[]) => {
       if (t) useStore.getState().setTemplates(t);
+    });
+  }, []);
+
+  useEffect(() => {
+    (window as any).dispatch?.resume?.scan().then((sessions: any[]) => {
+      if (sessions && sessions.length > 0) {
+        const mapped = sessions.map((s: any) => ({
+          sessionName: s.name,
+          cwd: s.cwd,
+          folderName: s.cwd ? s.cwd.split('/').pop() || s.name : s.name,
+          selected: true,
+        }));
+        useStore.getState().setResumeSessions(mapped);
+        setShowResume(true);
+      }
     });
   }, []);
 
@@ -254,6 +271,32 @@ export function App() {
       return n.type === 'leaf' ? n.terminalId : firstLeaf(n.children[0]);
     }
     setActiveTerminal(firstLeaf(liveLayout));
+  };
+
+  const handleRestore = async () => {
+    const sessions = useStore.getState().resumeSessions?.filter((s) => s.selected) || [];
+    for (const session of sessions) {
+      if (!session.cwd) continue;
+      const groupId = findOrCreateGroup(session.cwd);
+      const id = await (window as any).dispatch.resume.restore(session.sessionName);
+      addTerminal(groupId, { id, command: 'tmux (restored)', cwd: session.cwd, status: TerminalStatus.RUNNING });
+    }
+    if (sessions.length > 0) {
+      const firstGroup = useStore.getState().groups[0];
+      if (firstGroup) {
+        useStore.getState().setActiveGroup(firstGroup.id);
+        if (firstGroup.terminalIds[0]) setActiveTerminal(firstGroup.terminalIds[0]);
+      }
+    }
+    setShowResume(false);
+    useStore.getState().setResumeSessions(null);
+  };
+
+  const handleFresh = async () => {
+    const sessions = useStore.getState().resumeSessions || [];
+    await (window as any).dispatch.resume.cleanup(sessions.map((s) => s.sessionName));
+    setShowResume(false);
+    useStore.getState().setResumeSessions(null);
   };
 
   const removeTerminal = useStore((s) => s.removeTerminal);
@@ -395,6 +438,7 @@ export function App() {
         </div>
       )}
 
+      {showResume && <ResumeModal onRestore={handleRestore} onFresh={handleFresh} />}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onSpawn={handleSpawn} />
       <QuickSwitcher open={searchOpen} onClose={() => setSearchOpen(false)} />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />

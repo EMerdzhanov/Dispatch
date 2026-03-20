@@ -36,6 +36,8 @@ function createWindow() {
   // mainWindow.webContents.openDevTools({ mode: 'detach' });
 }
 
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 app.whenReady().then(() => {
   registerIpc(ptyManager, store);
 
