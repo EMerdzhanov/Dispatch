@@ -1,5 +1,6 @@
 export type ActivityStatus = 'idle' | 'running' | 'success' | 'error' | 'waiting';
 type StatusCallback = (terminalId: string, status: ActivityStatus) => void;
+type UrlCallback = (terminalId: string, url: string) => void;
 
 function stripAnsi(str: string): string {
   return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
@@ -13,6 +14,7 @@ const PATTERNS: { status: ActivityStatus; regex: RegExp }[] = [
 
 const IDLE_TIMEOUT = 3000;
 const DEBOUNCE_MS = 100;
+const URL_DEBOUNCE_MS = 2000;
 
 export class TerminalMonitor {
   private buffers = new Map<string, string>();
@@ -20,9 +22,13 @@ export class TerminalMonitor {
   private debounceTimers = new Map<string, NodeJS.Timeout>();
   private lastStatus = new Map<string, ActivityStatus>();
   private callback: StatusCallback;
+  private urlCallback?: UrlCallback;
+  private detectedPorts = new Set<string>();
+  private urlDebounceTimers = new Map<string, NodeJS.Timeout>();
 
-  constructor(callback: StatusCallback) {
+  constructor(callback: StatusCallback, urlCallback?: UrlCallback) {
     this.callback = callback;
+    this.urlCallback = urlCallback;
   }
 
   onData(terminalId: string, data: string): void {
@@ -42,6 +48,21 @@ export class TerminalMonitor {
 
     this.emitDebounced(terminalId, detected);
     this.resetIdleTimer(terminalId);
+
+    // Detect localhost URLs
+    const urlMatches = [...clean.matchAll(/https?:\/\/(?:localhost|127\.0\.0\.1):(\d{3,5})/g)];
+    for (const match of urlMatches) {
+      const url = match[0];
+      const port = match[1];
+      const key = `${terminalId}:${port}`;
+      if (this.detectedPorts.has(key)) continue;
+      if (this.urlDebounceTimers.has(key)) continue;
+      this.urlDebounceTimers.set(key, setTimeout(() => {
+        this.detectedPorts.add(key);
+        this.urlCallback?.(terminalId, url);
+        this.urlDebounceTimers.delete(key);
+      }, URL_DEBOUNCE_MS));
+    }
   }
 
   cleanup(terminalId: string): void {
@@ -53,6 +74,15 @@ export class TerminalMonitor {
     if (debounce) clearTimeout(debounce);
     this.debounceTimers.delete(terminalId);
     this.lastStatus.delete(terminalId);
+    for (const [key, timer] of this.urlDebounceTimers) {
+      if (key.startsWith(terminalId + ':')) {
+        clearTimeout(timer);
+        this.urlDebounceTimers.delete(key);
+      }
+    }
+    for (const key of this.detectedPorts) {
+      if (key.startsWith(terminalId + ':')) this.detectedPorts.delete(key);
+    }
   }
 
   private emitDebounced(terminalId: string, status: ActivityStatus): void {

@@ -48,21 +48,27 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
     await store.saveState(state);
   });
 
-  const monitor = new TerminalMonitor((terminalId, status) => {
-    const win = BrowserWindow.getAllWindows()[0];
-    win?.webContents.send('monitor:status', terminalId, status);
+  const monitor = new TerminalMonitor(
+    (terminalId, status) => {
+      const win = BrowserWindow.getAllWindows()[0];
+      win?.webContents.send('monitor:status', terminalId, status);
 
-    // Desktop notifications for success/error
-    if (status === 'success' || status === 'error') {
-      store.loadSettings().then((settings) => {
-        if (!settings.notificationsEnabled) return;
-        new Notification({
-          title: `Dispatch: ${status === 'success' ? 'Task Complete' : 'Error Detected'}`,
-          body: `Terminal activity detected`,
-        }).show();
-      });
+      // Desktop notifications for success/error
+      if (status === 'success' || status === 'error') {
+        store.loadSettings().then((settings) => {
+          if (!settings.notificationsEnabled) return;
+          new Notification({
+            title: `Dispatch: ${status === 'success' ? 'Task Complete' : 'Error Detected'}`,
+            body: `Terminal activity detected`,
+          }).show();
+        });
+      }
+    },
+    (terminalId, url) => {
+      const win = BrowserWindow.getAllWindows()[0];
+      win?.webContents.send('browser:detected', terminalId, url);
     }
-  });
+  );
 
   // Forward PTY events to renderer
   ptyManager.onData((id, data) => {

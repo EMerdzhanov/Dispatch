@@ -51,4 +51,21 @@ describe('TerminalMonitor', () => {
     monitor.cleanup('t1');
     expect(() => monitor.cleanup('t1')).not.toThrow();
   });
+
+  it('detects localhost URLs', async () => {
+    const urlCb = vi.fn();
+    monitor = new TerminalMonitor(statusCallback, urlCb);
+    monitor.onData('t1', 'Server running at http://localhost:3000');
+    await new Promise((r) => setTimeout(r, 2500));
+    expect(urlCb).toHaveBeenCalledWith('t1', 'http://localhost:3000');
+  });
+
+  it('deduplicates same port detections', async () => {
+    const urlCb = vi.fn();
+    monitor = new TerminalMonitor(statusCallback, urlCb);
+    monitor.onData('t1', 'http://localhost:3000');
+    monitor.onData('t1', 'http://localhost:3000');
+    await new Promise((r) => setTimeout(r, 2500));
+    expect(urlCb).toHaveBeenCalledTimes(1);
+  });
 });
