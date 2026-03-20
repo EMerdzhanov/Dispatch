@@ -246,6 +246,28 @@ export function App() {
     });
   }, []);
 
+  useEffect(() => {
+    (window as any).dispatch?.browser?.onDetected((terminalId: string, url: string) => {
+      const state = useStore.getState();
+      const group = state.groups.find((g) => g.terminalIds.includes(terminalId));
+      if (!group) return;
+
+      // Check if a tab for this port already exists
+      let port = '';
+      try { port = new URL(url).port; } catch { return; }
+      const existingTab = (group.browserTabIds || [])
+        .map((id) => state.browserTabs[id])
+        .find((t) => { try { return t && new URL(t.url).port === port; } catch { return false; } });
+
+      if (existingTab) return;
+
+      let host = url;
+      try { host = new URL(url).host; } catch {}
+      const tab = { id: crypto.randomUUID(), url, title: host };
+      state.addBrowserTab(group.id, tab);
+    });
+  }, []);
+
   // Load project data when active group changes
   useEffect(() => {
     const group = groups.find((g) => g.id === activeGroupId);
