@@ -1,27 +1,21 @@
-import type { TerminalEntry, ProjectGroup, Preset, Settings } from '../../shared/types';
+import type { TerminalEntry, ProjectGroup, Preset, Settings, Template } from '../../shared/types';
+export type { SplitDirection, SplitLeaf, SplitBranch, SplitNode } from '../../shared/types';
+import type { SplitDirection, SplitNode } from '../../shared/types';
 
-export type SplitDirection = 'horizontal' | 'vertical';
+export type TerminalActivityStatus = 'idle' | 'running' | 'success' | 'error' | 'waiting';
 
-export interface SplitLeaf {
-  type: 'leaf';
-  terminalId: string;
+export interface ResumeSession {
+  sessionName: string;
+  cwd: string;
+  folderName: string;
+  selected: boolean;
 }
-
-export interface SplitBranch {
-  type: 'branch';
-  direction: SplitDirection;
-  children: SplitNode[];
-  ratio: number;
-}
-
-export type SplitNode = SplitLeaf | SplitBranch;
 
 export interface StoreState {
   groups: ProjectGroup[];
   terminals: Record<string, TerminalEntry>;
   activeGroupId: string | null;
   activeTerminalId: string | null;
-  splitLayout: SplitNode | null;
   zenMode: boolean;
   presets: Preset[];
   settings: Settings;
@@ -29,6 +23,9 @@ export interface StoreState {
   filterText: string;
   settingsOpen: boolean;
   tmuxAvailable: boolean;
+  terminalStatuses: Record<string, TerminalActivityStatus>;
+  templates: Template[];
+  resumeSessions: ResumeSession[] | null;
 }
 
 export interface StoreActions {
@@ -51,4 +48,10 @@ export interface StoreActions {
   toggleZenMode: () => void;
   setSettingsOpen: (open: boolean) => void;
   setTmuxAvailable: (available: boolean) => void;
+  setTerminalStatus: (id: string, status: TerminalActivityStatus) => void;
+  setTemplates: (templates: Template[]) => void;
+  setResumeSessions: (sessions: ResumeSession[] | null) => void;
+  toggleResumeSession: (sessionName: string) => void;
+  getGroupSplitLayout: (groupId: string) => SplitNode | null;
+  setGroupSplitLayout: (groupId: string, layout: SplitNode | null) => void;
 }

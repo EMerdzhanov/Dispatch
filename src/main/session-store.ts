@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
-import { type AppState, type Preset, type Settings, DEFAULT_PRESETS, DEFAULT_SETTINGS } from '../shared/types';
+import { type AppState, type Preset, type Settings, type Template, DEFAULT_PRESETS, DEFAULT_SETTINGS } from '../shared/types';
 
 const DEFAULT_STATE: AppState = {
   groups: [],
@@ -62,10 +62,19 @@ export class SessionStore {
   }
 
   async loadSettings(): Promise<Settings> {
-    return this.readJson('settings.json', DEFAULT_SETTINGS);
+    const saved = await this.readJson<Partial<Settings>>('settings.json', {});
+    return { ...DEFAULT_SETTINGS, ...saved };
   }
 
   async saveSettings(settings: Settings): Promise<void> {
     await this.writeJson('settings.json', settings);
+  }
+
+  async loadTemplates(): Promise<Template[]> {
+    return this.readJson('templates.json', []);
+  }
+
+  async saveTemplates(templates: Template[]): Promise<void> {
+    await this.writeJson('templates.json', templates);
   }
 }

@@ -1,3 +1,39 @@
+export type SplitDirection = 'horizontal' | 'vertical';
+
+export interface SplitLeaf {
+  type: 'leaf';
+  terminalId: string;
+}
+
+export interface SplitBranch {
+  type: 'branch';
+  direction: SplitDirection;
+  children: [SplitNode, SplitNode];
+  ratio: number;
+}
+
+export type SplitNode = SplitLeaf | SplitBranch;
+
+export interface TemplateLeaf {
+  type: 'leaf';
+  command: string;
+}
+
+export interface TemplateBranch {
+  type: 'branch';
+  direction: SplitDirection;
+  ratio: number;
+  children: [TemplateNode, TemplateNode];
+}
+
+export type TemplateNode = TemplateLeaf | TemplateBranch;
+
+export interface Template {
+  name: string;
+  cwd: string;
+  splitLayout: TemplateNode | null;
+}
+
 export enum TerminalStatus {
   ACTIVE = 'ACTIVE',
   RUNNING = 'RUNNING',
@@ -32,6 +68,7 @@ export interface ProjectGroup {
   cwd?: string;        // undefined for custom groups
   isCustom: boolean;
   terminalIds: string[];
+  splitLayout?: SplitNode | null;
 }
 
 export interface AppState {
@@ -57,6 +94,8 @@ export interface Settings {
   lineHeight: number;
   scanInterval: number;
   keybindings: Record<string, string>;
+  notificationsEnabled: boolean;
+  soundEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -66,6 +105,8 @@ export const DEFAULT_SETTINGS: Settings = {
   lineHeight: 1.2,
   scanInterval: 10000,
   keybindings: {},
+  notificationsEnabled: true,
+  soundEnabled: true,
 };
 
 export const DEFAULT_PRESETS: Preset[] = [

@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { TerminalPane } from './TerminalPane';
-import type { SplitNode } from '../store/types';
+import type { SplitNode } from '../../shared/types';
 
 interface SplitContainerProps {
   node: SplitNode;

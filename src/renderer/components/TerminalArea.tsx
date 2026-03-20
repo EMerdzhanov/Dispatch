@@ -9,7 +9,6 @@ interface TerminalAreaProps {
 
 export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
   const activeTerminalId = useStore((s) => s.activeTerminalId);
-  const splitLayout = useStore((s) => s.splitLayout);
   const zenMode = useStore((s) => s.zenMode);
   const groups = useStore((s) => s.groups);
   const activeGroupId = useStore((s) => s.activeGroupId);

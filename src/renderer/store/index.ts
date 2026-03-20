@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { TerminalStatus, DEFAULT_PRESETS, DEFAULT_SETTINGS } from '../../shared/types';
 import type { TerminalEntry } from '../../shared/types';
+import type { SplitNode } from '../../shared/types';
 import type { StoreState, StoreActions, SplitLeaf } from './types';
 
 const genId = () =>
@@ -13,7 +14,6 @@ const initialState: StoreState = {
   terminals: {},
   activeGroupId: null,
   activeTerminalId: null,
-  splitLayout: null,
   zenMode: false,
   presets: DEFAULT_PRESETS,
   settings: DEFAULT_SETTINGS,
@@ -21,6 +21,9 @@ const initialState: StoreState = {
   filterText: '',
   settingsOpen: false,
   tmuxAvailable: false,
+  terminalStatuses: {},
+  templates: [],
+  resumeSessions: null,
 };
 
 export const useStore = create<StoreState & StoreActions>()((set, get) => ({
@@ -132,29 +135,41 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
   setFilterText: (text) => set({ filterText: text }),
 
   splitTerminal: (direction) => {
-    const { activeTerminalId, splitLayout } = get();
-    if (!activeTerminalId) return;
-    if (!splitLayout) {
-      set({
-        splitLayout: {
-          type: 'branch',
-          direction,
-          children: [
-            { type: 'leaf', terminalId: activeTerminalId },
-            { type: 'leaf', terminalId: '' }, // placeholder — caller fills in after spawning new terminal
-          ],
-          ratio: 0.5,
-        },
-      });
+    const { activeTerminalId, activeGroupId, groups } = get();
+    if (!activeTerminalId || !activeGroupId) return;
+    const group = groups.find((g) => g.id === activeGroupId);
+    if (!group) return;
+    const currentLayout = group.splitLayout;
+
+    if (!currentLayout) {
+      set((s) => ({
+        groups: s.groups.map((g) => g.id === activeGroupId ? {
+          ...g,
+          splitLayout: {
+            type: 'branch' as const,
+            direction,
+            children: [
+              { type: 'leaf' as const, terminalId: activeTerminalId },
+              { type: 'leaf' as const, terminalId: '' }, // placeholder
+            ] as [SplitNode, SplitNode],
+            ratio: 0.5,
+          },
+        } : g),
+      }));
     }
   },
 
-  setSplitLayout: (layout) => set({ splitLayout: layout }),
+  setSplitLayout: (layout) => {
+    const { activeGroupId } = get();
+    if (!activeGroupId) return;
+    get().setGroupSplitLayout(activeGroupId, layout);
+  },
 
   updateSplitRatio: (path, ratio) => {
     set((s) => {
-      if (!s.splitLayout || s.splitLayout.type !== 'branch') return s;
-      const updated = JSON.parse(JSON.stringify(s.splitLayout));
+      const group = s.groups.find((g) => g.id === s.activeGroupId);
+      if (!group?.splitLayout || group.splitLayout.type !== 'branch') return s;
+      const updated = JSON.parse(JSON.stringify(group.splitLayout));
       let node = updated;
       for (const idx of path) {
         if (node.type === 'branch' && node.children[idx]) {
@@ -162,13 +177,37 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
         }
       }
       if (node.type === 'branch') node.ratio = ratio;
-      return { splitLayout: updated };
+      return {
+        groups: s.groups.map((g) => g.id === s.activeGroupId ? { ...g, splitLayout: updated } : g),
+      };
     });
   },
 
   toggleZenMode: () => set((s) => ({ zenMode: !s.zenMode })),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
   setTmuxAvailable: (available) => set({ tmuxAvailable: available }),
+
+  setTerminalStatus: (id, status) => set((s) => ({
+    terminalStatuses: { ...s.terminalStatuses, [id]: status },
+  })),
+
+  setTemplates: (templates) => set({ templates }),
+
+  setResumeSessions: (sessions) => set({ resumeSessions: sessions }),
+
+  toggleResumeSession: (sessionName) => set((s) => ({
+    resumeSessions: s.resumeSessions?.map((rs) =>
+      rs.sessionName === sessionName ? { ...rs, selected: !rs.selected } : rs
+    ) ?? null,
+  })),
+
+  getGroupSplitLayout: (groupId) => {
+    return get().groups.find((g) => g.id === groupId)?.splitLayout ?? null;
+  },
+
+  setGroupSplitLayout: (groupId, layout) => set((s) => ({
+    groups: s.groups.map((g) => g.id === groupId ? { ...g, splitLayout: layout } : g),
+  })),
 }));
 
 // Expose getInitialState for test resets
