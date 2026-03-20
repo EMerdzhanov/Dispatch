@@ -1,4 +1,4 @@
-import type { TerminalEntry, ProjectGroup, Preset, Settings, Template, Task, Note, VaultEntry } from '../../shared/types';
+import type { TerminalEntry, ProjectGroup, Preset, Settings, Template, Task, Note, VaultEntry, BrowserTab, ConsoleMessage } from '../../shared/types';
 export type { SplitDirection, SplitLeaf, SplitBranch, SplitNode } from '../../shared/types';
 import type { SplitDirection, SplitNode } from '../../shared/types';
 
@@ -31,6 +31,10 @@ export interface StoreState {
   projectVault: VaultEntry[];
   activePanel: 'tasks' | 'notes' | 'vault';
   editingNoteId: string | null;
+  browserTabs: Record<string, BrowserTab>;
+  activeBrowserTabId: string | null;
+  consoleMessages: Record<string, ConsoleMessage[]>;
+  pipeToTerminal: boolean;
 }
 
 export interface StoreActions {
@@ -65,4 +69,10 @@ export interface StoreActions {
   setProjectVault: (entries: VaultEntry[]) => void;
   setActivePanel: (panel: 'tasks' | 'notes' | 'vault') => void;
   setEditingNoteId: (id: string | null) => void;
+  addBrowserTab: (groupId: string, tab: BrowserTab) => void;
+  removeBrowserTab: (groupId: string, tabId: string) => void;
+  setActiveBrowserTab: (tabId: string | null) => void;
+  addConsoleMessage: (tabId: string, message: ConsoleMessage) => void;
+  clearConsoleMessages: (tabId: string) => void;
+  togglePipeToTerminal: () => void;
 }

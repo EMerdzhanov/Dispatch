@@ -70,6 +70,7 @@ export interface ProjectGroup {
   isCustom: boolean;
   terminalIds: string[];
   splitLayout?: SplitNode | null;
+  browserTabIds: string[];
 }
 
 export interface AppState {
@@ -135,6 +136,20 @@ export interface VaultEntry {
   id: string;
   label: string;
   value: string;
+}
+
+export interface BrowserTab {
+  id: string;
+  url: string;
+  title?: string;
+}
+
+export interface ConsoleMessage {
+  timestamp: number;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+  source?: string;
+  line?: number;
 }
 
 // IPC channel names

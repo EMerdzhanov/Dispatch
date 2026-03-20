@@ -29,6 +29,10 @@ const initialState: StoreState = {
   projectVault: [],
   activePanel: 'tasks' as const,
   editingNoteId: null,
+  browserTabs: {},
+  activeBrowserTabId: null,
+  consoleMessages: {},
+  pipeToTerminal: false,
 };
 
 export const useStore = create<StoreState & StoreActions>()((set, get) => ({
@@ -37,7 +41,7 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
   addGroup: (cwd, label) => {
     const id = genId();
     set((s) => ({
-      groups: [...s.groups, { id, label, cwd: cwd || undefined, isCustom: !cwd, terminalIds: [] }],
+      groups: [...s.groups, { id, label, cwd: cwd || undefined, isCustom: !cwd, terminalIds: [], browserTabIds: [] }],
       activeGroupId: s.activeGroupId || id,
     }));
   },
@@ -72,7 +76,7 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
     const label = cwd.split('/').pop() || cwd;
     const id = genId();
     set((s) => ({
-      groups: [...s.groups, { id, label, cwd, isCustom: false, terminalIds: [] }],
+      groups: [...s.groups, { id, label, cwd, isCustom: false, terminalIds: [], browserTabIds: [] }],
       activeGroupId: s.activeGroupId || id,
     }));
     return id;
@@ -228,6 +232,37 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
   setProjectVault: (entries) => set({ projectVault: entries }),
   setActivePanel: (panel) => set({ activePanel: panel }),
   setEditingNoteId: (id) => set({ editingNoteId: id }),
+
+  addBrowserTab: (groupId, tab) => set((s) => ({
+    browserTabs: { ...s.browserTabs, [tab.id]: tab },
+    groups: s.groups.map((g) => g.id === groupId
+      ? { ...g, browserTabIds: [...(g.browserTabIds || []), tab.id] }
+      : g),
+    activeBrowserTabId: tab.id,
+  })),
+
+  removeBrowserTab: (groupId, tabId) => set((s) => ({
+    browserTabs: Object.fromEntries(Object.entries(s.browserTabs).filter(([k]) => k !== tabId)),
+    groups: s.groups.map((g) => g.id === groupId
+      ? { ...g, browserTabIds: (g.browserTabIds || []).filter((id) => id !== tabId) }
+      : g),
+    activeBrowserTabId: s.activeBrowserTabId === tabId ? null : s.activeBrowserTabId,
+    consoleMessages: Object.fromEntries(Object.entries(s.consoleMessages).filter(([k]) => k !== tabId)),
+  })),
+
+  setActiveBrowserTab: (tabId) => set({ activeBrowserTabId: tabId }),
+
+  addConsoleMessage: (tabId, message) => set((s) => {
+    const existing = s.consoleMessages[tabId] || [];
+    const updated = [...existing, message].slice(-500);
+    return { consoleMessages: { ...s.consoleMessages, [tabId]: updated } };
+  }),
+
+  clearConsoleMessages: (tabId) => set((s) => ({
+    consoleMessages: { ...s.consoleMessages, [tabId]: [] },
+  })),
+
+  togglePipeToTerminal: () => set((s) => ({ pipeToTerminal: !s.pipeToTerminal })),
 }));
 
 // Expose getInitialState for test resets
