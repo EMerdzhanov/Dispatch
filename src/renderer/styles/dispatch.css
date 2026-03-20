@@ -547,3 +547,12 @@ input { font-family: inherit; border: none; outline: none; background: none; col
   transition: border-color 0.15s;
 }
 .d-settings__add-btn:hover { border-color: var(--text-dim); }
+
+@keyframes d-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.d-entry__dot--running {
+  animation: d-pulse 1.5s ease-in-out infinite;
+}

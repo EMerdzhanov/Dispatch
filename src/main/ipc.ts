@@ -1,8 +1,9 @@
-import { ipcMain, BrowserWindow, dialog, app } from 'electron';
+import { ipcMain, BrowserWindow, dialog, app, Notification } from 'electron';
 import { PtyManager } from './pty-manager';
 import { SessionStore } from './session-store';
 import { IPC } from '../shared/types';
 import { TmuxHelper } from './tmux';
+import { TerminalMonitor } from './terminal-monitor';
 
 export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   ipcMain.handle(IPC.PTY_SPAWN, async (_event, opts) => {
@@ -33,10 +34,27 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
     await store.saveState(state);
   });
 
+  const monitor = new TerminalMonitor((terminalId, status) => {
+    const win = BrowserWindow.getAllWindows()[0];
+    win?.webContents.send('monitor:status', terminalId, status);
+
+    // Desktop notifications for success/error
+    if (status === 'success' || status === 'error') {
+      store.loadSettings().then((settings) => {
+        if (!settings.notificationsEnabled) return;
+        new Notification({
+          title: `Dispatch: ${status === 'success' ? 'Task Complete' : 'Error Detected'}`,
+          body: `Terminal activity detected`,
+        }).show();
+      });
+    }
+  });
+
   // Forward PTY events to renderer
   ptyManager.onData((id, data) => {
     const win = BrowserWindow.getAllWindows()[0];
     win?.webContents.send(IPC.PTY_DATA, id, data);
+    monitor.onData(id, data);
   });
 
   ptyManager.onExit((id, code, signal) => {

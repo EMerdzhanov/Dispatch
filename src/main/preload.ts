@@ -31,4 +31,9 @@ contextBridge.exposeInMainWorld('dispatch', {
   tmux: {
     isAvailable: () => ipcRenderer.invoke('tmux:check'),
   },
+  monitor: {
+    onStatus: (cb: (id: string, status: string) => void) => {
+      ipcRenderer.on('monitor:status', (_event, id, status) => cb(id, status));
+    },
+  },
 });

@@ -169,6 +169,12 @@ export function App() {
     });
   }, []);
 
+  useEffect(() => {
+    (window as any).dispatch?.monitor?.onStatus((id: string, status: string) => {
+      useStore.getState().setTerminalStatus(id, status as any);
+    });
+  }, []);
+
   const removeTerminal = useStore((s) => s.removeTerminal);
   const addGroup = useStore((s) => s.addGroup);
   const toggleZenMode = useStore((s) => s.toggleZenMode);

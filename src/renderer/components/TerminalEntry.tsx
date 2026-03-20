@@ -22,7 +22,19 @@ export function TerminalEntry({ terminalId }: TerminalEntryProps) {
 
   const isClaude = terminal.command === 'claude' || terminal.command.startsWith('claude ');
   const typeName = isClaude ? 'Claude Code' : 'Shell';
-  const dotColor = isClaude ? '#53a8ff' : '#888888';
+
+  const activityStatus = useStore((s) => s.terminalStatuses[terminalId]) || 'idle';
+
+  const activityColors: Record<string, string> = {
+    idle: 'var(--text-dim)',
+    running: 'var(--accent-blue-light)',
+    success: 'var(--accent-green)',
+    error: 'var(--accent-primary)',
+    waiting: 'var(--accent-yellow)',
+  };
+
+  const dotColor = activityColors[activityStatus] || 'var(--text-dim)';
+  const isRunning = activityStatus === 'running';
 
   const handleClose = () => {
     pty.kill(terminalId);
@@ -44,7 +56,7 @@ export function TerminalEntry({ terminalId }: TerminalEntryProps) {
         title={terminal.command}
       >
         <div className="d-entry__header">
-          <span className="d-entry__dot" style={{ backgroundColor: dotColor }} />
+          <span className={`d-entry__dot${isRunning ? ' d-entry__dot--running' : ''}`} style={{ backgroundColor: dotColor }} />
           <span className="d-entry__name">{typeName}</span>
         </div>
         <div className="d-entry__command">{terminal.command}</div>
