@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 export interface TmuxSession {
   name: string;
@@ -9,27 +9,21 @@ export interface TmuxSession {
 export class TmuxHelper {
   static isAvailable(): boolean {
     try {
-      execSync('which tmux', { encoding: 'utf-8', timeout: 2000 });
+      execFileSync('which', ['tmux'], { stdio: 'ignore', timeout: 2000 });
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
   static listSessions(): TmuxSession[] {
     if (!this.isAvailable()) return [];
     try {
-      const output = execSync('tmux list-sessions -F "#{session_name}:#{session_windows}:#{session_attached}"', {
-        encoding: 'utf-8',
-        timeout: 3000,
-      });
+      const output = execFileSync('tmux', ['list-sessions', '-F', '#{session_name}:#{session_windows}:#{session_attached}'],
+        { encoding: 'utf-8', timeout: 3000 });
       return output.trim().split('\n').filter(Boolean).map((line) => {
         const [name, windows, attached] = line.split(':');
         return { name, windows: parseInt(windows, 10), attached: attached === '1' };
       });
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }
 
   static getAttachCommand(sessionName: string): string {
@@ -39,17 +33,13 @@ export class TmuxHelper {
   static findSessionForPid(pid: number): string | null {
     if (!this.isAvailable()) return null;
     try {
-      const output = execSync(
-        `tmux list-panes -a -F "#{pane_pid}:#{session_name}" 2>/dev/null`,
-        { encoding: 'utf-8', timeout: 3000 }
-      );
+      const output = execFileSync('tmux', ['list-panes', '-a', '-F', '#{pane_pid}:#{session_name}'],
+        { encoding: 'utf-8', timeout: 3000 });
       for (const line of output.trim().split('\n')) {
         const [panePid, sessionName] = line.split(':');
         if (parseInt(panePid, 10) === pid) return sessionName;
       }
       return null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 }

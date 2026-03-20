@@ -60,8 +60,8 @@ export function VaultPanel() {
   };
 
   const maskValue = (val: string): string => {
-    if (val.length <= 6) return '••••';
-    return val.slice(0, 6) + '••••';
+    if (val.length <= 3) return '••••';
+    return val.slice(0, 3) + '••••';
   };
 
   return (
@@ -77,6 +77,7 @@ export function VaultPanel() {
           />
           <input
             className="d-vault-form__input"
+            type="password"
             placeholder="Secret value"
             value={formValue}
             onChange={(e) => setFormValue(e.target.value)}

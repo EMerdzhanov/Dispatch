@@ -1,7 +1,7 @@
 import * as pty from 'node-pty';
 import os from 'os';
 import fs from 'fs';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { randomUUID } from 'crypto';
 import type { SpawnOptions } from '../shared/types';
 
@@ -10,20 +10,16 @@ type ExitCallback = (id: string, exitCode: number, signal: number) => void;
 
 function isTmuxAvailable(): boolean {
   try {
-    execSync('which tmux', { stdio: 'ignore', timeout: 2000 });
+    execFileSync('which', ['tmux'], { stdio: 'ignore', timeout: 2000 });
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 function tmuxSessionExists(sessionName: string): boolean {
   try {
-    execSync(`tmux has-session -t "${sessionName}"`, { stdio: 'ignore', timeout: 2000 });
+    execFileSync('tmux', ['has-session', '-t', sessionName], { stdio: 'ignore', timeout: 2000 });
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 export class PtyManager {
@@ -207,19 +203,14 @@ export class PtyManager {
 
   static listDispatchSessions(): { name: string; cwd: string }[] {
     try {
-      const output = execSync(
-        'tmux list-sessions -F "#{session_name}" 2>/dev/null',
-        { encoding: 'utf-8', timeout: 3000 }
-      ).trim();
+      const output = execFileSync('tmux', ['list-sessions', '-F', '#{session_name}'],
+        { encoding: 'utf-8', timeout: 3000 }).trim();
       const sessions = output.split('\n').filter((s) => s.startsWith('dispatch-'));
-
       return sessions.map((name) => {
         let cwd = '';
         try {
-          cwd = execSync(
-            `tmux display-message -t "${name}" -p "#{pane_current_path}" 2>/dev/null`,
-            { encoding: 'utf-8', timeout: 2000 }
-          ).trim();
+          cwd = execFileSync('tmux', ['display-message', '-t', name, '-p', '#{pane_current_path}'],
+            { encoding: 'utf-8', timeout: 2000 }).trim();
         } catch { cwd = ''; }
         return { name, cwd };
       });
@@ -228,7 +219,7 @@ export class PtyManager {
 
   static killSession(name: string): void {
     try {
-      execSync(`tmux kill-session -t "${name}" 2>/dev/null`, { timeout: 2000 });
+      execFileSync('tmux', ['kill-session', '-t', name], { stdio: 'ignore', timeout: 2000 });
     } catch {}
   }
 }

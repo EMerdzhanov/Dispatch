@@ -29,6 +29,8 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   });
 
   ipcMain.on(IPC.PTY_RESIZE, (_event, id: string, cols: number, rows: number) => {
+    if (typeof id !== 'string' || typeof cols !== 'number' || typeof rows !== 'number') return;
+    if (cols < 1 || cols > 500 || rows < 1 || rows > 200) return;
     ptyManager.resize(id, cols, rows);
   });
 
@@ -102,6 +104,7 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   });
 
   ipcMain.handle('browser:clearPort', async (_event, port: string) => {
+    if (typeof port !== 'string' || !/^\d{1,5}$/.test(port)) return;
     monitor.clearPort(port);
   });
 
@@ -111,12 +114,16 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   ipcMain.handle('resume:scan', async () => PtyManager.listDispatchSessions());
 
   ipcMain.handle('resume:restore', async (_event, sessionName: string) => {
+    if (typeof sessionName !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(sessionName)) return null;
     return ptyManager.attachSession(sessionName);
   });
 
   ipcMain.handle('resume:cleanup', async (_event, sessionNames: string[]) => {
+    if (!Array.isArray(sessionNames)) return;
     for (const name of sessionNames) {
-      PtyManager.killSession(name);
+      if (typeof name === 'string' && /^[a-zA-Z0-9_-]+$/.test(name)) {
+        PtyManager.killSession(name);
+      }
     }
   });
 }

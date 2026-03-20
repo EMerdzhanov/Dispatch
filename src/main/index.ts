@@ -24,6 +24,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
       webviewTag: true,
     },
   });
@@ -46,6 +47,25 @@ app.whenReady().then(() => {
   ipcMain.handle('app:homedir', () => os.homedir());
 
   createWindow();
+
+  // Lock down webview security
+  mainWindow!.webContents.on('will-attach-webview', (event, webPreferences, params) => {
+    // Strip any dangerous preferences
+    delete webPreferences.preload;
+    delete (webPreferences as any).preloadURL;
+
+    // Enforce security
+    webPreferences.nodeIntegration = false;
+    webPreferences.contextIsolation = true;
+    webPreferences.sandbox = true;
+
+    // Only allow localhost URLs
+    const url = params.src || '';
+    if (url && !url.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/)) {
+      console.warn('Blocked non-localhost webview URL:', url);
+      event.preventDefault();
+    }
+  });
 });
 
 app.on('window-all-closed', () => {
