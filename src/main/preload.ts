@@ -57,5 +57,6 @@ contextBridge.exposeInMainWorld('dispatch', {
     onDetected: (cb: (terminalId: string, url: string) => void) => {
       ipcRenderer.on('browser:detected', (_event, terminalId, url) => cb(terminalId, url));
     },
+    clearPort: (port: string) => ipcRenderer.invoke('browser:clearPort', port),
   },
 });

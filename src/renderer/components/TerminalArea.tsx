@@ -19,12 +19,27 @@ export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
   const activeGroup = groups.find((g) => g.id === activeGroupId);
   const hasTerminals = activeGroup && activeGroup.terminalIds.length > 0;
   const splitLayout = activeGroup?.splitLayout ?? null;
+  const showBrowser = activeBrowserTabId !== null;
 
-  if (!activeBrowserTabId) {
-    if (!hasTerminals || !activeTerminalId) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', minHeight: 0 }}>
-          <SubTabBar />
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', minHeight: 0 }}>
+      <SubTabBar />
+
+      {/* Browser view — always mounted when tabs exist, shown/hidden with CSS */}
+      {activeBrowserTabId && (
+        <div style={{ display: showBrowser ? 'flex' : 'none', flex: '1 1 0%', minHeight: 0 }}>
+          <BrowserPanel tabId={activeBrowserTabId} />
+        </div>
+      )}
+
+      {/* Terminal view — always mounted, shown/hidden with CSS */}
+      <div style={{
+        display: showBrowser ? 'none' : 'flex',
+        flexDirection: 'column',
+        flex: '1 1 0%',
+        minHeight: 0,
+      }}>
+        {(!hasTerminals || !activeTerminalId) ? (
           <div className="d-terminal-area--empty">
             <div style={{ textAlign: 'center' }}>
               <p style={{ color: 'var(--text-dim)' }}>No terminal open</p>
@@ -33,50 +48,28 @@ export function TerminalArea({ onSpawnInCwd }: TerminalAreaProps) {
               </p>
             </div>
           </div>
-        </div>
-      );
-    }
-
-    // Split view: render the split tree
-    if (splitLayout) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', minHeight: 0 }}>
-          <SubTabBar />
+        ) : splitLayout ? (
           <div className="d-terminal-area">
             <SplitContainer node={splitLayout} path={[]} />
           </div>
-        </div>
-      );
-    }
-
-    // Single pane view: render ALL terminals, show/hide with CSS
-    // This keeps xterm instances alive so content is preserved when switching
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', minHeight: 0 }}>
-        <SubTabBar />
-        <div className="d-terminal-area">
-          {activeGroup.terminalIds.map((tid) => (
-            <div
-              key={tid}
-              style={{
-                display: tid === activeTerminalId ? 'flex' : 'none',
-                flex: '1 1 0%',
-                flexDirection: 'column',
-                minHeight: 0,
-              }}
-            >
-              <TerminalPane terminalId={tid} onSpawnInCwd={onSpawnInCwd} />
-            </div>
-          ))}
-        </div>
+        ) : (
+          <div className="d-terminal-area">
+            {activeGroup.terminalIds.map((tid) => (
+              <div
+                key={tid}
+                style={{
+                  display: tid === activeTerminalId ? 'flex' : 'none',
+                  flex: '1 1 0%',
+                  flexDirection: 'column',
+                  minHeight: 0,
+                }}
+              >
+                <TerminalPane terminalId={tid} onSpawnInCwd={onSpawnInCwd} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    );
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 0%', minHeight: 0 }}>
-      <SubTabBar />
-      <BrowserPanel tabId={activeBrowserTabId} />
     </div>
   );
 }

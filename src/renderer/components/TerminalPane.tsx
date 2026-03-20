@@ -9,6 +9,32 @@ import { useStore } from '../store';
 import { TerminalStatus } from '../../shared/types';
 import { xtermTheme } from '../theme/xterm-theme';
 
+function LastBrowserButton() {
+  const lastUrl = useStore((s) => s.lastBrowserUrl);
+  const groups = useStore((s) => s.groups);
+  const activeGroupId = useStore((s) => s.activeGroupId);
+  const addBrowserTab = useStore((s) => s.addBrowserTab);
+
+  if (!lastUrl) return null;
+
+  let host = lastUrl;
+  try { host = new URL(lastUrl).host; } catch {}
+
+  return (
+    <button
+      onClick={() => {
+        if (!activeGroupId) return;
+        const tab = { id: crypto.randomUUID(), url: lastUrl, title: host };
+        addBrowserTab(activeGroupId, tab);
+      }}
+      title={`Reopen ${lastUrl}`}
+      style={{ color: 'var(--accent-blue-light)', cursor: 'pointer', fontSize: 10 }}
+    >
+      🌐 {host}
+    </button>
+  );
+}
+
 interface TerminalPaneProps {
   terminalId: string;
   onSpawnInCwd?: (cwd: string, command?: string) => void;
@@ -171,6 +197,7 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
           <span className="d-termpane__title">{headerLabel}</span>
         </div>
         <div className="d-termpane__shortcuts">
+          <LastBrowserButton />
           <span>Split ⌘D</span>
           <span>Close ⌘W</span>
         </div>

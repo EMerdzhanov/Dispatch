@@ -33,6 +33,7 @@ const initialState: StoreState = {
   activeBrowserTabId: null,
   consoleMessages: {},
   pipeToTerminal: false,
+  lastBrowserUrl: null,
 };
 
 export const useStore = create<StoreState & StoreActions>()((set, get) => ({
@@ -123,7 +124,7 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
       if (newTerminals[id] && newTerminals[id].status === TerminalStatus.RUNNING) {
         newTerminals[id] = { ...newTerminals[id], status: TerminalStatus.ACTIVE };
       }
-      return { activeTerminalId: id, terminals: newTerminals };
+      return { activeTerminalId: id, terminals: newTerminals, activeBrowserTabId: null };
     });
   },
 
@@ -241,14 +242,25 @@ export const useStore = create<StoreState & StoreActions>()((set, get) => ({
     activeBrowserTabId: tab.id,
   })),
 
-  removeBrowserTab: (groupId, tabId) => set((s) => ({
-    browserTabs: Object.fromEntries(Object.entries(s.browserTabs).filter(([k]) => k !== tabId)),
-    groups: s.groups.map((g) => g.id === groupId
-      ? { ...g, browserTabIds: (g.browserTabIds || []).filter((id) => id !== tabId) }
-      : g),
-    activeBrowserTabId: s.activeBrowserTabId === tabId ? null : s.activeBrowserTabId,
-    consoleMessages: Object.fromEntries(Object.entries(s.consoleMessages).filter(([k]) => k !== tabId)),
-  })),
+  removeBrowserTab: (groupId, tabId) => {
+    const tab = get().browserTabs[tabId];
+    // Save URL for "reopen last browser" and clear detected port
+    if (tab) {
+      try {
+        const port = new URL(tab.url).port;
+        if (port) (window as any).dispatch?.browser?.clearPort(port);
+      } catch {}
+    }
+    set((s) => ({
+      lastBrowserUrl: tab?.url || s.lastBrowserUrl,
+      browserTabs: Object.fromEntries(Object.entries(s.browserTabs).filter(([k]) => k !== tabId)),
+      groups: s.groups.map((g) => g.id === groupId
+        ? { ...g, browserTabIds: (g.browserTabIds || []).filter((id) => id !== tabId) }
+        : g),
+      activeBrowserTabId: s.activeBrowserTabId === tabId ? null : s.activeBrowserTabId,
+      consoleMessages: Object.fromEntries(Object.entries(s.consoleMessages).filter(([k]) => k !== tabId)),
+    }));
+  },
 
   setActiveBrowserTab: (tabId) => set({ activeBrowserTabId: tabId }),
 

@@ -35,6 +35,7 @@ export interface StoreState {
   activeBrowserTabId: string | null;
   consoleMessages: Record<string, ConsoleMessage[]>;
   pipeToTerminal: boolean;
+  lastBrowserUrl: string | null;
 }
 
 export interface StoreActions {
