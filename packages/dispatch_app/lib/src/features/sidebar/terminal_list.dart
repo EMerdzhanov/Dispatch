@@ -137,7 +137,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXs + 2, vertical: AppTheme.spacingXs),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
       child: Column(
         children: terminals.map((terminal) {
         final isActive = terminal.id == terminalsState.activeTerminalId;
@@ -331,10 +331,10 @@ class _TerminalListItemState extends State<_TerminalListItem> {
           curve: AppTheme.animCurve,
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: 6),
           color: widget.isActive
-              ? Colors.white.withValues(alpha: 0.06)
+              ? const Color(0x0FFFFFFF)
               : _hovered
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : Colors.transparent,
+                  ? const Color(0x08FFFFFF)
+                  : const Color(0x00000000),
           child: Row(
             children: [
               statusDot,
