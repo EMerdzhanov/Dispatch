@@ -329,16 +329,12 @@ class _TerminalListItemState extends State<_TerminalListItem> {
         child: AnimatedContainer(
           duration: AppTheme.hoverDuration,
           curve: AppTheme.animCurve,
-          margin: const EdgeInsets.symmetric(vertical: 1),
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs + 1),
-          decoration: BoxDecoration(
-            color: widget.isActive
-                ? AppTheme.surfaceLight
-                : _hovered
-                    ? AppTheme.surfaceLight.withValues(alpha: 0.5)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppTheme.radius),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: 6),
+          color: widget.isActive
+              ? AppTheme.surfaceLight
+              : _hovered
+                  ? AppTheme.surfaceLight.withValues(alpha: 0.3)
+                  : Colors.transparent,
           child: Row(
             children: [
               statusDot,
