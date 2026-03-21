@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/project_group.dart';
 import '../../core/theme/app_theme.dart';
 import '../projects/projects_provider.dart';
+import '../terminal/split_container.dart';
 import '../terminal/terminal_pane.dart';
 import '../terminal/terminal_provider.dart';
 
@@ -29,18 +30,22 @@ class TerminalArea extends ConsumerWidget {
       );
     }
 
-    // If a split layout exists, render SplitContainer (Task 10).
-    if (activeGroup.splitLayout != null) {
-      // Placeholder — SplitContainer will be added in Task 10.
-      return const Center(child: Text('Split view'));
-    }
-
     // Single terminal view — show active terminal or first in group.
     final activeId = terminalsState.activeTerminalId;
     final terminalId =
         (activeId != null && activeGroup.terminalIds.contains(activeId))
             ? activeId
             : activeGroup.terminalIds.first;
+
+    // If a split layout exists, render SplitContainer.
+    if (activeGroup.splitLayout != null) {
+      return Column(
+        children: [
+          _SubTabBar(group: activeGroup, activeTerminalId: terminalId),
+          Expanded(child: SplitContainer(node: activeGroup.splitLayout!)),
+        ],
+      );
+    }
 
     return Column(
       children: [
