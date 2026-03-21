@@ -145,6 +145,13 @@ class ProjectTabBar extends ConsumerWidget {
 
           const SizedBox(width: AppTheme.spacingXs),
 
+          // Integrations icon (placeholder)
+          _IconButton(
+            icon: Icons.extension_outlined,
+            tooltip: 'Integrations',
+            onTap: () {},
+          ),
+
           // Settings gear icon
           _IconButton(
             key: const Key('open_settings_button'),
