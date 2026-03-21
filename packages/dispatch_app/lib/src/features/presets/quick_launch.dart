@@ -19,20 +19,15 @@ class QuickLaunch extends ConsumerWidget {
     final presets = ref.watch(presetsProvider).presets;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs + 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 6),
-            child: Text(
+            padding: const EdgeInsets.only(left: AppTheme.spacingXs, bottom: AppTheme.spacingXs + 2),
+            child: const Text(
               'QUICK LAUNCH',
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.8,
-              ),
+              style: AppTheme.labelStyle,
             ),
           ),
           GridView.builder(
@@ -40,8 +35,8 @@ class QuickLaunch extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              mainAxisSpacing: 4,
-              crossAxisSpacing: 4,
+              mainAxisSpacing: AppTheme.spacingXs,
+              crossAxisSpacing: AppTheme.spacingXs,
               childAspectRatio: 2.8,
             ),
             itemCount: presets.length,
@@ -78,49 +73,60 @@ class _PresetButton extends StatefulWidget {
 
 class _PresetButtonState extends State<_PresetButton> {
   bool _hovered = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
+      onExit: (_) => setState(() {
+        _hovered = false;
+        _pressed = false;
+      }),
       child: GestureDetector(
         onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          decoration: BoxDecoration(
-            color: _hovered ? AppTheme.surfaceLight : AppTheme.surfaceLight.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: _hovered ? AppTheme.border : AppTheme.border.withValues(alpha: 0.5),
-              width: 1,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.98 : _hovered ? 1.02 : 1.0,
+          duration: const Duration(milliseconds: 50),
+          child: AnimatedContainer(
+            duration: AppTheme.hoverDuration,
+            curve: AppTheme.animCurve,
+            decoration: BoxDecoration(
+              color: _hovered ? AppTheme.surfaceLight : AppTheme.surfaceLight.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(AppTheme.radius),
+              border: Border.all(
+                color: _hovered ? AppTheme.border : AppTheme.border.withValues(alpha: 0.5),
+                width: AppTheme.borderWidth,
+              ),
+              boxShadow: _hovered
+                  ? [BoxShadow(color: widget.dotColor.withValues(alpha: 0.3), blurRadius: 8, spreadRadius: -2)]
+                  : null,
             ),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: widget.dotColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  widget.name,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd, vertical: AppTheme.spacingSm),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: widget.dotColor,
+                    shape: BoxShape.circle,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
                 ),
-              ),
-            ],
+                const SizedBox(width: AppTheme.spacingXs + 1),
+                Expanded(
+                  child: Text(
+                    widget.name.toUpperCase(),
+                    style: AppTheme.labelStyle.copyWith(color: AppTheme.textPrimary),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
