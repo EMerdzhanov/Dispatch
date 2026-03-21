@@ -156,16 +156,16 @@ class _TreeNodeState extends State<_TreeNode> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        MouseRegion(
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          cursor: SystemMouseCursors.click,
-          child: Material(
-            color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
-            child: InkWell(
-              onTap: _toggle,
-              child: Container(
-                padding: EdgeInsets.only(left: AppTheme.spacingSm + widget.depth * 14, top: AppTheme.spacingXs, bottom: AppTheme.spacingXs, right: AppTheme.spacingSm),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _toggle,
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _hovered = true),
+            onExit: (_) => setState(() => _hovered = false),
+            cursor: SystemMouseCursors.click,
+            child: Container(
+              padding: EdgeInsets.only(left: AppTheme.spacingSm + widget.depth * 14, top: 5, bottom: 5, right: AppTheme.spacingSm),
+              color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
               child: Row(
                 children: [
                   if (widget.isDirectory) ...[
@@ -195,7 +195,6 @@ class _TreeNodeState extends State<_TreeNode> {
                     ),
                   ),
                 ],
-              ),
               ),
             ),
           ),
