@@ -2,92 +2,100 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/models/preset.dart' as preset_model;
+import '../presets/presets_provider.dart';
+import '../terminal/templates_provider.dart';
 import 'settings_provider.dart';
+
+const _presetColors = [
+  '#0f3460', '#e94560', '#f5a623', '#4caf50',
+  '#53a8ff', '#c678dd', '#56b6c2', '#888888',
+];
+
+Color _hexToColor(String hex) {
+  final h = hex.replaceFirst('#', '');
+  return Color(int.parse(h, radix: 16) + 0xFF000000);
+}
 
 class SettingsPanel extends ConsumerStatefulWidget {
   final bool open;
   final VoidCallback onClose;
 
-  const SettingsPanel({
-    super.key,
-    required this.open,
-    required this.onClose,
-  });
+  const SettingsPanel({super.key, required this.open, required this.onClose});
 
   @override
   ConsumerState<SettingsPanel> createState() => _SettingsPanelState();
 }
 
 class _SettingsPanelState extends ConsumerState<SettingsPanel> {
-  late TextEditingController _shellController;
-  late TextEditingController _fontFamilyController;
-  late TextEditingController _screenshotFolderController;
-  late double _fontSize;
-  late double _lineHeight;
+  late TextEditingController _shellCtrl;
+  late TextEditingController _fontFamilyCtrl;
+  late TextEditingController _fontSizeCtrl;
+  late TextEditingController _lineHeightCtrl;
   late bool _notificationsEnabled;
   late bool _soundEnabled;
 
-  bool _initialized = false;
+  // Preset editing state
+  int? _editingIdx;
+  String _editName = '';
+  String _editCommand = '';
+  String _editColor = '#888888';
 
   @override
   void initState() {
     super.initState();
-    _shellController = TextEditingController();
-    _fontFamilyController = TextEditingController();
-    _screenshotFolderController = TextEditingController();
+    _shellCtrl = TextEditingController();
+    _fontFamilyCtrl = TextEditingController();
+    _fontSizeCtrl = TextEditingController();
+    _lineHeightCtrl = TextEditingController();
   }
 
   @override
   void dispose() {
-    _shellController.dispose();
-    _fontFamilyController.dispose();
-    _screenshotFolderController.dispose();
+    _shellCtrl.dispose();
+    _fontFamilyCtrl.dispose();
+    _fontSizeCtrl.dispose();
+    _lineHeightCtrl.dispose();
     super.dispose();
   }
 
-  void _initFromSettings(AppSettings settings) {
-    _shellController.text = settings.shell;
-    _fontFamilyController.text = settings.fontFamily;
-    _screenshotFolderController.text = settings.screenshotFolder;
-    _fontSize = settings.fontSize;
-    _lineHeight = settings.lineHeight;
-    _notificationsEnabled = settings.notificationsEnabled;
-    _soundEnabled = settings.soundEnabled;
+  bool _initialized = false;
+
+  void _loadSettings(AppSettings s) {
+    _shellCtrl.text = s.shell;
+    _fontFamilyCtrl.text = s.fontFamily;
+    _fontSizeCtrl.text = s.fontSize.toStringAsFixed(0);
+    _lineHeightCtrl.text = s.lineHeight.toStringAsFixed(1);
+    _notificationsEnabled = s.notificationsEnabled;
+    _soundEnabled = s.soundEnabled;
     _initialized = true;
   }
 
   void _save() {
     ref.read(settingsProvider.notifier).update(
-      shell: _shellController.text,
-      fontFamily: _fontFamilyController.text,
-      fontSize: _fontSize,
-      lineHeight: _lineHeight,
+      shell: _shellCtrl.text,
+      fontFamily: _fontFamilyCtrl.text,
+      fontSize: double.tryParse(_fontSizeCtrl.text) ?? 13,
+      lineHeight: double.tryParse(_lineHeightCtrl.text) ?? 1.2,
       notificationsEnabled: _notificationsEnabled,
       soundEnabled: _soundEnabled,
-      screenshotFolder: _screenshotFolderController.text,
     );
-    widget.onClose();
   }
 
-  void _resetDefaults() {
-    const defaults = AppSettings();
-    setState(() {
-      _shellController.text = defaults.shell;
-      _fontFamilyController.text = defaults.fontFamily;
-      _screenshotFolderController.text = defaults.screenshotFolder;
-      _fontSize = defaults.fontSize;
-      _lineHeight = defaults.lineHeight;
-      _notificationsEnabled = defaults.notificationsEnabled;
-      _soundEnabled = defaults.soundEnabled;
-    });
+  void _restoreDefaults() {
+    const d = AppSettings();
+    setState(() => _loadSettings(d));
+    ref.read(settingsProvider.notifier).update(
+      shell: d.shell, fontFamily: d.fontFamily, fontSize: d.fontSize,
+      lineHeight: d.lineHeight, notificationsEnabled: d.notificationsEnabled,
+      soundEnabled: d.soundEnabled,
+    );
   }
 
   @override
-  void didUpdateWidget(SettingsPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.open && !oldWidget.open) {
-      _initialized = false;
-    }
+  void didUpdateWidget(SettingsPanel old) {
+    super.didUpdateWidget(old);
+    if (widget.open && !old.open) _initialized = false;
   }
 
   @override
@@ -95,151 +103,185 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     if (!widget.open) return const SizedBox.shrink();
 
     final settings = ref.watch(settingsProvider);
+    if (!_initialized) _loadSettings(settings);
 
-    if (!_initialized) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() => _initFromSettings(settings));
-        }
-      });
-      _initFromSettings(settings);
-    }
+    final presets = ref.watch(presetsProvider).presets;
+    final templates = ref.watch(templatesProvider);
 
     return Stack(
-        children: [
-          // Backdrop
-          GestureDetector(
-            onTap: widget.onClose,
-            child: Container(
-              color: Colors.black54,
-              width: double.infinity,
-              height: double.infinity,
-            ),
-          ),
-          // Panel
-          Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 480,
-                maxHeight: MediaQuery.of(context).size.height * 0.8,
+      children: [
+        GestureDetector(onTap: widget.onClose, child: Container(color: Colors.black54)),
+        Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 520, maxHeight: MediaQuery.of(context).size.height * 0.85),
+            child: Material(
+              color: AppTheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppTheme.border),
               ),
-              child: Material(
-                color: AppTheme.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: AppTheme.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildHeader(),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildTextField(
-                              label: 'Shell Path',
-                              controller: _shellController,
-                              hint: '/bin/zsh',
-                            ),
-                            const SizedBox(height: 16),
-                            _buildTextField(
-                              label: 'Font Family',
-                              controller: _fontFamilyController,
-                              hint: 'JetBrains Mono',
-                            ),
-                            const SizedBox(height: 16),
-                            _buildFontSizeRow(),
-                            const SizedBox(height: 16),
-                            _buildLineHeightRow(),
-                            const SizedBox(height: 16),
-                            _buildSwitchRow(
-                              label: 'Notifications',
-                              value: _notificationsEnabled,
-                              onChanged: (v) =>
-                                  setState(() => _notificationsEnabled = v),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildSwitchRow(
-                              label: 'Sound',
-                              value: _soundEnabled,
-                              onChanged: (v) =>
-                                  setState(() => _soundEnabled = v),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildScreenshotFolderRow(),
-                          ],
+              child: Column(
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppTheme.border))),
+                    child: Row(
+                      children: [
+                        const Text('Settings', style: TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: widget.onClose,
+                          child: const Text('Close (Esc)', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                         ),
+                      ],
+                    ),
+                  ),
+                  // Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // === Terminal Section ===
+                          _sectionTitle('Terminal'),
+                          _settingsRow('Font Family', _fontFamilyCtrl, wide: true),
+                          _settingsRow('Font Size', _fontSizeCtrl),
+                          _settingsRow('Line Height', _lineHeightCtrl),
+                          _settingsRow('Default Shell', _shellCtrl, wide: true),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: _restoreDefaults,
+                            child: const Text('Restore Defaults', style: TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // === Notifications Section ===
+                          _sectionTitle('Notifications'),
+                          _toggleRow('Desktop Notifications', _notificationsEnabled, (v) => setState(() { _notificationsEnabled = v; _save(); })),
+                          _toggleRow('Sound Effects', _soundEnabled, (v) => setState(() { _soundEnabled = v; _save(); })),
+
+                          const SizedBox(height: 24),
+
+                          // === Quick Launch Presets Section ===
+                          _sectionTitle('Quick Launch Presets'),
+                          ...List.generate(presets.length, (i) => _buildPresetRow(presets, i)),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () {
+                              final newPreset = preset_model.Preset(name: 'New Preset', command: 'claude', color: '#53a8ff', icon: 'terminal');
+                              ref.read(presetsProvider.notifier).addPreset(newPreset);
+                              setState(() {
+                                _editingIdx = presets.length;
+                                _editName = newPreset.name;
+                                _editCommand = newPreset.command;
+                                _editColor = newPreset.color;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: const Text('+ Add Preset', style: TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+                            ),
+                          ),
+
+                          // === Templates Section ===
+                          if (templates.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            _sectionTitle('Saved Templates'),
+                            ...List.generate(templates.length, (i) {
+                              final t = templates[i];
+                              return Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  children: [
+                                    Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.accentBlue)),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(t.name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+                                          Text(t.cwd, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
+                                        ],
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => ref.read(templatesProvider.notifier).removeTemplate(i),
+                                      child: const Text('Remove', style: TextStyle(color: AppTheme.accentRed, fontSize: 11)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ],
                       ),
                     ),
-                    _buildFooter(),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
+      ],
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppTheme.border)),
-      ),
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(title, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _settingsRow(String label, TextEditingController ctrl, {bool wide = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          const Text(
-            'Settings',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+          SizedBox(width: 120, child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+          SizedBox(
+            width: wide ? 220 : 80,
+            child: TextField(
+              controller: ctrl,
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+              decoration: InputDecoration(
+                filled: true, fillColor: AppTheme.surfaceLight, isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.border)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.border)),
+              ),
+              onChanged: (_) => _save(),
             ),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: widget.onClose,
-            child: const Icon(Icons.close, size: 16, color: AppTheme.textSecondary),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFooter() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppTheme.border)),
-      ),
+  Widget _toggleRow(String label, bool value, void Function(bool) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          SizedBox(width: 180, child: Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13))),
           GestureDetector(
-            onTap: _resetDefaults,
-            child: const Text(
-              'Reset to Defaults',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-            ),
-          ),
-          GestureDetector(
-            onTap: _save,
+            onTap: () => onChanged(!value),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              width: 36, height: 20,
               decoration: BoxDecoration(
-                color: AppTheme.accentBlue,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(10),
+                color: value ? AppTheme.accentBlue : AppTheme.surfaceLight,
+                border: Border.all(color: value ? AppTheme.accentBlue : AppTheme.border),
               ),
-              child: const Text(
-                'Save',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+              child: AnimatedAlign(
+                duration: const Duration(milliseconds: 150),
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  width: 16, height: 16, margin: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: value ? Colors.white : AppTheme.textSecondary),
                 ),
               ),
             ),
@@ -249,261 +291,140 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     );
   }
 
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    String? hint,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: AppTheme.textSecondary),
-            filled: true,
-            fillColor: AppTheme.surfaceLight,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(color: AppTheme.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(color: AppTheme.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-              borderSide: const BorderSide(color: AppTheme.accentBlue),
-            ),
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _buildPresetRow(List<preset_model.Preset> presets, int i) {
+    final preset = presets[i];
+    final isShell = preset.command == '\$SHELL';
+    final isEditing = _editingIdx == i;
 
-  Widget _buildFontSizeRow() {
-    return Row(
-      children: [
-        const SizedBox(
-          width: 100,
-          child: Text(
-            'Font Size',
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 60,
-          child: TextField(
-            controller: TextEditingController(text: _fontSize.toStringAsFixed(0)),
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: AppTheme.surfaceLight,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: AppTheme.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: AppTheme.border),
-              ),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            ),
-            onChanged: (v) {
-              final parsed = double.tryParse(v);
-              if (parsed != null && parsed >= 8 && parsed <= 24) {
-                setState(() => _fontSize = parsed);
-              }
-            },
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Text('(8–24)', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-      ],
-    );
-  }
-
-  Widget _buildLineHeightRow() {
-    return Row(
-      children: [
-        const SizedBox(
-          width: 100,
-          child: Text(
-            'Line Height',
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 60,
-          child: TextField(
-            controller: TextEditingController(text: _lineHeight.toStringAsFixed(1)),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: AppTheme.surfaceLight,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: AppTheme.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: AppTheme.border),
-              ),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            ),
-            onChanged: (v) {
-              final parsed = double.tryParse(v);
-              if (parsed != null && parsed >= 1.0 && parsed <= 2.0) {
-                setState(() => _lineHeight = parsed);
-              }
-            },
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Text('(1.0–2.0)', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-      ],
-    );
-  }
-
-  Widget _buildSwitchRow({
-    required String label,
-    required bool value,
-    required void Function(bool) onChanged,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 13,
-          ),
-        ),
-        GestureDetector(
-          onTap: () => onChanged(!value),
-          child: Container(
-            width: 44,
-            height: 24,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: value ? AppTheme.accentBlue : AppTheme.surfaceLight,
-              border: Border.all(color: value ? AppTheme.accentBlue : AppTheme.border),
-            ),
-            child: AnimatedAlign(
-              duration: const Duration(milliseconds: 150),
-              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                width: 20,
-                height: 20,
-                margin: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: value ? Colors.white : AppTheme.textSecondary,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScreenshotFolderRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Screenshot Folder',
-          style: TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
+    if (isEditing) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: TextField(
-                controller: _screenshotFolderController,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 13,
-                ),
-                decoration: InputDecoration(
-                  hintText: '~/Pictures/Dispatch',
-                  hintStyle:
-                      const TextStyle(color: AppTheme.textSecondary),
-                  filled: true,
-                  fillColor: AppTheme.surfaceLight,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: AppTheme.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: AppTheme.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide:
-                        const BorderSide(color: AppTheme.accentBlue),
-                  ),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
+            _settingsRow('Name', TextEditingController(text: _editName)..addListener(() {})),
+            Row(
+              children: [
+                const SizedBox(width: 120, child: Text('Name', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+                SizedBox(
+                  width: 220,
+                  child: TextField(
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+                    decoration: _inputDecor(),
+                    controller: TextEditingController(text: _editName),
+                    onChanged: (v) => _editName = v,
+                    autofocus: true,
                   ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceLight,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: const Text(
-                'Browse',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-              ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const SizedBox(width: 120, child: Text('Command', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+                SizedBox(
+                  width: 220,
+                  child: TextField(
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+                    decoration: _inputDecor(hint: 'e.g. claude --resume'),
+                    controller: TextEditingController(text: _editCommand),
+                    onChanged: (v) => _editCommand = v,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const SizedBox(width: 120, child: Text('Color', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+                Wrap(
+                  spacing: 4,
+                  children: _presetColors.map((c) {
+                    return GestureDetector(
+                      onTap: () => setState(() => _editColor = c),
+                      child: Container(
+                        width: 18, height: 18,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle, color: _hexToColor(c),
+                          border: _editColor == c ? Border.all(color: Colors.white, width: 2) : null,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: () => setState(() => _editingIdx = null),
+                  child: const Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4), child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    if (_editName.trim().isEmpty || _editCommand.trim().isEmpty) return;
+                    final updated = List<preset_model.Preset>.from(presets);
+                    updated[i] = preset_model.Preset(name: _editName.trim(), command: _editCommand.trim(), color: _editColor, icon: preset.icon);
+                    ref.read(presetsProvider.notifier).setPresets(updated);
+                    setState(() => _editingIdx = null);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(color: AppTheme.accentBlue, borderRadius: BorderRadius.circular(4)),
+                    child: const Text('Save', style: TextStyle(color: Colors.white, fontSize: 12)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: _hexToColor(preset.color))),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(preset.name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+                Text(preset.command, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
+              ],
+            ),
+          ),
+          if (isShell)
+            const Text('default', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9))
+          else
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () => setState(() { _editingIdx = i; _editName = preset.name; _editCommand = preset.command; _editColor = preset.color; }),
+                  child: const Text('Edit', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => ref.read(presetsProvider.notifier).removePreset(i),
+                  child: const Text('Remove', style: TextStyle(color: AppTheme.accentRed, fontSize: 11)),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
+
+  InputDecoration _inputDecor({String? hint}) => InputDecoration(
+    hintText: hint, hintStyle: const TextStyle(color: AppTheme.textSecondary),
+    filled: true, fillColor: AppTheme.surfaceLight, isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.border)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.border)),
+  );
 }
