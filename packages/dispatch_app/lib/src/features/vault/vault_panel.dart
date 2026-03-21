@@ -1,35 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../persistence/auto_save.dart';
+import '../projects/projects_provider.dart';
 
-class _Secret {
-  final String id;
-  String label;
-  String value;
-  bool visible = false;
-
-  _Secret({
-    required this.id,
-    required this.label,
-    required this.value,
-  });
-}
-
-class VaultPanel extends StatefulWidget {
+class VaultPanel extends ConsumerStatefulWidget {
   const VaultPanel({super.key});
 
   @override
-  State<VaultPanel> createState() => _VaultPanelState();
+  ConsumerState<VaultPanel> createState() => _VaultPanelState();
 }
 
-class _VaultPanelState extends State<VaultPanel> {
-  final List<_Secret> _secrets = [];
+class _VaultPanelState extends ConsumerState<VaultPanel> {
+  List<VaultEntry> _secrets = [];
+  final Set<int> _visibleIds = {};
   bool _adding = false;
   final _labelController = TextEditingController();
   final _valueController = TextEditingController();
   final _labelFocus = FocusNode();
-  int _idCounter = 0;
+  String? _lastCwd;
 
   @override
   void dispose() {
@@ -37,6 +29,30 @@ class _VaultPanelState extends State<VaultPanel> {
     _valueController.dispose();
     _labelFocus.dispose();
     super.dispose();
+  }
+
+  String? _getActiveCwd() {
+    final projects = ref.read(projectsProvider);
+    final group = projects.groups
+        .where((g) => g.id == projects.activeGroupId)
+        .firstOrNull;
+    return group?.cwd;
+  }
+
+  Future<void> _loadEntries() async {
+    final cwd = _getActiveCwd();
+    if (cwd == null) {
+      setState(() => _secrets = []);
+      return;
+    }
+    final db = ref.read(databaseProvider);
+    final entries = await db.vaultDao.getEntriesForProject(cwd);
+    if (mounted) {
+      setState(() {
+        _secrets = entries;
+        _lastCwd = cwd;
+      });
+    }
   }
 
   void _startAdding() {
@@ -48,15 +64,20 @@ class _VaultPanelState extends State<VaultPanel> {
     });
   }
 
-  void _commitAdd() {
+  Future<void> _commitAdd() async {
     final label = _labelController.text.trim();
     final value = _valueController.text.trim();
     if (label.isNotEmpty && value.isNotEmpty) {
-      setState(() {
-        _secrets.add(
-          _Secret(id: 'secret_${++_idCounter}', label: label, value: value),
+      final cwd = _getActiveCwd();
+      if (cwd != null) {
+        final db = ref.read(databaseProvider);
+        await db.vaultDao.insertEntry(
+          projectCwd: cwd,
+          label: label,
+          encryptedValue: value,
         );
-      });
+        await _loadEntries();
+      }
     }
     setState(() => _adding = false);
     _labelController.clear();
@@ -69,10 +90,13 @@ class _VaultPanelState extends State<VaultPanel> {
     _valueController.clear();
   }
 
-  void _toggleVisibility(String id) {
+  void _toggleVisibility(int id) {
     setState(() {
-      final secret = _secrets.firstWhere((s) => s.id == id);
-      secret.visible = !secret.visible;
+      if (_visibleIds.contains(id)) {
+        _visibleIds.remove(id);
+      } else {
+        _visibleIds.add(id);
+      }
     });
   }
 
@@ -80,12 +104,28 @@ class _VaultPanelState extends State<VaultPanel> {
     Clipboard.setData(ClipboardData(text: value));
   }
 
-  void _deleteSecret(String id) {
-    setState(() => _secrets.removeWhere((s) => s.id == id));
+  Future<void> _deleteSecret(int id) async {
+    final db = ref.read(databaseProvider);
+    await db.vaultDao.deleteEntry(id);
+    _visibleIds.remove(id);
+    await _loadEntries();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch for project changes and reload entries
+    final projects = ref.watch(projectsProvider);
+    final group = projects.groups
+        .where((g) => g.id == projects.activeGroupId)
+        .firstOrNull;
+    final cwd = group?.cwd;
+
+    if (cwd != _lastCwd) {
+      _lastCwd = cwd;
+      _visibleIds.clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadEntries());
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -113,9 +153,10 @@ class _VaultPanelState extends State<VaultPanel> {
                     ..._secrets.map(
                       (secret) => _SecretItem(
                         secret: secret,
+                        visible: _visibleIds.contains(secret.id),
                         onToggleVisibility: () =>
                             _toggleVisibility(secret.id),
-                        onCopy: () => _copyToClipboard(secret.value),
+                        onCopy: () => _copyToClipboard(secret.encryptedValue),
                         onDelete: () => _deleteSecret(secret.id),
                       ),
                     ),
@@ -219,13 +260,15 @@ class _VaultPanelState extends State<VaultPanel> {
 }
 
 class _SecretItem extends StatefulWidget {
-  final _Secret secret;
+  final VaultEntry secret;
+  final bool visible;
   final VoidCallback onToggleVisibility;
   final VoidCallback onCopy;
   final VoidCallback onDelete;
 
   const _SecretItem({
     required this.secret,
+    required this.visible,
     required this.onToggleVisibility,
     required this.onCopy,
     required this.onDelete,
@@ -240,9 +283,9 @@ class _SecretItemState extends State<_SecretItem> {
 
   @override
   Widget build(BuildContext context) {
-    final maskedValue = widget.secret.visible
-        ? widget.secret.value
-        : '••••••';
+    final maskedValue = widget.visible
+        ? widget.secret.encryptedValue
+        : '\u2022\u2022\u2022\u2022\u2022\u2022';
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -278,7 +321,7 @@ class _SecretItemState extends State<_SecretItem> {
             ),
             if (_hovered) ...[
               _IconButton(
-                icon: widget.secret.visible
+                icon: widget.visible
                     ? Icons.visibility_off
                     : Icons.visibility,
                 onTap: widget.onToggleVisibility,
