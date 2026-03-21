@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/project_group.dart';
 import '../../core/theme/app_theme.dart';
+import '../browser/browser_panel.dart';
+import '../browser/browser_provider.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/split_container.dart';
 import '../terminal/terminal_pane.dart';
 import '../terminal/terminal_provider.dart';
 
-/// The main content area that shows either a single terminal or split panes.
+/// The main content area that shows either terminals or browser panel.
 class TerminalArea extends ConsumerWidget {
   const TerminalArea({super.key});
 
@@ -16,6 +18,7 @@ class TerminalArea extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final terminalsState = ref.watch(terminalsProvider);
     final projectsState = ref.watch(projectsProvider);
+    final browserState = ref.watch(browserProvider);
 
     final activeGroup = projectsState.groups
         .where((g) => g.id == projectsState.activeGroupId)
@@ -30,87 +33,117 @@ class TerminalArea extends ConsumerWidget {
       );
     }
 
-    // Single terminal view — show active terminal or first in group.
     final activeId = terminalsState.activeTerminalId;
     final terminalId =
         (activeId != null && activeGroup.terminalIds.contains(activeId))
             ? activeId
             : activeGroup.terminalIds.first;
 
-    // If a split layout exists, render SplitContainer.
-    if (activeGroup.splitLayout != null) {
-      return Column(
-        children: [
-          _SubTabBar(group: activeGroup, activeTerminalId: terminalId),
-          Expanded(child: SplitContainer(node: activeGroup.splitLayout!)),
-        ],
-      );
-    }
+    final browserTabs = browserState.groupTabs[activeGroup.id] ?? [];
+    final activeBrowserTabId = browserState.activeTabId;
+    final showBrowser = activeBrowserTabId != null &&
+        browserTabs.any((t) => t.id == activeBrowserTabId);
 
     return Column(
       children: [
-        _SubTabBar(group: activeGroup, activeTerminalId: terminalId),
+        // Sub tab bar with browser tabs
+        _SubTabBar(
+          group: activeGroup,
+          activeTerminalId: terminalId,
+          browserTabs: browserTabs,
+          activeBrowserTabId: activeBrowserTabId,
+          showBrowser: showBrowser,
+        ),
+        // Content: browser or terminal
         Expanded(
-          child: TerminalPane(
-            key: ValueKey(terminalId),
-            terminalId: terminalId,
-          ),
+          child: showBrowser
+              ? BrowserPanel(
+                  key: ValueKey(activeBrowserTabId),
+                  url: browserTabs.firstWhere((t) => t.id == activeBrowserTabId).url,
+                )
+              : activeGroup.splitLayout != null
+                  ? SplitContainer(node: activeGroup.splitLayout!)
+                  : TerminalPane(
+                      key: ValueKey(terminalId),
+                      terminalId: terminalId,
+                    ),
         ),
       ],
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// _SubTabBar
-// ---------------------------------------------------------------------------
-
-/// A small row of tabs, one per terminal in [group].
-///
-/// The active terminal is highlighted. Clicking a tab switches the active
-/// terminal via [terminalsProvider].
+/// Sub tab bar showing terminal tabs and browser tabs.
 class _SubTabBar extends ConsumerWidget {
   final ProjectGroup group;
   final String activeTerminalId;
+  final List<BrowserTab> browserTabs;
+  final String? activeBrowserTabId;
+  final bool showBrowser;
 
   const _SubTabBar({
     required this.group,
     required this.activeTerminalId,
+    required this.browserTabs,
+    required this.activeBrowserTabId,
+    required this.showBrowser,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final terminalsState = ref.watch(terminalsProvider);
+    final hasBrowserTabs = browserTabs.isNotEmpty;
 
-    // Only show the sub-tab bar when there is more than one terminal.
-    if (group.terminalIds.length <= 1) return const SizedBox.shrink();
+    // Hide if only 1 terminal and no browser tabs
+    if (group.terminalIds.length <= 1 && !hasBrowserTabs) {
+      return const SizedBox.shrink();
+    }
 
     return Container(
       height: 28,
       decoration: const BoxDecoration(
         color: AppTheme.surface,
-        border: Border(
-          bottom: BorderSide(color: AppTheme.border),
-        ),
+        border: Border(bottom: BorderSide(color: AppTheme.border)),
       ),
-      child: ListView.builder(
+      child: ListView(
         scrollDirection: Axis.horizontal,
-        itemCount: group.terminalIds.length,
-        itemBuilder: (context, index) {
-          final id = group.terminalIds[index];
-          final isActive = id == activeTerminalId;
-          final entry = terminalsState.terminals[id];
-          final label = entry?.label ??
-              entry?.command.split(' ').first.split('/').last ??
-              'Terminal ${index + 1}';
-
-          return _SubTab(
-            label: label,
-            isActive: isActive,
-            onTap: () =>
-                ref.read(terminalsProvider.notifier).setActiveTerminal(id),
-          );
-        },
+        children: [
+          // "Terminals" tab (when browser tabs exist)
+          if (hasBrowserTabs)
+            _SubTab(
+              label: 'Terminals',
+              isActive: !showBrowser,
+              onTap: () => ref.read(browserProvider.notifier).setActiveTab(null),
+            ),
+          // Individual terminal tabs (when no browser tabs, show terminal names)
+          if (!hasBrowserTabs)
+            ...group.terminalIds.map((id) {
+              final isActive = id == activeTerminalId;
+              final entry = terminalsState.terminals[id];
+              final label = entry?.label ??
+                  entry?.command.split(' ').first.split('/').last ??
+                  'Terminal';
+              return _SubTab(
+                label: label,
+                isActive: isActive,
+                onTap: () {
+                  ref.read(browserProvider.notifier).setActiveTab(null);
+                  ref.read(terminalsProvider.notifier).setActiveTerminal(id);
+                },
+              );
+            }),
+          // Browser tabs
+          ...browserTabs.map((tab) {
+            final isActive = tab.id == activeBrowserTabId;
+            return _SubTab(
+              label: '\u{1F310} ${tab.title}',
+              isActive: isActive,
+              onTap: () => ref.read(browserProvider.notifier).setActiveTab(tab.id),
+              onClose: () => ref.read(browserProvider.notifier).removeTab(
+                    group.id, tab.id),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -120,11 +153,13 @@ class _SubTab extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+  final VoidCallback? onClose;
 
   const _SubTab({
     required this.label,
     required this.isActive,
     required this.onTap,
+    this.onClose,
   });
 
   @override
@@ -144,13 +179,26 @@ class _SubTab extends StatelessWidget {
             ),
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+            if (onClose != null) ...[
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: onClose,
+                child: const Text('\u2715',
+                    style: TextStyle(fontSize: 9, color: AppTheme.textSecondary)),
+              ),
+            ],
+          ],
         ),
       ),
     );

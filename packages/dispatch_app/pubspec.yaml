@@ -24,6 +24,8 @@ dependencies:
   file_picker: ^8.0.0
   xterm: ^4.0.0
   flutter_pty: ^0.4.2
+  webview_flutter: ^4.13.1
+  webview_flutter_wkwebview: ^3.24.1
 
 dev_dependencies:
   flutter_test:

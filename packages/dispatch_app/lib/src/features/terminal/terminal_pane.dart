@@ -9,6 +9,8 @@ import 'package:flutter_pty/flutter_pty.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/terminal_entry.dart';
 import '../settings/settings_provider.dart';
+import '../browser/browser_provider.dart';
+import '../projects/projects_provider.dart';
 import 'terminal_provider.dart';
 
 /// A single terminal pane using the xterm package for rendering
@@ -59,9 +61,25 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
       workingDirectory: cwd,
     );
 
-    // Wire PTY output → terminal
+    final urlPattern = RegExp(r'https?://(localhost|127\.0\.0\.1)(:\d+)');
+    final detectedPorts = <String>{};
+
+    // Wire PTY output → terminal + URL detection
     _pty!.output.cast<List<int>>().transform(const Utf8Decoder()).listen((data) {
       _terminal.write(data);
+
+      // Detect localhost URLs
+      for (final match in urlPattern.allMatches(data)) {
+        final url = match.group(0)!;
+        final port = Uri.tryParse(url)?.port.toString() ?? '';
+        if (port.isNotEmpty && !detectedPorts.contains(port)) {
+          detectedPorts.add(port);
+          final groupId = ref.read(projectsProvider).activeGroupId;
+          if (groupId != null) {
+            ref.read(browserProvider.notifier).addTab(groupId, url);
+          }
+        }
+      }
     });
 
     // Wire terminal input → PTY
@@ -152,9 +170,9 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                 _terminal,
                 textStyle: xterm.TerminalStyle.fromTextStyle(TextStyle(
                   fontSize: settings.fontSize,
-                  fontFamily: 'Menlo',
-                  fontFamilyFallback: const ['SF Mono', 'Monaco', 'Courier New', 'monospace'],
-                  fontWeight: FontWeight.w300,
+                  fontFamily: 'SF Mono',
+                  fontFamilyFallback: const ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+                  fontWeight: FontWeight.w100,
                   height: 1.2,
                 )),
                 theme: const xterm.TerminalTheme(
