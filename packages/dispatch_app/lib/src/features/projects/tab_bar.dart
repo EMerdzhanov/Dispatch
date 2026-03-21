@@ -121,14 +121,6 @@ class ProjectTabBar extends ConsumerWidget {
             ),
           ),
 
-          // "+" button to open folder
-          _IconButton(
-            key: const Key('open_folder_button'),
-            icon: Icons.add,
-            tooltip: 'Open Folder',
-            onTap: onOpenFolder,
-          ),
-
           const SizedBox(width: AppTheme.spacingXs),
 
           // Settings gear icon
