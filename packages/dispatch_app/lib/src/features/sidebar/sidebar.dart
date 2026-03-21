@@ -1,0 +1,46 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/theme/app_theme.dart';
+import '../terminal/terminal_provider.dart';
+import '../presets/quick_launch.dart';
+import 'terminal_list.dart';
+import 'status_bar.dart';
+
+const double _kSidebarWidth = 220;
+
+class Sidebar extends ConsumerWidget {
+  final void Function(String command, {Map<String, String>? env}) onSpawn;
+
+  const Sidebar({super.key, required this.onSpawn});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final zenMode = ref.watch(terminalsProvider.select((s) => s.zenMode));
+
+    if (zenMode) return const SizedBox.shrink();
+
+    return SizedBox(
+      width: _kSidebarWidth,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          border: Border(
+            left: BorderSide(color: AppTheme.border, width: 1),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            QuickLaunch(onSpawn: onSpawn),
+            const Divider(color: AppTheme.border, height: 1, thickness: 1),
+            const Expanded(
+              child: TerminalList(),
+            ),
+            const StatusBar(),
+          ],
+        ),
+      ),
+    );
+  }
+}
