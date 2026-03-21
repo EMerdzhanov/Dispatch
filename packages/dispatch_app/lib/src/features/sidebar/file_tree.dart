@@ -121,6 +121,7 @@ class _TreeNode extends StatefulWidget {
 
 class _TreeNodeState extends State<_TreeNode> {
   bool _expanded = false;
+  bool _hovered = false;
   List<FileSystemEntity>? _children;
 
   void _toggle() {
@@ -152,39 +153,45 @@ class _TreeNodeState extends State<_TreeNode> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        GestureDetector(
-          onTap: _toggle,
-          child: Container(
-            padding: EdgeInsets.only(left: AppTheme.spacingSm + widget.depth * 14, top: AppTheme.spacingXs, bottom: AppTheme.spacingXs, right: AppTheme.spacingSm),
-            child: Row(
-              children: [
-                if (widget.isDirectory) ...[
-                  Text(_expanded ? '\u25BE' : '\u25B8', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 9)),
-                  const SizedBox(width: 4),
-                  Text(_expanded ? '\u{1F4C2}' : '\u{1F4C1}', style: const TextStyle(fontSize: 12)),
-                ] else ...[
-                  const SizedBox(width: 13), // align with arrows
-                  () {
-                    final fi = _getFileIcon(widget.name);
-                    return Container(
-                      width: 18,
-                      alignment: Alignment.center,
-                      child: Text(fi.icon, style: TextStyle(color: fi.color, fontSize: 8, fontWeight: FontWeight.w700)),
-                    );
-                  }(),
-                ],
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    widget.name,
-                    style: TextStyle(
-                      color: widget.isDirectory ? AppTheme.textPrimary : AppTheme.textSecondary,
-                      fontSize: 12,
+        MouseRegion(
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          cursor: widget.isDirectory ? SystemMouseCursors.click : SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: _toggle,
+            child: Container(
+              padding: EdgeInsets.only(left: AppTheme.spacingSm + widget.depth * 14, top: AppTheme.spacingXs, bottom: AppTheme.spacingXs, right: AppTheme.spacingSm),
+              color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
+              child: Row(
+                children: [
+                  if (widget.isDirectory) ...[
+                    Text(_expanded ? '\u25BE' : '\u25B8', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 9)),
+                    const SizedBox(width: 4),
+                    Text(_expanded ? '\u{1F4C2}' : '\u{1F4C1}', style: const TextStyle(fontSize: 12)),
+                  ] else ...[
+                    const SizedBox(width: 13),
+                    () {
+                      final fi = _getFileIcon(widget.name);
+                      return Container(
+                        width: 18,
+                        alignment: Alignment.center,
+                        child: Text(fi.icon, style: TextStyle(color: fi.color, fontSize: 8, fontWeight: FontWeight.w700)),
+                      );
+                    }(),
+                  ],
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      widget.name,
+                      style: TextStyle(
+                        color: _hovered ? AppTheme.textPrimary : (widget.isDirectory ? AppTheme.textPrimary : const Color(0xFFBBBBBB)),
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
