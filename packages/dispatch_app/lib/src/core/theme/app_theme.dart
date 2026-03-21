@@ -12,6 +12,8 @@ class AppTheme {
   static const accentGreen = Color(0xFF00CD00);
   static const accentYellow = Color(0xFFF5A623);
 
+  static const fontStack = 'JetBrains Mono, Fira Code, SF Mono, Menlo, Monaco, Courier New, monospace';
+
   static ThemeData get dark => ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: background,
@@ -20,11 +22,11 @@ class AppTheme {
       primary: accentBlue,
       error: accentRed,
     ),
-    fontFamily: '.AppleSystemUIFont',
+    fontFamily: fontStack,
     textTheme: const TextTheme(
-      bodyMedium: TextStyle(color: textPrimary, fontSize: 13),
-      bodySmall: TextStyle(color: textSecondary, fontSize: 12),
-      titleSmall: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+      bodyMedium: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w400),
+      bodySmall: TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w400),
+      titleSmall: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
     ),
     dividerColor: border,
     iconTheme: const IconThemeData(color: textSecondary, size: 16),
