@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'path';
 import os from 'os';
 import { PtyManager } from './pty-manager';
@@ -46,6 +46,48 @@ app.whenReady().then(() => {
 
   // app:homedir handler
   ipcMain.handle('app:homedir', () => os.homedir());
+
+  // Custom menu: remove Cmd+R / Cmd+Shift+R reload shortcuts so they
+  // don't accidentally kill all terminals. Pass them through to the
+  // terminal instead (e.g. for browser hot-reload in localhost previews).
+  const menu = Menu.buildFromTemplate([
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { role: 'close' },
+        { type: 'separator' },
+        { role: 'front' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+  ]);
+  Menu.setApplicationMenu(menu);
 
   createWindow();
 

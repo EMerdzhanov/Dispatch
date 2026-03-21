@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog, app, Notification } from 'electron';
+import { ipcMain, BrowserWindow, dialog, app, Notification, nativeImage } from 'electron';
 import path from 'path';
 import os from 'os';
 import { readdir } from 'fs/promises';
@@ -122,6 +122,48 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
           return a.name.localeCompare(b.name);
         });
     } catch { return []; }
+  });
+
+  ipcMain.handle('dialog:openScreenshot', async (_event: any, defaultPath?: string) => {
+    const win = BrowserWindow.getAllWindows()[0];
+    const opts: any = {
+      title: 'Select Screenshot',
+      message: 'Choose an image to insert its path',
+      properties: ['openFile'],
+    };
+    if (defaultPath) opts.defaultPath = defaultPath;
+    const result = await dialog.showOpenDialog(win, opts);
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle('dialog:selectScreenshotFolder', async () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Where are your screenshots saved?',
+      message: 'Select your screenshots folder',
+      properties: ['openDirectory'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle('dialog:openFile', async () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Select File',
+      properties: ['openFile'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle('fs:thumbnail', async (_event: any, filePath: string) => {
+    if (typeof filePath !== 'string' || filePath.includes('\0')) return null;
+    try {
+      const img = await nativeImage.createThumbnailFromPath(filePath, { width: 160, height: 100 });
+      return img.toDataURL();
+    } catch { return null; }
   });
 
   ipcMain.handle('templates:load', async () => store.loadTemplates());

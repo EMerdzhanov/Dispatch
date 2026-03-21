@@ -28,6 +28,9 @@ contextBridge.exposeInMainWorld('dispatch', {
   },
   dialog: {
     openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
+    openFile: () => ipcRenderer.invoke('dialog:openFile'),
+    openScreenshot: (defaultPath?: string) => ipcRenderer.invoke('dialog:openScreenshot', defaultPath),
+    selectScreenshotFolder: () => ipcRenderer.invoke('dialog:selectScreenshotFolder'),
   },
   tmux: {
     isAvailable: () => ipcRenderer.invoke('tmux:check'),
@@ -56,6 +59,7 @@ contextBridge.exposeInMainWorld('dispatch', {
   },
   fs: {
     readdir: (dirPath: string) => ipcRenderer.invoke('fs:readdir', dirPath),
+    thumbnail: (filePath: string) => ipcRenderer.invoke('fs:thumbnail', filePath),
   },
   browser: {
     onDetected: (cb: (terminalId: string, url: string) => void) => {

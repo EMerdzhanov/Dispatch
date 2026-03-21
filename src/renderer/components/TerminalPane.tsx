@@ -35,6 +35,27 @@ function LastBrowserButton() {
   );
 }
 
+
+function FilePickerButton({ terminalId }: { terminalId: string }) {
+  const pty = usePty();
+
+  const handleClick = async () => {
+    const filePath = await (window as any).dispatch?.dialog?.openFile();
+    if (filePath) {
+      const quoted = filePath.includes(' ')
+        ? `'${filePath.replace(/'/g, "'\\''")}'`
+        : filePath;
+      pty.write(terminalId, quoted + ' ');
+    }
+  };
+
+  return (
+    <button className="d-termpane__screenshot-btn" title="Insert file path" onClick={handleClick}>
+      📎
+    </button>
+  );
+}
+
 interface TerminalPaneProps {
   terminalId: string;
   onSpawnInCwd?: (cwd: string, command?: string) => void;
@@ -241,6 +262,7 @@ export function TerminalPane({ terminalId }: TerminalPaneProps) {
         </div>
         <div className="d-termpane__shortcuts">
           <LastBrowserButton />
+          <FilePickerButton terminalId={terminalId} />
           <span>Split ⌘D</span>
           <span>Close ⌘W</span>
         </div>

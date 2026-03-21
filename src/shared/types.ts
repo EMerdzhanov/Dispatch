@@ -98,6 +98,7 @@ export interface Settings {
   keybindings: Record<string, string>;
   notificationsEnabled: boolean;
   soundEnabled: boolean;
+  screenshotFolder: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -109,6 +110,7 @@ export const DEFAULT_SETTINGS: Settings = {
   keybindings: {},
   notificationsEnabled: true,
   soundEnabled: true,
+  screenshotFolder: '',
 };
 
 export const DEFAULT_PRESETS: Preset[] = [
