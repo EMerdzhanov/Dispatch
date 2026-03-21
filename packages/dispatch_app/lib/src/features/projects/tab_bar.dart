@@ -25,11 +25,11 @@ class ProjectTabBar extends ConsumerWidget {
     final activeGroupId = projectsState.activeGroupId;
 
     return Container(
-      height: 36,
+      height: AppTheme.tabBarHeight,
       decoration: const BoxDecoration(
         color: AppTheme.surface,
         border: Border(
-          bottom: BorderSide(color: AppTheme.border, width: 1),
+          bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
         ),
       ),
       child: Row(
@@ -125,7 +125,7 @@ class ProjectTabBar extends ConsumerWidget {
             onTap: onOpenFolder,
           ),
 
-          const SizedBox(width: 4),
+          const SizedBox(width: AppTheme.spacingXs),
 
           // Settings gear icon
           _IconButton(
@@ -143,7 +143,7 @@ class ProjectTabBar extends ConsumerWidget {
             onTap: onOpenShortcuts,
           ),
 
-          const SizedBox(width: 4),
+          const SizedBox(width: AppTheme.spacingXs),
         ],
       ),
     );
@@ -167,9 +167,9 @@ class ProjectTabBar extends ConsumerWidget {
       items: [
         PopupMenuItem<String>(
           value: 'close',
-          child: const Text(
+          child: Text(
             'Close Tab',
-            style: TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+            style: AppTheme.bodyStyle,
           ),
         ),
       ],
@@ -190,7 +190,7 @@ class ProjectTabBar extends ConsumerWidget {
   }
 }
 
-class _ProjectTab extends StatelessWidget {
+class _ProjectTab extends StatefulWidget {
   final String label;
   final int terminalCount;
   final bool isActive;
@@ -202,45 +202,62 @@ class _ProjectTab extends StatelessWidget {
   });
 
   @override
+  State<_ProjectTab> createState() => _ProjectTabState();
+}
+
+class _ProjectTabState extends State<_ProjectTab> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 36,
-      constraints: const BoxConstraints(minWidth: 80, maxWidth: 180),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: isActive ? AppTheme.surfaceLight : AppTheme.surface,
-        border: Border(
-          right: const BorderSide(color: AppTheme.border, width: 1),
-          bottom: BorderSide(
-            color: isActive ? AppTheme.accentBlue : Colors.transparent,
-            width: 2,
-          ),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.folder_outlined,
-            size: 14,
-            color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-                fontSize: 12,
-              ),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: AppTheme.hoverDuration,
+        curve: AppTheme.animCurve,
+        height: AppTheme.tabBarHeight,
+        constraints: const BoxConstraints(minWidth: 80, maxWidth: 180),
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+        decoration: BoxDecoration(
+          color: widget.isActive
+              ? AppTheme.surfaceLight
+              : _hovered
+                  ? AppTheme.surfaceLight.withValues(alpha: 0.5)
+                  : AppTheme.surface,
+          border: Border(
+            right: const BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
+            bottom: BorderSide(
+              color: widget.isActive ? AppTheme.accentBlue : Colors.transparent,
+              width: 2,
             ),
           ),
-          if (terminalCount > 0) ...[
-            const SizedBox(width: 6),
-            _TerminalCountBadge(count: terminalCount),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.folder_outlined,
+              size: 14,
+              color: widget.isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: AppTheme.spacingXs + 2),
+            Flexible(
+              child: Text(
+                widget.label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: widget.isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            if (widget.terminalCount > 0) ...[
+              const SizedBox(width: AppTheme.spacingXs + 2),
+              _TerminalCountBadge(count: widget.terminalCount),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -254,17 +271,19 @@ class _TerminalCountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      height: 16,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: AppTheme.border,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
+      alignment: Alignment.center,
       child: Text(
         '$count',
         style: const TextStyle(
           color: AppTheme.textSecondary,
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
+          fontSize: 9,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -289,7 +308,7 @@ class _IconButton extends StatelessWidget {
       message: tooltip,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           child: Icon(icon, size: 16, color: AppTheme.textSecondary),
