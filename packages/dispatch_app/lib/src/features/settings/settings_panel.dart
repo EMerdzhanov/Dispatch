@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -110,17 +112,29 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
 
     return Stack(
       children: [
-        GestureDetector(onTap: widget.onClose, child: Container(color: Colors.black54)),
+        GestureDetector(
+          onTap: widget.onClose,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+            child: Container(color: Colors.black.withValues(alpha: 0.4)),
+          ),
+        ),
         Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 520, maxHeight: MediaQuery.of(context).size.height * 0.85),
-            child: Material(
-              color: AppTheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppTheme.border),
-              ),
-              child: Column(
+          child: AnimatedSlide(
+            offset: Offset(0, widget.open ? 0 : -0.02),
+            duration: AppTheme.animDuration,
+            curve: AppTheme.animCurve,
+            child: AnimatedOpacity(
+              opacity: widget.open ? 1.0 : 0.0,
+              duration: AppTheme.animFastDuration,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 520, maxHeight: MediaQuery.of(context).size.height * 0.85),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    decoration: AppTheme.overlayDecoration,
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
                 children: [
                   // Header
                   Container(
@@ -128,7 +142,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                     decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppTheme.border))),
                     child: Row(
                       children: [
-                        const Text('Settings', style: TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
+                        Text('Settings', style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w600)),
                         const Spacer(),
                         GestureDetector(
                           onTap: widget.onClose,
@@ -225,6 +239,9 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
             ),
           ),
         ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -232,7 +249,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(title, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+      child: Text(title, style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w600)),
     );
   }
 

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,16 +13,16 @@ class _ShortcutEntry {
 }
 
 const _shortcuts = [
-  _ShortcutEntry(action: 'New Terminal', keys: ['⌘', 'N']),
-  _ShortcutEntry(action: 'Open Folder', keys: ['⌘', 'T']),
-  _ShortcutEntry(action: 'Close Split', keys: ['⌘', 'W']),
-  _ShortcutEntry(action: 'Quick Switcher', keys: ['⌘', 'K']),
-  _ShortcutEntry(action: 'Command Palette', keys: ['⌘', '⇧', 'P']),
-  _ShortcutEntry(action: 'Split Horizontal', keys: ['⌘', 'D']),
-  _ShortcutEntry(action: 'Split Vertical', keys: ['⌘', '⇧', 'D']),
-  _ShortcutEntry(action: 'Zen Mode', keys: ['⌘', '⇧', 'Z']),
-  _ShortcutEntry(action: 'Settings', keys: ['⌘', ',']),
-  _ShortcutEntry(action: 'Save Template', keys: ['⌘', '⇧', 'S']),
+  _ShortcutEntry(action: 'New Terminal', keys: ['\u2318', 'N']),
+  _ShortcutEntry(action: 'Open Folder', keys: ['\u2318', 'T']),
+  _ShortcutEntry(action: 'Close Split', keys: ['\u2318', 'W']),
+  _ShortcutEntry(action: 'Quick Switcher', keys: ['\u2318', 'K']),
+  _ShortcutEntry(action: 'Command Palette', keys: ['\u2318', '\u21E7', 'P']),
+  _ShortcutEntry(action: 'Split Horizontal', keys: ['\u2318', 'D']),
+  _ShortcutEntry(action: 'Split Vertical', keys: ['\u2318', '\u21E7', 'D']),
+  _ShortcutEntry(action: 'Zen Mode', keys: ['\u2318', '\u21E7', 'Z']),
+  _ShortcutEntry(action: 'Settings', keys: ['\u2318', ',']),
+  _ShortcutEntry(action: 'Save Template', keys: ['\u2318', '\u21E7', 'S']),
 ];
 
 class ShortcutsPanel extends StatelessWidget {
@@ -48,51 +50,64 @@ class ShortcutsPanel extends StatelessWidget {
       },
       child: Stack(
         children: [
-          // Backdrop
+          // Backdrop with blur
           GestureDetector(
             onTap: onClose,
-            child: Container(
-              color: Colors.black54,
-              width: double.infinity,
-              height: double.infinity,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.4),
+                width: double.infinity,
+                height: double.infinity,
+              ),
             ),
           ),
-          // Panel
+          // Panel with slide-in
           Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 400,
-                maxHeight: MediaQuery.of(context).size.height * 0.7,
-              ),
-              child: Material(
-                color: AppTheme.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: AppTheme.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildHeader(),
-                    Flexible(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: _shortcuts.length,
-                        separatorBuilder: (_, _) => const Divider(
-                          height: 1,
-                          color: AppTheme.border,
-                          indent: 16,
-                          endIndent: 16,
-                        ),
-                        itemBuilder: (context, index) {
-                          final entry = _shortcuts[index];
-                          return _ShortcutRow(entry: entry);
-                        },
+            child: AnimatedSlide(
+              offset: Offset(0, open ? 0 : -0.02),
+              duration: AppTheme.animDuration,
+              curve: AppTheme.animCurve,
+              child: AnimatedOpacity(
+                opacity: open ? 1.0 : 0.0,
+                duration: AppTheme.animFastDuration,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: 400,
+                    maxHeight: MediaQuery.of(context).size.height * 0.7,
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      decoration: AppTheme.overlayDecoration,
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildHeader(),
+                          Flexible(
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+                              itemCount: _shortcuts.length,
+                              separatorBuilder: (_, _) => Divider(
+                                height: 1,
+                                color: AppTheme.border,
+                                thickness: AppTheme.borderWidth,
+                                indent: AppTheme.spacingLg,
+                                endIndent: AppTheme.spacingLg,
+                              ),
+                              itemBuilder: (context, index) {
+                                final entry = _shortcuts[index];
+                                return _ShortcutRow(entry: entry);
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -106,17 +121,13 @@ class ShortcutsPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppTheme.border)),
+        border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
       ),
       child: Row(
         children: [
-          const Text(
+          Text(
             'Keyboard Shortcuts',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w600),
           ),
           const Spacer(),
           GestureDetector(
@@ -150,18 +161,16 @@ class _ShortcutRowState extends State<_ShortcutRow> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: AnimatedContainer(
+        duration: AppTheme.hoverDuration,
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: 10),
         color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               widget.entry.action,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 13,
-              ),
+              style: AppTheme.bodyStyle,
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -171,7 +180,7 @@ class _ShortcutRowState extends State<_ShortcutRow> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _KeyBadge(label: entry.value),
-                    if (!isLast) const SizedBox(width: 4),
+                    if (!isLast) const SizedBox(width: AppTheme.spacingXs),
                   ],
                 );
               }).toList(),
@@ -194,16 +203,12 @@ class _KeyBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: AppTheme.surfaceLight,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppTheme.border),
+        borderRadius: BorderRadius.circular(AppTheme.radius),
+        border: Border.all(color: AppTheme.border, width: AppTheme.borderWidth),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: AppTheme.textPrimary,
-          fontSize: 12,
-          fontFamily: '.AppleSystemUIFont',
-        ),
+        style: AppTheme.bodyStyle.copyWith(fontFamily: '.AppleSystemUIFont'),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
@@ -51,63 +53,71 @@ class _SaveTemplateDialogState extends ConsumerState<SaveTemplateDialog> {
       children: [
         GestureDetector(
           onTap: widget.onClose,
-          child: Container(color: Colors.black54),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+            child: Container(color: Colors.black.withValues(alpha: 0.4)),
+          ),
         ),
         Center(
-          child: Material(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 400,
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Save Template',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _controller,
-                    autofocus: true,
-                    style: const TextStyle(color: AppTheme.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Template name',
-                      hintStyle: const TextStyle(color: AppTheme.textSecondary),
-                      filled: true,
-                      fillColor: AppTheme.surfaceLight,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    onSubmitted: (_) => widget.onSave(_controller.text),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+          child: AnimatedSlide(
+            offset: Offset(0, widget.open ? 0 : -0.02),
+            duration: AppTheme.animDuration,
+            curve: AppTheme.animCurve,
+            child: AnimatedOpacity(
+              opacity: widget.open ? 1.0 : 0.0,
+              duration: AppTheme.animFastDuration,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 400,
+                  padding: const EdgeInsets.all(AppTheme.spacingXl),
+                  decoration: AppTheme.overlayDecoration,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextButton(
-                        onPressed: widget.onClose,
-                        child: const Text('Cancel'),
+                      Text(
+                        'Save Template',
+                        style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () => widget.onSave(_controller.text),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.accentBlue,
+                      const SizedBox(height: AppTheme.spacingLg),
+                      TextField(
+                        controller: _controller,
+                        autofocus: true,
+                        style: AppTheme.bodyStyle,
+                        decoration: InputDecoration(
+                          hintText: 'Template name',
+                          hintStyle: AppTheme.dimStyle,
+                          filled: true,
+                          fillColor: AppTheme.surfaceLight,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppTheme.radius),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
-                        child: const Text('Save'),
+                        onSubmitted: (_) => widget.onSave(_controller.text),
+                      ),
+                      const SizedBox(height: AppTheme.spacingLg),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: widget.onClose,
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: AppTheme.spacingSm),
+                          ElevatedButton(
+                            onPressed: () => widget.onSave(_controller.text),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.accentBlue,
+                            ),
+                            child: const Text('Save'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

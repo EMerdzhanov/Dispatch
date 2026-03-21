@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -135,92 +137,99 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
           },
           child: Stack(
             children: [
-              // Backdrop
+              // Backdrop with blur
               GestureDetector(
                 onTap: widget.onClose,
-                child: Container(
-                  color: Colors.black54,
-                  width: double.infinity,
-                  height: double.infinity,
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
                 ),
               ),
-              // Panel
+              // Panel with slide-in
               Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: 400,
-                    maxHeight: MediaQuery.of(context).size.height * 0.5,
-                  ),
-                  child: Material(
-                    color: AppTheme.surface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(color: AppTheme.border),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Input
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          child: TextField(
-                            key: const Key('command_palette_input'),
-                            controller: _controller,
-                            focusNode: _focusNode,
-                            autofocus: true,
-                            style: const TextStyle(
-                              color: AppTheme.textPrimary,
-                              fontSize: 14,
-                            ),
-                            decoration: const InputDecoration(
-                              hintText: 'Search presets and actions...',
-                              hintStyle: TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontSize: 14,
+                child: AnimatedSlide(
+                  offset: Offset(0, widget.open ? 0 : -0.02),
+                  duration: AppTheme.animDuration,
+                  curve: AppTheme.animCurve,
+                  child: AnimatedOpacity(
+                    opacity: widget.open ? 1.0 : 0.0,
+                    duration: AppTheme.animFastDuration,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: 400,
+                        maxHeight: MediaQuery.of(context).size.height * 0.5,
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Container(
+                          decoration: AppTheme.overlayDecoration,
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Input
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.spacingLg,
+                                  vertical: AppTheme.spacingMd,
+                                ),
+                                child: TextField(
+                                  key: const Key('command_palette_input'),
+                                  controller: _controller,
+                                  focusNode: _focusNode,
+                                  autofocus: true,
+                                  style: AppTheme.titleStyle,
+                                  decoration: InputDecoration(
+                                    hintText: 'Search presets and actions...',
+                                    hintStyle: AppTheme.titleStyle.copyWith(color: AppTheme.textSecondary),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                  onChanged: (_) {
+                                    setState(() {
+                                      _selectedIndex = 0;
+                                    });
+                                  },
+                                  onSubmitted: (_) {
+                                    if (filtered.isNotEmpty) {
+                                      _spawn(filtered[clampedIndex]);
+                                    }
+                                  },
+                                ),
                               ),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            onChanged: (_) {
-                              setState(() {
-                                _selectedIndex = 0;
-                              });
-                            },
-                            onSubmitted: (_) {
-                              if (filtered.isNotEmpty) {
-                                _spawn(filtered[clampedIndex]);
-                              }
-                            },
+                              if (filtered.isNotEmpty) ...[
+                                const Divider(
+                                  height: 1,
+                                  color: AppTheme.border,
+                                  thickness: AppTheme.borderWidth,
+                                ),
+                                Flexible(
+                                  child: ListView.builder(
+                                    shrinkWrap: true,
+                                    padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
+                                    itemCount: filtered.length,
+                                    itemBuilder: (context, index) {
+                                      final preset = filtered[index];
+                                      final isSelected = index == clampedIndex;
+                                      return _PresetResultItem(
+                                        preset: preset,
+                                        dotColor: _dotColor(preset.color),
+                                        isSelected: isSelected,
+                                        onTap: () => _spawn(preset),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                        if (filtered.isNotEmpty) ...[
-                          const Divider(
-                            height: 1,
-                            color: AppTheme.border,
-                          ),
-                          Flexible(
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              itemCount: filtered.length,
-                              itemBuilder: (context, index) {
-                                final preset = filtered[index];
-                                final isSelected = index == clampedIndex;
-                                return _PresetResultItem(
-                                  preset: preset,
-                                  dotColor: _dotColor(preset.color),
-                                  isSelected: isSelected,
-                                  onTap: () => _spawn(preset),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -266,7 +275,7 @@ class _PresetResultItemState extends State<_PresetResultItem> {
         onTap: widget.onTap,
         child: Container(
           color: bg,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: AppTheme.spacingSm),
           child: Row(
             children: [
               Container(
@@ -277,24 +286,18 @@ class _PresetResultItemState extends State<_PresetResultItem> {
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppTheme.spacingMd),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.preset.name,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 13,
-                      ),
+                      style: AppTheme.bodyStyle,
                     ),
                     Text(
                       widget.preset.command,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 12,
-                      ),
+                      style: AppTheme.dimStyle.copyWith(fontSize: 10),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
