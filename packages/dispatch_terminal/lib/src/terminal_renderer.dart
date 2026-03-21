@@ -13,6 +13,7 @@ class TerminalRenderer extends CustomPainter {
   final int? cursorRow;
   final int? cursorCol;
   final bool showCursor;
+  final int scrollOffset;
 
   late final double cellWidth;
   late final double cellHeight;
@@ -26,6 +27,7 @@ class TerminalRenderer extends CustomPainter {
     this.cursorRow,
     this.cursorCol,
     this.showCursor = true,
+    this.scrollOffset = 0,
   }) {
     // Measure cell size using a reference character
     final tp = TextPainter(
@@ -43,6 +45,29 @@ class TerminalRenderer extends CustomPainter {
     cellHeight = tp.height;
   }
 
+  /// Retrieves the cell for a given visible [row], accounting for [scrollOffset].
+  /// When scrollOffset > 0, the top rows come from the scrollback buffer.
+  Cell _cellForVisibleRow(int visibleRow, int col) {
+    if (scrollOffset == 0) {
+      return buffer.cellAt(visibleRow, col);
+    }
+
+    final scrollbackLen = buffer.scrollback.length;
+    // The first `scrollOffset` visible rows come from scrollback
+    final scrollbackRow = scrollbackLen - scrollOffset + visibleRow;
+    if (scrollbackRow >= 0 && scrollbackRow < scrollbackLen) {
+      final line = buffer.scrollback[scrollbackRow];
+      if (col < line.length) return line[col];
+      return const Cell();
+    }
+    // The remaining rows come from the active buffer
+    final bufferRow = visibleRow - scrollOffset;
+    if (bufferRow >= 0) {
+      return buffer.cellAt(bufferRow, col);
+    }
+    return const Cell();
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     // Draw background
@@ -56,7 +81,7 @@ class TerminalRenderer extends CustomPainter {
 
     for (int row = 0; row < buffer.rows; row++) {
       for (int col = 0; col < buffer.cols; col++) {
-        final cell = buffer.cellAt(row, col);
+        final cell = _cellForVisibleRow(row, col);
         final x = col * cellWidth;
         final y = row * cellHeight;
 
@@ -100,8 +125,8 @@ class TerminalRenderer extends CustomPainter {
       }
     }
 
-    // Draw cursor
-    if (showCursor && cRow < buffer.rows && cCol < buffer.cols) {
+    // Draw cursor (only when not scrolled back)
+    if (showCursor && scrollOffset == 0 && cRow < buffer.rows && cCol < buffer.cols) {
       final cx = cCol * cellWidth;
       final cy = cRow * cellHeight;
       canvas.drawRect(
@@ -125,6 +150,7 @@ class TerminalRenderer extends CustomPainter {
   bool shouldRepaint(covariant TerminalRenderer oldDelegate) {
     return generation != oldDelegate.generation ||
         fontSize != oldDelegate.fontSize ||
-        fontFamily != oldDelegate.fontFamily;
+        fontFamily != oldDelegate.fontFamily ||
+        scrollOffset != oldDelegate.scrollOffset;
   }
 }

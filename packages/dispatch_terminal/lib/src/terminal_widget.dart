@@ -1,5 +1,6 @@
 // packages/dispatch_terminal/lib/src/terminal_widget.dart
 import 'dart:async';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'terminal.dart';
@@ -36,6 +37,8 @@ class _TerminalViewState extends State<TerminalView> {
   final FocusNode _focusNode = FocusNode();
   StreamSubscription<String>? _dataSub;
   int _generation = 0;
+  int _scrollOffset = 0;
+  bool _wasAtBottom = true;
 
   @override
   void initState() {
@@ -62,7 +65,25 @@ class _TerminalViewState extends State<TerminalView> {
   void _onData(String data) {
     widget.terminal.write(data);
     setState(() {
+      // If user was at the bottom, stay at the bottom after new data
+      if (_wasAtBottom) {
+        _scrollOffset = 0;
+      }
       _generation++;
+    });
+  }
+
+  void _onScroll(PointerScrollEvent event) {
+    final maxOffset = widget.terminal.buffer.scrollback.length;
+    setState(() {
+      if (event.scrollDelta.dy < 0) {
+        // Scroll up (into history)
+        _scrollOffset = (_scrollOffset + 3).clamp(0, maxOffset);
+      } else {
+        // Scroll down (toward present)
+        _scrollOffset = (_scrollOffset - 3).clamp(0, maxOffset);
+      }
+      _wasAtBottom = _scrollOffset == 0;
     });
   }
 
@@ -128,23 +149,31 @@ class _TerminalViewState extends State<TerminalView> {
         _onKey(event);
         return KeyEventResult.handled;
       },
-      child: GestureDetector(
-        onTap: () => _focusNode.requestFocus(),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            _handleResize(constraints);
-            return CustomPaint(
-              painter: TerminalRenderer(
-                buffer: widget.terminal.buffer,
-                theme: widget.theme,
-                fontSize: widget.fontSize,
-                fontFamily: widget.fontFamily,
-                generation: _generation,
-                showCursor: _focusNode.hasFocus,
-              ),
-              size: Size(constraints.maxWidth, constraints.maxHeight),
-            );
-          },
+      child: Listener(
+        onPointerSignal: (event) {
+          if (event is PointerScrollEvent) {
+            _onScroll(event);
+          }
+        },
+        child: GestureDetector(
+          onTap: () => _focusNode.requestFocus(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              _handleResize(constraints);
+              return CustomPaint(
+                painter: TerminalRenderer(
+                  buffer: widget.terminal.buffer,
+                  theme: widget.theme,
+                  fontSize: widget.fontSize,
+                  fontFamily: widget.fontFamily,
+                  generation: _generation,
+                  showCursor: _focusNode.hasFocus && _scrollOffset == 0,
+                  scrollOffset: _scrollOffset,
+                ),
+                size: Size(constraints.maxWidth, constraints.maxHeight),
+              );
+            },
+          ),
         ),
       ),
     );
