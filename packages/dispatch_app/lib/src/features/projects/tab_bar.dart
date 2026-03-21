@@ -34,40 +34,85 @@ class ProjectTabBar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // Scrollable tab list
+          // Scrollable, drag-to-reorder tab list
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: groups.map((group) {
+                children: List.generate(groups.length, (index) {
+                  final group = groups[index];
                   final isActive = group.id == activeGroupId;
                   final terminalCount = group.terminalIds.length;
 
-                  return GestureDetector(
-                    onTap: () {
+                  return DragTarget<int>(
+                    onWillAcceptWithDetails: (details) => details.data != index,
+                    onAcceptWithDetails: (details) {
                       ref
                           .read(projectsProvider.notifier)
-                          .setActiveGroup(group.id);
-                      // Activate the first terminal in the group if any
-                      if (group.terminalIds.isNotEmpty) {
-                        final firstId = group.terminalIds.first;
-                        if (terminalsState.terminals.containsKey(firstId)) {
-                          ref
-                              .read(terminalsProvider.notifier)
-                              .setActiveTerminal(firstId);
-                        }
-                      }
+                          .reorderGroups(details.data, index);
                     },
-                    onSecondaryTapDown: (details) {
-                      _showContextMenu(context, ref, group.id, details.globalPosition);
+                    builder: (context, candidateData, rejectedData) {
+                      final isDropTarget = candidateData.isNotEmpty;
+                      return Draggable<int>(
+                        data: index,
+                        feedback: Material(
+                          color: Colors.transparent,
+                          child: Opacity(
+                            opacity: 0.8,
+                            child: _ProjectTab(
+                              label: group.label,
+                              terminalCount: terminalCount,
+                              isActive: true,
+                            ),
+                          ),
+                        ),
+                        childWhenDragging: Opacity(
+                          opacity: 0.3,
+                          child: _ProjectTab(
+                            label: group.label,
+                            terminalCount: terminalCount,
+                            isActive: isActive,
+                          ),
+                        ),
+                        child: GestureDetector(
+                          onTap: () {
+                            ref
+                                .read(projectsProvider.notifier)
+                                .setActiveGroup(group.id);
+                            if (group.terminalIds.isNotEmpty) {
+                              final firstId = group.terminalIds.first;
+                              if (terminalsState.terminals
+                                  .containsKey(firstId)) {
+                                ref
+                                    .read(terminalsProvider.notifier)
+                                    .setActiveTerminal(firstId);
+                              }
+                            }
+                          },
+                          onSecondaryTapDown: (details) {
+                            _showContextMenu(
+                                context, ref, group.id, details.globalPosition);
+                          },
+                          child: Container(
+                            decoration: isDropTarget
+                                ? const BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(
+                                          color: AppTheme.accentBlue, width: 2),
+                                    ),
+                                  )
+                                : null,
+                            child: _ProjectTab(
+                              label: group.label,
+                              terminalCount: terminalCount,
+                              isActive: isActive,
+                            ),
+                          ),
+                        ),
+                      );
                     },
-                    child: _ProjectTab(
-                      label: group.label,
-                      terminalCount: terminalCount,
-                      isActive: isActive,
-                    ),
                   );
-                }).toList(),
+                }),
               ),
             ),
           ),
