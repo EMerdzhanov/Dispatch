@@ -25,18 +25,18 @@ class ProjectTabBar extends ConsumerWidget {
     final activeGroupId = projectsState.activeGroupId;
 
     return Container(
-      height: AppTheme.tabBarHeight + 8,
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: 4),
       color: AppTheme.surface,
       child: Row(
         children: [
           // Scrollable, drag-to-reorder tab list
           Expanded(
             child: Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 color: AppTheme.tabTrack,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(7),
                 border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
               ),
               child: SingleChildScrollView(
@@ -220,8 +220,9 @@ class _ProjectTabState extends State<_ProjectTab> {
       child: AnimatedContainer(
         duration: AppTheme.hoverDuration,
         curve: AppTheme.animCurve,
-        constraints: const BoxConstraints(minWidth: 80, maxWidth: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+        constraints: const BoxConstraints(minWidth: 60, maxWidth: 180),
+        height: 26,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: widget.isActive
               ? AppTheme.surfaceLight
