@@ -5,3 +5,4 @@ export 'src/cell.dart';
 export 'src/screen_buffer.dart';
 export 'src/vt_parser.dart';
 export 'src/terminal.dart';
+export 'src/pty_ffi.dart';
