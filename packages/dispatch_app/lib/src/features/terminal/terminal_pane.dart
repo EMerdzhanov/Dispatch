@@ -150,11 +150,13 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
             children: [
               xterm.TerminalView(
                 _terminal,
-                textStyle: xterm.TerminalStyle(
+                textStyle: xterm.TerminalStyle.fromTextStyle(TextStyle(
                   fontSize: settings.fontSize,
                   fontFamily: 'Menlo',
                   fontFamilyFallback: const ['SF Mono', 'Monaco', 'Courier New', 'monospace'],
-                ),
+                  fontWeight: FontWeight.w300,
+                  height: 1.2,
+                )),
                 theme: const xterm.TerminalTheme(
                   cursor: Color(0xFFAAAAAA),
                   selection: Color(0x803A6FD6),
