@@ -326,15 +326,15 @@ class _TerminalListItemState extends State<_TerminalListItem> {
       child: GestureDetector(
         onTap: widget.onTap,
         onSecondaryTapUp: (details) => _showContextMenu(context, details.localPosition),
-        child: AnimatedContainer(
-          duration: AppTheme.hoverDuration,
-          curve: AppTheme.animCurve,
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: 6),
-          color: widget.isActive
-              ? const Color(0xFF16213E)
-              : _hovered
-                  ? const Color(0xFF16213E).withOpacity(0.5)
-                  : Colors.transparent,
+          decoration: BoxDecoration(
+            color: widget.isActive
+                ? const Color(0xFF16213E)
+                : _hovered
+                    ? const Color(0xFF112233)
+                    : null,
+          ),
           child: Row(
             children: [
               statusDot,
