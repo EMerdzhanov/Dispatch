@@ -1,34 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../persistence/auto_save.dart';
+import '../projects/projects_provider.dart';
 
-class _Note {
-  final String id;
-  String title;
-  String body;
-  DateTime updatedAt;
-
-  _Note({
-    required this.id,
-    required this.title,
-    required this.body,
-    required this.updatedAt,
-  });
-}
-
-class NotesPanel extends StatefulWidget {
+class NotesPanel extends ConsumerStatefulWidget {
   const NotesPanel({super.key});
 
   @override
-  State<NotesPanel> createState() => _NotesPanelState();
+  ConsumerState<NotesPanel> createState() => _NotesPanelState();
 }
 
-class _NotesPanelState extends State<NotesPanel> {
-  final List<_Note> _notes = [];
-  _Note? _editing;
+class _NotesPanelState extends ConsumerState<NotesPanel> {
+  List<Note> _notes = [];
+  Note? _editing;
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
-  int _idCounter = 0;
+  String? _lastCwd;
 
   @override
   void dispose() {
@@ -37,42 +27,68 @@ class _NotesPanelState extends State<NotesPanel> {
     super.dispose();
   }
 
-  void _addNote() {
-    final note = _Note(
-      id: 'note_${++_idCounter}',
-      title: 'Untitled',
-      body: '',
-      updatedAt: DateTime.now(),
-    );
-    setState(() {
-      _notes.insert(0, note);
-      _openNote(note);
-    });
+  String? _getActiveCwd() {
+    final projects = ref.read(projectsProvider);
+    final group = projects.groups
+        .where((g) => g.id == projects.activeGroupId)
+        .firstOrNull;
+    return group?.cwd;
   }
 
-  void _openNote(_Note note) {
+  Future<void> _loadNotes() async {
+    final cwd = _getActiveCwd();
+    if (cwd == null) {
+      setState(() => _notes = []);
+      return;
+    }
+    final db = ref.read(databaseProvider);
+    final notes = await db.notesDao.getNotesForProject(cwd);
+    if (mounted) {
+      setState(() {
+        _notes = notes;
+        _lastCwd = cwd;
+      });
+    }
+  }
+
+  Future<void> _addNote() async {
+    final cwd = _getActiveCwd();
+    if (cwd == null) return;
+    final db = ref.read(databaseProvider);
+    final id = await db.notesDao.insertNote(projectCwd: cwd, title: 'Untitled');
+    await _loadNotes();
+    // Open the newly created note for editing
+    final newNote = _notes.where((n) => n.id == id).firstOrNull;
+    if (newNote != null) {
+      _openNote(newNote);
+    }
+  }
+
+  void _openNote(Note note) {
     _titleController.text = note.title;
     _bodyController.text = note.body;
     setState(() => _editing = note);
   }
 
-  void _saveEditing() {
+  Future<void> _saveEditing() async {
     if (_editing == null) return;
-    setState(() {
-      _editing!.title = _titleController.text.isEmpty
-          ? 'Untitled'
-          : _titleController.text;
-      _editing!.body = _bodyController.text;
-      _editing!.updatedAt = DateTime.now();
-      _editing = null;
-    });
+    final db = ref.read(databaseProvider);
+    final title = _titleController.text.isEmpty
+        ? 'Untitled'
+        : _titleController.text;
+    final body = _bodyController.text;
+    await db.notesDao.updateNote(_editing!.id, title: title, body: body);
+    setState(() => _editing = null);
+    await _loadNotes();
   }
 
-  void _deleteNote(String id) {
-    setState(() {
-      _notes.removeWhere((n) => n.id == id);
-      if (_editing?.id == id) _editing = null;
-    });
+  Future<void> _deleteNote(int id) async {
+    final db = ref.read(databaseProvider);
+    await db.notesDao.deleteNote(id);
+    if (_editing?.id == id) {
+      setState(() => _editing = null);
+    }
+    await _loadNotes();
   }
 
   String _formatTime(DateTime dt) {
@@ -86,6 +102,19 @@ class _NotesPanelState extends State<NotesPanel> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch for project changes and reload notes
+    final projects = ref.watch(projectsProvider);
+    final group = projects.groups
+        .where((g) => g.id == projects.activeGroupId)
+        .firstOrNull;
+    final cwd = group?.cwd;
+
+    if (cwd != _lastCwd) {
+      _lastCwd = cwd;
+      _editing = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadNotes());
+    }
+
     if (_editing != null) {
       return _buildEditor();
     }
@@ -222,7 +251,7 @@ class _NotesPanelState extends State<NotesPanel> {
 }
 
 class _NoteListItem extends StatefulWidget {
-  final _Note note;
+  final Note note;
   final String timeText;
   final VoidCallback onTap;
   final VoidCallback onDelete;
