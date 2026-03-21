@@ -331,9 +331,9 @@ class _TerminalListItemState extends State<_TerminalListItem> {
           curve: AppTheme.animCurve,
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: 6),
           color: widget.isActive
-              ? Colors.white.withOpacity(0.05)
+              ? const Color(0xFF16213E)
               : _hovered
-                  ? Colors.white.withOpacity(0.03)
+                  ? const Color(0xFF16213E).withOpacity(0.5)
                   : Colors.transparent,
           child: Row(
             children: [
