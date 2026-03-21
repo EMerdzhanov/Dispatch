@@ -75,23 +75,33 @@ class _FileTreeState extends ConsumerState<FileTree> {
 
   void _onFileClick(String filePath) {
     final activeId = ref.read(terminalsProvider).activeTerminalId;
-    if (activeId == null) return;
 
-    // Try terminal registry first (types via xterm's onOutput → PTY)
+    // Shell-quote paths with spaces or special chars
+    final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
+    final quoted = needsQuoting ? "'${filePath.replaceAll("'", "'\\''")}'" : filePath;
+
+    if (activeId == null) {
+      debugPrint('[FileTree] No active terminal');
+      return;
+    }
+
+    // Use xterm Terminal.textInput — goes through onOutput → PTY
     final terminal = TerminalPane.terminalRegistry[activeId];
     if (terminal != null) {
-      final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
-      final quoted = needsQuoting ? "'${filePath.replaceAll("'", "'\\''")}'" : filePath;
+      debugPrint('[FileTree] textInput: $quoted');
       terminal.textInput('$quoted ');
       return;
     }
 
     // Fallback: write to PTY directly
     final pty = TerminalPane.ptyRegistry[activeId];
-    if (pty == null) return;
-    final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
-    final quoted = needsQuoting ? "'${filePath.replaceAll("'", "'\\''")}'" : filePath;
-    pty.write(const Utf8Encoder().convert('$quoted '));
+    if (pty != null) {
+      debugPrint('[FileTree] pty.write: $quoted');
+      pty.write(const Utf8Encoder().convert('$quoted '));
+      return;
+    }
+
+    debugPrint('[FileTree] No terminal or PTY found for $activeId');
   }
 
   @override
@@ -101,15 +111,16 @@ class _FileTreeState extends ConsumerState<FileTree> {
     if (_entries == null) return const Center(child: Text('Loading...', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
     if (_entries!.isEmpty) return const Center(child: Text('No files', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
 
-    return ListView.builder(
-      itemCount: _entries!.length,
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      itemBuilder: (context, index) {
-        final entity = _entries![index];
-        final name = entity.path.split('/').last;
-        final isDir = entity is Directory;
-        return _TreeNode(name: name, fullPath: entity.path, isDirectory: isDir, depth: 0, onFileClick: _onFileClick);
-      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: _entries!.map((entity) {
+          final name = entity.path.split('/').last;
+          final isDir = entity is Directory;
+          return _TreeNode(name: name, fullPath: entity.path, isDirectory: isDir, depth: 0, onFileClick: _onFileClick);
+        }).toList(),
+      ),
     );
   }
 }
@@ -133,6 +144,7 @@ class _TreeNodeState extends State<_TreeNode> {
   List<FileSystemEntity>? _children;
 
   void _toggle() {
+    debugPrint('[TreeNode] _toggle called: ${widget.name} isDir=${widget.isDirectory} path=${widget.fullPath}');
     if (!widget.isDirectory) {
       widget.onFileClick(widget.fullPath);
       return;
