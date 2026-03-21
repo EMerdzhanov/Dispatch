@@ -26,6 +26,7 @@ import 'core/models/template.dart';
 import 'features/terminal/terminal_monitor.dart';
 import 'features/terminal/save_template_dialog.dart';
 import 'features/terminal/templates_provider.dart';
+import 'features/terminal/session_registry.dart';
 
 class DispatchApp extends ConsumerStatefulWidget {
   const DispatchApp({super.key});
@@ -113,6 +114,9 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
         );
     ref.read(terminalsProvider.notifier).setActiveTerminal(session.id);
 
+    // Register session so TerminalPane can access it
+    ref.read(sessionRegistryProvider.notifier).register(session.id, session);
+
     // Feed PTY output to the terminal monitor
     session.dataStream.listen((data) {
       _terminalMonitor.onData(session.id, data);
@@ -126,6 +130,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
             exitCode: code,
           );
       _terminalMonitor.cleanup(session.id);
+      ref.read(sessionRegistryProvider.notifier).unregister(session.id);
     });
   }
 
