@@ -211,6 +211,16 @@ class _TreeNodeState extends State<_TreeNode> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  // Insert path button for files
+                  if (!widget.isDirectory && _hovered)
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => widget.onFileClick(widget.fullPath),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: Text('+', style: TextStyle(color: AppTheme.accentBlue, fontSize: 14, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
                 ],
               ),
             ),
