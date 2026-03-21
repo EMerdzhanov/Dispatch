@@ -21,6 +21,7 @@ import 'features/settings/settings_provider.dart';
 import 'features/shortcuts/shortcuts_panel.dart';
 import 'persistence/auto_save.dart';
 import 'core/models/terminal_entry.dart';
+import 'features/terminal/terminal_monitor.dart';
 
 class DispatchApp extends ConsumerStatefulWidget {
   const DispatchApp({super.key});
@@ -36,11 +37,31 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   bool _shortcutsOpen = false;
   bool _loaded = false;
   late PtyManager _ptyManager;
+  late TerminalMonitor _terminalMonitor;
 
   @override
   void initState() {
     super.initState();
     _ptyManager = PtyManager();
+    _terminalMonitor = TerminalMonitor(
+      onStatusChange: (terminalId, status) {
+        if (status == TerminalActivityStatus.success ||
+            status == TerminalActivityStatus.error) {
+          final settings = ref.read(settingsProvider);
+          if (settings.notificationsEnabled) {
+            TerminalMonitor.sendNotification(
+              title:
+                  'Dispatch: ${status == TerminalActivityStatus.success ? "Task Complete" : "Error Detected"}',
+              body: 'Terminal activity detected',
+            );
+          }
+        }
+      },
+      onUrlDetected: (terminalId, url) {
+        // URL detected in terminal output — available for future use
+        debugPrint('URL detected in $terminalId: $url');
+      },
+    );
     // Load saved state after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await loadSavedState(ref);
@@ -53,6 +74,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   @override
   void dispose() {
     _ptyManager.disposeAll();
+    _terminalMonitor.disposeAll();
     super.dispose();
   }
 
@@ -86,6 +108,11 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
         );
     ref.read(terminalsProvider.notifier).setActiveTerminal(session.id);
 
+    // Feed PTY output to the terminal monitor
+    session.dataStream.listen((data) {
+      _terminalMonitor.onData(session.id, data);
+    });
+
     // Listen for exit
     session.exitCode.then((code) {
       ref.read(terminalsProvider.notifier).updateStatus(
@@ -93,6 +120,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
             TerminalStatus.exited,
             exitCode: code,
           );
+      _terminalMonitor.cleanup(session.id);
     });
   }
 
