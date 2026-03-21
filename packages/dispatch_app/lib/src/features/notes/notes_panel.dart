@@ -148,7 +148,7 @@ class _NotesPanelState extends State<NotesPanel> {
                   controller: _titleController,
                   style: const TextStyle(
                     color: AppTheme.textPrimary,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                   decoration: const InputDecoration(
@@ -181,7 +181,7 @@ class _NotesPanelState extends State<NotesPanel> {
               textAlignVertical: TextAlignVertical.top,
               style: const TextStyle(
                 color: AppTheme.textPrimary,
-                fontSize: 13,
+                fontSize: 12,
               ),
               decoration: const InputDecoration(
                 border: InputBorder.none,
@@ -238,7 +238,7 @@ class _NoteListItemState extends State<_NoteListItem> {
                       widget.note.title,
                       style: const TextStyle(
                         color: AppTheme.textPrimary,
-                        fontSize: 13,
+                        fontSize: 12,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -246,7 +246,7 @@ class _NoteListItemState extends State<_NoteListItem> {
                       widget.timeText,
                       style: const TextStyle(
                         color: AppTheme.textSecondary,
-                        fontSize: 11,
+                        fontSize: 10,
                       ),
                     ),
                   ],
@@ -279,21 +279,16 @@ class _PanelHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
       decoration: const BoxDecoration(
         color: AppTheme.surface,
-        border: Border(bottom: BorderSide(color: AppTheme.border)),
+        border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
       ),
       child: Row(
         children: [
           Text(
-            title,
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
+            title.toUpperCase(),
+            style: AppTheme.labelStyle,
           ),
           const Spacer(),
           GestureDetector(
@@ -316,7 +311,7 @@ class _EmptyState extends StatelessWidget {
     return Center(
       child: Text(
         message,
-        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+        style: AppTheme.dimStyle,
       ),
     );
   }

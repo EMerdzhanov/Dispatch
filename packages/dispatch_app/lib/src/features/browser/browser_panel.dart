@@ -105,7 +105,7 @@ class _BrowserPanelState extends ConsumerState<BrowserPanel> {
         // URL bar with back/forward/reload
         Container(
           height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
           decoration: const BoxDecoration(
             color: AppTheme.surface,
             border: Border(bottom: BorderSide(color: AppTheme.border, width: 0.5)),
@@ -133,7 +133,7 @@ class _BrowserPanelState extends ConsumerState<BrowserPanel> {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceLight,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
                   alignment: Alignment.centerLeft,
                   child: Text(

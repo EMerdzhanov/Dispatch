@@ -55,10 +55,10 @@ class _TabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 36,
+      height: AppTheme.tabBarHeight,
       decoration: const BoxDecoration(
         color: AppTheme.surface,
-        border: Border(bottom: BorderSide(color: AppTheme.border)),
+        border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
       ),
       child: Row(
         children: _ProjectTab.values.map((tab) {
@@ -100,9 +100,14 @@ class _TabButtonState extends State<_TabButton> {
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: AnimatedContainer(
+          duration: AppTheme.hoverDuration,
+          curve: AppTheme.animCurve,
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
           decoration: BoxDecoration(
+            color: _hovered && !widget.isActive
+                ? AppTheme.surfaceLight.withValues(alpha: 0.5)
+                : Colors.transparent,
             border: Border(
               bottom: BorderSide(
                 color: widget.isActive
@@ -115,17 +120,11 @@ class _TabButtonState extends State<_TabButton> {
           child: Center(
             child: Text(
               widget.label,
-              style: TextStyle(
-                color: widget.isActive
-                    ? AppTheme.accentBlue
-                    : _hovered
-                        ? AppTheme.textPrimary
-                        : AppTheme.textSecondary,
-                fontSize: 12,
-                fontWeight: widget.isActive
-                    ? FontWeight.w600
-                    : FontWeight.normal,
-              ),
+              style: widget.isActive
+                  ? AppTheme.labelStyle.copyWith(color: AppTheme.accentBlue)
+                  : _hovered
+                      ? AppTheme.labelStyle.copyWith(color: AppTheme.textPrimary, fontWeight: FontWeight.normal)
+                      : AppTheme.labelStyle.copyWith(fontWeight: FontWeight.normal),
             ),
           ),
         ),

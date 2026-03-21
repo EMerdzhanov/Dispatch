@@ -50,10 +50,10 @@ class _BrowserConsoleState extends State<BrowserConsole> {
             onTap: () => setState(() => _expanded = !_expanded),
             child: Container(
               height: 26,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
               child: Row(
                 children: [
-                  const Text('Console', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                  const Text('Console', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                   if (totalCount > 0) ...[
                     const SizedBox(width: 6),
                     Container(
@@ -81,7 +81,7 @@ class _BrowserConsoleState extends State<BrowserConsole> {
               height: 150,
               color: AppTheme.background,
               child: widget.messages.isEmpty
-                  ? const Center(child: Text('No console messages yet', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)))
+                  ? const Center(child: Text('No console messages yet', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)))
                   : ListView.builder(
                       itemCount: widget.messages.length,
                       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -96,7 +96,7 @@ class _BrowserConsoleState extends State<BrowserConsole> {
                         final time = '${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}:${msg.timestamp.second.toString().padLeft(2, '0')}';
 
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
+                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: 1),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -105,7 +105,7 @@ class _BrowserConsoleState extends State<BrowserConsole> {
                               Text(icon, style: TextStyle(color: color, fontSize: 10)),
                               const SizedBox(width: 6),
                               Expanded(
-                                child: Text(msg.message, style: TextStyle(color: color, fontSize: 11), maxLines: 3, overflow: TextOverflow.ellipsis),
+                                child: Text(msg.message, style: TextStyle(color: color, fontSize: 12), maxLines: 3, overflow: TextOverflow.ellipsis),
                               ),
                             ],
                           ),
@@ -116,13 +116,13 @@ class _BrowserConsoleState extends State<BrowserConsole> {
             // Actions bar
             Container(
               height: 26,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
               decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppTheme.border))),
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: widget.onClear,
-                    child: const Text('Clear', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                    child: const Text('Clear', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                   ),
                   const Spacer(),
                   GestureDetector(
@@ -131,7 +131,7 @@ class _BrowserConsoleState extends State<BrowserConsole> {
                       widget.pipeToTerminal ? '\u2713 Piping to Terminal' : 'Pipe to Terminal',
                       style: TextStyle(
                         color: widget.pipeToTerminal ? AppTheme.accentGreen : AppTheme.textSecondary,
-                        fontSize: 11,
+                        fontSize: 12,
                       ),
                     ),
                   ),

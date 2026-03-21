@@ -126,18 +126,18 @@ class _VaultPanelState extends State<VaultPanel> {
           TextField(
             controller: _labelController,
             focusNode: _labelFocus,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
             decoration: InputDecoration(
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppTheme.radius),
                 borderSide: const BorderSide(color: AppTheme.border),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppTheme.radius),
                 borderSide: const BorderSide(color: AppTheme.border),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppTheme.radius),
                 borderSide: const BorderSide(color: AppTheme.accentBlue),
               ),
               filled: true,
@@ -153,18 +153,18 @@ class _VaultPanelState extends State<VaultPanel> {
           TextField(
             controller: _valueController,
             obscureText: true,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
             decoration: InputDecoration(
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppTheme.radius),
                 borderSide: const BorderSide(color: AppTheme.border),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppTheme.radius),
                 borderSide: const BorderSide(color: AppTheme.border),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppTheme.radius),
                 borderSide: const BorderSide(color: AppTheme.accentBlue),
               ),
               filled: true,
@@ -246,7 +246,7 @@ class _SecretItemState extends State<_SecretItem> {
                     widget.secret.label,
                     style: const TextStyle(
                       color: AppTheme.textPrimary,
-                      fontSize: 13,
+                      fontSize: 12,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -306,21 +306,16 @@ class _PanelHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
       decoration: const BoxDecoration(
         color: AppTheme.surface,
-        border: Border(bottom: BorderSide(color: AppTheme.border)),
+        border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
       ),
       child: Row(
         children: [
           Text(
-            title,
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
+            title.toUpperCase(),
+            style: AppTheme.labelStyle,
           ),
           const Spacer(),
           GestureDetector(
@@ -343,7 +338,7 @@ class _EmptyState extends StatelessWidget {
     return Center(
       child: Text(
         message,
-        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+        style: AppTheme.dimStyle,
       ),
     );
   }

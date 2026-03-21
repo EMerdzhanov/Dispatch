@@ -24,57 +24,38 @@ class WelcomeScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Title
-            const Text(
-              'Welcome to Dispatch',
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 28,
-                fontWeight: FontWeight.w300,
-                letterSpacing: 0.5,
+            // Gradient title
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [AppTheme.accentBlue, Colors.white],
+              ).createShader(bounds),
+              child: const Text(
+                'Welcome to Dispatch',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.spacingMd),
             // Subtitle
-            const Text(
+            Text(
               'Open a project folder to get started',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 14,
-              ),
+              style: AppTheme.titleStyle.copyWith(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 32),
-            // Open Folder button
-            ElevatedButton(
-              key: const Key('open_folder_button'),
-              onPressed: onOpenFolder,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accentBlue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Open Folder',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-            ),
+            // Open Folder button with hover glow
+            _OpenFolderButton(onTap: onOpenFolder),
             // Saved templates list
             if (savedTemplates.isNotEmpty) ...[
               const SizedBox(height: 40),
               const Text(
-                'Saved Templates',
-                style: TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.8,
-                ),
+                'SAVED TEMPLATES',
+                style: AppTheme.labelStyle,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppTheme.spacingMd),
               ...savedTemplates.map(
                 (preset) => _TemplateRow(preset: preset, onOpenFolder: onOpenFolder),
               ),
@@ -83,15 +64,10 @@ class WelcomeScreen extends ConsumerWidget {
             if (sessionTemplates.isNotEmpty) ...[
               const SizedBox(height: 40),
               const Text(
-                'Session Templates',
-                style: TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.8,
-                ),
+                'SESSION TEMPLATES',
+                style: AppTheme.labelStyle,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppTheme.spacingMd),
               ...sessionTemplates.map(
                 (template) => _SessionTemplateRow(
                   template: template,
@@ -100,6 +76,53 @@ class WelcomeScreen extends ConsumerWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OpenFolderButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _OpenFolderButton({required this.onTap});
+
+  @override
+  State<_OpenFolderButton> createState() => _OpenFolderButtonState();
+}
+
+class _OpenFolderButtonState extends State<_OpenFolderButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: AppTheme.hoverDuration,
+        curve: AppTheme.animCurve,
+        decoration: BoxDecoration(
+          color: AppTheme.accentBlue,
+          borderRadius: BorderRadius.circular(AppTheme.radius),
+          boxShadow: _hovered
+              ? [BoxShadow(color: AppTheme.accentBlue.withValues(alpha: 0.4), blurRadius: 16, spreadRadius: -4)]
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: const Key('open_folder_button'),
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(AppTheme.radius),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              child: Text(
+                'Open Folder',
+                style: AppTheme.titleStyle.copyWith(color: Colors.white, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -116,15 +139,15 @@ class _TemplateRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onOpenFolder,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(AppTheme.radius),
       child: Container(
         width: 280,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        margin: const EdgeInsets.only(bottom: 4),
+        margin: const EdgeInsets.only(bottom: AppTheme.spacingXs),
         decoration: BoxDecoration(
           color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppTheme.border, width: 1),
+          borderRadius: BorderRadius.circular(AppTheme.radius),
+          border: Border.all(color: AppTheme.border, width: AppTheme.borderWidth),
         ),
         child: Row(
           children: [
@@ -133,10 +156,7 @@ class _TemplateRow extends StatelessWidget {
             Expanded(
               child: Text(
                 preset.name,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 13,
-                ),
+                style: AppTheme.bodyStyle,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -158,15 +178,15 @@ class _SessionTemplateRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onOpenFolder,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(AppTheme.radius),
       child: Container(
         width: 280,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        margin: const EdgeInsets.only(bottom: 4),
+        margin: const EdgeInsets.only(bottom: AppTheme.spacingXs),
         decoration: BoxDecoration(
           color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppTheme.border, width: 1),
+          borderRadius: BorderRadius.circular(AppTheme.radius),
+          border: Border.all(color: AppTheme.border, width: AppTheme.borderWidth),
         ),
         child: Row(
           children: [
@@ -178,18 +198,12 @@ class _SessionTemplateRow extends StatelessWidget {
                 children: [
                   Text(
                     template.name,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 13,
-                    ),
+                    style: AppTheme.bodyStyle,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     template.cwd,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 10,
-                    ),
+                    style: AppTheme.dimStyle.copyWith(fontSize: 10),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
