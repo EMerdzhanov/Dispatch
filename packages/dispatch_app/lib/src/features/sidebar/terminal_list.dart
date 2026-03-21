@@ -52,23 +52,29 @@ class _TerminalListState extends ConsumerState<TerminalList> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // TERMINALS / FILES tab header
-        Container(
-          height: 28,
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
-          child: Row(
-            children: [
-              _TabButton(
-                label: 'TERMINALS (${terminalIds.length})',
-                active: _tab == 'terminals',
-                onTap: () => setState(() => _tab = 'terminals'),
-              ),
-              const SizedBox(width: AppTheme.spacingMd),
-              _TabButton(
-                label: 'FILES',
-                active: _tab == 'files',
-                onTap: () => setState(() => _tab = 'files'),
-              ),
-            ],
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppTheme.tabTrack,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
+            ),
+            child: Row(
+              children: [
+                _TabButton(
+                  label: 'TERMINALS (${terminalIds.length})',
+                  active: _tab == 'terminals',
+                  onTap: () => setState(() => _tab = 'terminals'),
+                ),
+                _TabButton(
+                  label: 'FILES',
+                  active: _tab == 'files',
+                  onTap: () => setState(() => _tab = 'files'),
+                ),
+              ],
+            ),
           ),
         ),
         // Filter input (terminals tab only)
@@ -163,15 +169,29 @@ class _TabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Text(
-        label,
-        style: TextStyle(
-          color: active ? AppTheme.textPrimary : AppTheme.textSecondary,
-          fontSize: 10,
-          fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-          letterSpacing: 0.8,
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: AppTheme.hoverDuration,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+          decoration: BoxDecoration(
+            color: active ? AppTheme.surfaceLight : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: active
+                ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? AppTheme.textPrimary : const Color(0xFF666666),
+              fontSize: 10,
+              fontWeight: active ? FontWeight.w500 : FontWeight.normal,
+              letterSpacing: 0.8,
+            ),
+          ),
         ),
       ),
     );

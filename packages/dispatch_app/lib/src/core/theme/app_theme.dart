@@ -12,6 +12,9 @@ class AppTheme {
   static const accentGreen = Color(0xFF00CD00);
   static const accentYellow = Color(0xFFF5A623);
 
+  static const tabTrack = Color(0xFF060612);
+  static const tabTrackBorder = Color(0xFF1A1A2A);
+
   static const fontStack = 'JetBrains Mono, Fira Code, SF Mono, Menlo, Monaco, Courier New, monospace';
 
   // Animation durations & curves

@@ -25,21 +25,24 @@ class ProjectTabBar extends ConsumerWidget {
     final activeGroupId = projectsState.activeGroupId;
 
     return Container(
-      height: AppTheme.tabBarHeight,
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(
-          bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
-        ),
-      ),
+      height: AppTheme.tabBarHeight + 8,
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
+      color: AppTheme.surface,
       child: Row(
         children: [
           // Scrollable, drag-to-reorder tab list
           Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: List.generate(groups.length, (index) {
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppTheme.tabTrack,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(groups.length, (index) {
                   final group = groups[index];
                   final isActive = group.id == activeGroupId;
                   final terminalCount = group.terminalIds.length;
@@ -114,6 +117,7 @@ class ProjectTabBar extends ConsumerWidget {
                   );
                 }),
               ),
+            ),
             ),
           ),
 
@@ -216,22 +220,16 @@ class _ProjectTabState extends State<_ProjectTab> {
       child: AnimatedContainer(
         duration: AppTheme.hoverDuration,
         curve: AppTheme.animCurve,
-        height: AppTheme.tabBarHeight,
         constraints: const BoxConstraints(minWidth: 80, maxWidth: 180),
-        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
           color: widget.isActive
               ? AppTheme.surfaceLight
-              : _hovered
-                  ? AppTheme.surfaceLight.withValues(alpha: 0.5)
-                  : AppTheme.surface,
-          border: Border(
-            right: const BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
-            bottom: BorderSide(
-              color: widget.isActive ? AppTheme.accentBlue : Colors.transparent,
-              width: 2,
-            ),
-          ),
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: widget.isActive
+              ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -239,7 +237,11 @@ class _ProjectTabState extends State<_ProjectTab> {
             Icon(
               Icons.folder_outlined,
               size: 14,
-              color: widget.isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+              color: widget.isActive
+                  ? AppTheme.textPrimary
+                  : _hovered
+                      ? AppTheme.textPrimary
+                      : const Color(0xFF666666),
             ),
             const SizedBox(width: AppTheme.spacingXs + 2),
             Flexible(
@@ -247,8 +249,13 @@ class _ProjectTabState extends State<_ProjectTab> {
                 widget.label,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: widget.isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                  color: widget.isActive
+                      ? AppTheme.textPrimary
+                      : _hovered
+                          ? AppTheme.textPrimary
+                          : const Color(0xFF666666),
                   fontSize: 12,
+                  fontWeight: widget.isActive ? FontWeight.w500 : FontWeight.normal,
                 ),
               ),
             ),

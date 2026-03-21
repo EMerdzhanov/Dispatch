@@ -54,27 +54,31 @@ class _TabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: AppTheme.tabBarHeight,
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
-      ),
-      child: Row(
-        children: _ProjectTab.values.map((tab) {
-          final isActive = tab == activeTab;
-          final icon = switch (tab) {
-            _ProjectTab.tasks => '\u2611',  // ☑
-            _ProjectTab.notes => '\u{1F4DD}', // 📝
-            _ProjectTab.vault => '\u{1F511}', // 🔑
-          };
-          final label = tab.name[0].toUpperCase() + tab.name.substring(1);
-          return _TabButton(
-            label: '$icon $label',
-            isActive: isActive,
-            onTap: () => onTabSelected(tab),
-          );
-        }).toList(),
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spacingXs),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppTheme.tabTrack,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
+        ),
+        child: Row(
+          children: _ProjectTab.values.map((tab) {
+            final isActive = tab == activeTab;
+            final icon = switch (tab) {
+              _ProjectTab.tasks => '\u2611',  // ☑
+              _ProjectTab.notes => '\u{1F4DD}', // 📝
+              _ProjectTab.vault => '\u{1F511}', // 🔑
+            };
+            final label = tab.name[0].toUpperCase() + tab.name.substring(1);
+            return _TabButton(
+              label: '$icon $label',
+              isActive: isActive,
+              onTap: () => onTabSelected(tab),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -100,36 +104,36 @@ class _TabButtonState extends State<_TabButton> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: AppTheme.hoverDuration,
-          curve: AppTheme.animCurve,
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
-          decoration: BoxDecoration(
-            color: _hovered && !widget.isActive
-                ? AppTheme.surfaceLight.withValues(alpha: 0.5)
-                : Colors.transparent,
-            border: Border(
-              bottom: BorderSide(
-                color: widget.isActive
-                    ? AppTheme.accentBlue
-                    : Colors.transparent,
-                width: 2,
-              ),
+    return Expanded(
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: AppTheme.hoverDuration,
+            curve: AppTheme.animCurve,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            decoration: BoxDecoration(
+              color: widget.isActive ? AppTheme.surfaceLight : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              boxShadow: widget.isActive
+                  ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
+                  : null,
             ),
-          ),
-          child: Center(
-            child: Text(
-              widget.label,
-              style: widget.isActive
-                  ? AppTheme.labelStyle.copyWith(color: AppTheme.accentBlue)
-                  : _hovered
-                      ? AppTheme.labelStyle.copyWith(color: AppTheme.textPrimary, fontWeight: FontWeight.normal)
-                      : AppTheme.labelStyle.copyWith(fontWeight: FontWeight.normal),
+            child: Center(
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.isActive
+                      ? AppTheme.textPrimary
+                      : _hovered
+                          ? AppTheme.textPrimary
+                          : const Color(0xFF666666),
+                  fontSize: 11,
+                  fontWeight: widget.isActive ? FontWeight.w500 : FontWeight.normal,
+                ),
+              ),
             ),
           ),
         ),

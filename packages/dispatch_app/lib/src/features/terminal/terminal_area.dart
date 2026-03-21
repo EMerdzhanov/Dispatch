@@ -108,51 +108,58 @@ class _SubTabBar extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      height: 28,
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(bottom: BorderSide(color: AppTheme.border)),
-      ),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          // "Terminals" tab (when browser tabs exist)
-          if (hasBrowserTabs)
-            _SubTab(
-              label: 'Terminals',
-              isActive: !showBrowser,
-              onTap: () => ref.read(browserProvider.notifier).setActiveTab(null),
-            ),
-          // Individual terminal tabs (when no browser tabs, show terminal names)
-          if (!hasBrowserTabs)
-            ...group.terminalIds.map((id) {
-              final isActive = id == activeTerminalId;
-              final entry = terminalsState.terminals[id];
-              final label = entry?.label ??
-                  entry?.command.split(' ').first.split('/').last ??
-                  'Terminal';
-              return _SubTab(
-                label: label,
-                isActive: isActive,
-                onTap: () {
-                  ref.read(browserProvider.notifier).setActiveTab(null);
-                  ref.read(terminalsProvider.notifier).setActiveTerminal(id);
-                },
-              );
-            }),
-          // Browser tabs
-          ...browserTabs.map((tab) {
-            final isActive = tab.id == activeBrowserTabId;
-            return _SubTab(
-              label: '\u{1F310} ${tab.title}',
-              isActive: isActive,
-              onTap: () => ref.read(browserProvider.notifier).setActiveTab(tab.id),
-              onClose: () => ref.read(browserProvider.notifier).removeTab(
-                    group.id, tab.id),
-            );
-          }),
-        ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppTheme.tabTrack,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
+        ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // "Terminals" tab (when browser tabs exist)
+              if (hasBrowserTabs)
+                _SubTab(
+                  label: 'Terminals',
+                  isActive: !showBrowser,
+                  onTap: () => ref.read(browserProvider.notifier).setActiveTab(null),
+                ),
+              // Individual terminal tabs (when no browser tabs, show terminal names)
+              if (!hasBrowserTabs)
+                ...group.terminalIds.map((id) {
+                  final isActive = id == activeTerminalId;
+                  final entry = terminalsState.terminals[id];
+                  final label = entry?.label ??
+                      entry?.command.split(' ').first.split('/').last ??
+                      'Terminal';
+                  return _SubTab(
+                    label: label,
+                    isActive: isActive,
+                    onTap: () {
+                      ref.read(browserProvider.notifier).setActiveTab(null);
+                      ref.read(terminalsProvider.notifier).setActiveTerminal(id);
+                    },
+                  );
+                }),
+              // Browser tabs
+              ...browserTabs.map((tab) {
+                final isActive = tab.id == activeBrowserTabId;
+                return _SubTab(
+                  label: '\u{1F310} ${tab.title}',
+                  isActive: isActive,
+                  onTap: () => ref.read(browserProvider.notifier).setActiveTab(tab.id),
+                  onClose: () => ref.read(browserProvider.notifier).removeTab(
+                        group.id, tab.id),
+                );
+              }),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -177,16 +184,13 @@ class _SubTab extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: AppTheme.animFastDuration,
-        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
-        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
           color: isActive ? AppTheme.surfaceLight : Colors.transparent,
-          border: Border(
-            bottom: BorderSide(
-              color: isActive ? AppTheme.accentBlue : Colors.transparent,
-              width: 2,
-            ),
-          ),
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: isActive
+              ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -194,8 +198,8 @@ class _SubTab extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
-                color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                fontSize: 11,
+                color: isActive ? AppTheme.textPrimary : const Color(0xFF666666),
                 fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
