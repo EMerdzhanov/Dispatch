@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:dispatch_terminal/dispatch_terminal.dart';
+import 'package:file_picker/file_picker.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/shortcuts/shortcut_registry.dart';
@@ -125,8 +126,17 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   }
 
   Future<void> _handleOpenFolder() async {
-    // Placeholder — implementing a native folder picker requires file_picker
-    // package or native macOS dialog. For now it's a no-op.
+    final result = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Open Project Folder',
+    );
+    if (result == null) return;
+
+    final groupId =
+        ref.read(projectsProvider.notifier).findOrCreateGroup(result);
+    ref.read(projectsProvider.notifier).setActiveGroup(groupId);
+
+    // Spawn a shell in the new folder
+    await _handleSpawn('\$SHELL');
   }
 
   @override
