@@ -111,15 +111,18 @@ class _FileTreeState extends ConsumerState<FileTree> {
     if (_entries == null) return const Center(child: Text('Loading...', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
     if (_entries!.isEmpty) return const Center(child: Text('No files', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: _entries!.map((entity) {
-          final name = entity.path.split('/').last;
-          final isDir = entity is Directory;
-          return _TreeNode(name: name, fullPath: entity.path, isDirectory: isDir, depth: 0, onFileClick: _onFileClick);
-        }).toList(),
+    return Material(
+      color: Colors.transparent,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: _entries!.map((entity) {
+            final name = entity.path.split('/').last;
+            final isDir = entity is Directory;
+            return _TreeNode(name: name, fullPath: entity.path, isDirectory: isDir, depth: 0, onFileClick: _onFileClick);
+          }).toList(),
+        ),
       ),
     );
   }

@@ -79,6 +79,8 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   }
 
   Future<void> _handleOpenFolder() async {
+    debugPrint('[App] _handleOpenFolder called');
+    debugPrint(StackTrace.current.toString());
     final result = await FilePicker.platform.getDirectoryPath(
       dialogTitle: 'Open Project Folder',
     );
