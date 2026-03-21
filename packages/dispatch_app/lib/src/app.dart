@@ -22,7 +22,10 @@ import 'features/settings/settings_provider.dart';
 import 'features/shortcuts/shortcuts_panel.dart';
 import 'persistence/auto_save.dart';
 import 'core/models/terminal_entry.dart';
+import 'core/models/template.dart';
 import 'features/terminal/terminal_monitor.dart';
+import 'features/terminal/save_template_dialog.dart';
+import 'features/terminal/templates_provider.dart';
 
 class DispatchApp extends ConsumerStatefulWidget {
   const DispatchApp({super.key});
@@ -36,6 +39,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   bool _searchOpen = false;
   bool _settingsOpen = false;
   bool _shortcutsOpen = false;
+  bool _saveTemplateOpen = false;
   bool _loaded = false;
   late PtyManager _ptyManager;
   late TerminalMonitor _terminalMonitor;
@@ -218,7 +222,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
             ),
             SaveTemplateIntent: CallbackAction<SaveTemplateIntent>(
               onInvoke: (_) {
-                /* TODO: save template dialog */
+                setState(() => _saveTemplateOpen = true);
                 return null;
               },
             ),
@@ -282,10 +286,40 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
               open: _shortcutsOpen,
               onClose: () => setState(() => _shortcutsOpen = false),
             ),
+            SaveTemplateDialog(
+              open: _saveTemplateOpen,
+              defaultName: _activeGroupLabel(),
+              onClose: () => setState(() => _saveTemplateOpen = false),
+              onSave: _handleSaveTemplate,
+            ),
           ],
         );
       },
     );
+  }
+
+  String _activeGroupLabel() {
+    final projectsState = ref.read(projectsProvider);
+    final activeGroup = projectsState.groups
+        .where((g) => g.id == projectsState.activeGroupId)
+        .firstOrNull;
+    return activeGroup?.label ?? 'Untitled';
+  }
+
+  void _handleSaveTemplate(String name) {
+    final projectsState = ref.read(projectsProvider);
+    final activeGroup = projectsState.groups
+        .where((g) => g.id == projectsState.activeGroupId)
+        .firstOrNull;
+    if (activeGroup == null) return;
+
+    final template = Template(
+      name: name.isNotEmpty ? name : activeGroup.label,
+      cwd: activeGroup.cwd ?? '/',
+      layout: activeGroup.splitLayout,
+    );
+    ref.read(templatesProvider.notifier).addTemplate(template);
+    setState(() => _saveTemplateOpen = false);
   }
 
   void _handleSplit(SplitDirection direction) {
