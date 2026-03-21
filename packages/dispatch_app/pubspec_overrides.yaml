@@ -1,0 +1,4 @@
+# melos_managed_dependency_overrides: dispatch_terminal
+dependency_overrides:
+  dispatch_terminal:
+    path: ../dispatch_terminal

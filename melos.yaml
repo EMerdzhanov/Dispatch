@@ -1,0 +1,9 @@
+name: dispatch
+packages:
+  - packages/*
+
+scripts:
+  test:
+    run: melos exec -- flutter test
+  analyze:
+    run: melos exec -- dart analyze
