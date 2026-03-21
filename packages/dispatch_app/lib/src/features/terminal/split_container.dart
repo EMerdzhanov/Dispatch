@@ -145,7 +145,7 @@ class _DragDividerState extends State<_DragDivider> {
               }
             : null,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
+          duration: AppTheme.hoverDuration,
           width: _isHorizontal ? thickness : double.infinity,
           height: _isHorizontal ? double.infinity : thickness,
           color: _dragging ? AppTheme.accentBlue : AppTheme.border,

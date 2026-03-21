@@ -121,17 +121,17 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
       children: [
         // Terminal header bar
         Container(
-          height: 28,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+          height: AppTheme.terminalHeaderHeight,
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
           decoration: const BoxDecoration(
             color: AppTheme.surface,
-            border: Border(bottom: BorderSide(color: AppTheme.border, width: 0.5)),
+            border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
           ),
           child: Row(
             children: [
               Container(
-                width: 8,
-                height: 8,
+                width: 6,
+                height: 6,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isExited
@@ -141,13 +141,13 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                           : AppTheme.accentGreen),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTheme.spacingSm),
               Expanded(
                 child: Text(
                   _headerLabel(entry),
                   style: const TextStyle(
                     color: AppTheme.textSecondary,
-                    fontSize: 11,
+                    fontSize: 10,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

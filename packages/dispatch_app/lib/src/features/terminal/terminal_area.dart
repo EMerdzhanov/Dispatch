@@ -167,8 +167,8 @@ class _SubTab extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        duration: AppTheme.animFastDuration,
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isActive ? AppTheme.surfaceLight : Colors.transparent,
@@ -185,9 +185,9 @@ class _SubTab extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
             if (onClose != null) ...[
