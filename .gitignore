@@ -6,3 +6,7 @@ release/
 .worktrees/
 .DS_Store
 *.log
+.dart_tool/
+.idea/
+*.iml
+build/
