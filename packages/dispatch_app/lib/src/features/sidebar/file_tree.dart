@@ -75,14 +75,17 @@ class _FileTreeState extends ConsumerState<FileTree> {
 
   void _onFileClick(String filePath) {
     final activeId = ref.read(terminalsProvider).activeTerminalId;
+    debugPrint('[FileTree] activeTerminalId=$activeId, registry keys=${TerminalPane.ptyRegistry.keys.toList()}');
     if (activeId == null) return;
 
     final pty = TerminalPane.ptyRegistry[activeId];
+    debugPrint('[FileTree] pty for $activeId: ${pty != null ? "found" : "NULL"}');
     if (pty == null) return;
 
     // Shell-quote paths with spaces or special chars
     final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
     final quoted = needsQuoting ? "'${filePath.replaceAll("'", "'\\''")}'" : filePath;
+    debugPrint('[FileTree] writing: $quoted');
     pty.write(const Utf8Encoder().convert('$quoted '));
   }
 
@@ -156,12 +159,13 @@ class _TreeNodeState extends State<_TreeNode> {
         MouseRegion(
           onEnter: (_) => setState(() => _hovered = true),
           onExit: (_) => setState(() => _hovered = false),
-          cursor: widget.isDirectory ? SystemMouseCursors.click : SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: _toggle,
-            child: Container(
-              padding: EdgeInsets.only(left: AppTheme.spacingSm + widget.depth * 14, top: AppTheme.spacingXs, bottom: AppTheme.spacingXs, right: AppTheme.spacingSm),
-              color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
+          cursor: SystemMouseCursors.click,
+          child: Material(
+            color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
+            child: InkWell(
+              onTap: _toggle,
+              child: Container(
+                padding: EdgeInsets.only(left: AppTheme.spacingSm + widget.depth * 14, top: AppTheme.spacingXs, bottom: AppTheme.spacingXs, right: AppTheme.spacingSm),
               child: Row(
                 children: [
                   if (widget.isDirectory) ...[
@@ -191,6 +195,7 @@ class _TreeNodeState extends State<_TreeNode> {
                     ),
                   ),
                 ],
+              ),
               ),
             ),
           ),
