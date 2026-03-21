@@ -20,6 +20,9 @@ class TerminalPane extends ConsumerStatefulWidget {
 
   const TerminalPane({super.key, required this.terminalId});
 
+  /// Global PTY registry so other widgets (e.g. FileTree) can write to a terminal.
+  static final Map<String, Pty> ptyRegistry = {};
+
   @override
   ConsumerState<TerminalPane> createState() => _TerminalPaneState();
 }
@@ -49,7 +52,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     final cwd = entry.cwd;
     final command = entry.command;
 
-    // Spawn the PTY using flutter_pty
+    // Spawn the PTY and register it globally
     _pty = Pty.start(
       shell,
       arguments: ['--login'],
@@ -63,6 +66,9 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
 
     final urlPattern = RegExp(r'https?://(localhost|127\.0\.0\.1)(:\d+)');
     final detectedPorts = <String>{};
+
+    // Register PTY globally
+    TerminalPane.ptyRegistry[widget.terminalId] = _pty!;
 
     // Wire PTY output → terminal + URL detection
     _pty!.output.cast<List<int>>().transform(const Utf8Decoder()).listen((data) {
@@ -246,6 +252,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
 
   @override
   void dispose() {
+    TerminalPane.ptyRegistry.remove(widget.terminalId);
     _pty?.kill();
     super.dispose();
   }

@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../core/theme/app_theme.dart';
 import '../projects/projects_provider.dart';
+import '../terminal/terminal_pane.dart';
+import '../terminal/terminal_provider.dart';
 
 const _fileIcons = <String, ({String icon, Color color})>{
   'ts':   (icon: 'TS', color: Color(0xFF3178C6)),
@@ -71,6 +73,19 @@ class _FileTreeState extends ConsumerState<FileTree> {
     setState(() => _entries = entries);
   }
 
+  void _onFileClick(String filePath) {
+    final activeId = ref.read(terminalsProvider).activeTerminalId;
+    if (activeId == null) return;
+
+    final pty = TerminalPane.ptyRegistry[activeId];
+    if (pty == null) return;
+
+    // Shell-quote paths with spaces or special chars
+    final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
+    final quoted = needsQuoting ? "'${filePath.replaceAll("'", "'\\''")}'" : filePath;
+    pty.write(const Utf8Encoder().convert('$quoted '));
+  }
+
   @override
   Widget build(BuildContext context) {
     // Reload when active group changes
@@ -85,7 +100,7 @@ class _FileTreeState extends ConsumerState<FileTree> {
         final entity = _entries![index];
         final name = entity.path.split('/').last;
         final isDir = entity is Directory;
-        return _TreeNode(name: name, fullPath: entity.path, isDirectory: isDir, depth: 0);
+        return _TreeNode(name: name, fullPath: entity.path, isDirectory: isDir, depth: 0, onFileClick: _onFileClick);
       },
     );
   }
@@ -96,8 +111,9 @@ class _TreeNode extends StatefulWidget {
   final String fullPath;
   final bool isDirectory;
   final int depth;
+  final void Function(String) onFileClick;
 
-  const _TreeNode({required this.name, required this.fullPath, required this.isDirectory, required this.depth});
+  const _TreeNode({required this.name, required this.fullPath, required this.isDirectory, required this.depth, required this.onFileClick});
 
   @override
   State<_TreeNode> createState() => _TreeNodeState();
@@ -108,7 +124,10 @@ class _TreeNodeState extends State<_TreeNode> {
   List<FileSystemEntity>? _children;
 
   void _toggle() {
-    if (!widget.isDirectory) return;
+    if (!widget.isDirectory) {
+      widget.onFileClick(widget.fullPath);
+      return;
+    }
     if (!_expanded && _children == null) {
       final dir = Directory(widget.fullPath);
       if (dir.existsSync()) {
@@ -172,7 +191,7 @@ class _TreeNodeState extends State<_TreeNode> {
         if (_expanded && _children != null && widget.depth < 15)
           ..._children!.map((child) {
             final name = child.path.split('/').last;
-            return _TreeNode(name: name, fullPath: child.path, isDirectory: child is Directory, depth: widget.depth + 1);
+            return _TreeNode(name: name, fullPath: child.path, isDirectory: child is Directory, depth: widget.depth + 1, onFileClick: widget.onFileClick);
           }),
       ],
     );
