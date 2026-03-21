@@ -338,12 +338,6 @@ class _TerminalListItemState extends State<_TerminalListItem> {
                     ? AppTheme.surfaceLight.withValues(alpha: 0.5)
                     : Colors.transparent,
             borderRadius: BorderRadius.circular(AppTheme.radius),
-            border: Border(
-              left: BorderSide(
-                color: widget.isActive ? AppTheme.accentBlue : Colors.transparent,
-                width: 2,
-              ),
-            ),
           ),
           child: Row(
             children: [
