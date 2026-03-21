@@ -34,10 +34,10 @@ class StatusBar extends ConsumerWidget {
       decoration: const BoxDecoration(
         color: Color(0xFF0E0E22),
         border: Border(
-          top: BorderSide(color: AppTheme.border, width: 1),
+          top: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs + 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -45,19 +45,13 @@ class StatusBar extends ConsumerWidget {
           if (cwd != null)
             Text(
               _truncateCwdLeft(cwd),
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 10,
-              ),
+              style: AppTheme.dimStyle.copyWith(fontSize: 10),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
           Text(
             '$terminalCount ${terminalCount == 1 ? 'terminal' : 'terminals'}',
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 10,
-            ),
+            style: AppTheme.dimStyle.copyWith(fontSize: 10),
           ),
         ],
       ),

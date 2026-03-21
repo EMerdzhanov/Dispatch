@@ -8,8 +8,6 @@ import '../projects/project_panel.dart';
 import 'terminal_list.dart';
 import 'status_bar.dart';
 
-const double _kSidebarWidth = 220;
-
 class Sidebar extends ConsumerWidget {
   final void Function(String command, {Map<String, String>? env}) onSpawn;
 
@@ -22,12 +20,12 @@ class Sidebar extends ConsumerWidget {
     if (zenMode) return const SizedBox.shrink();
 
     return SizedBox(
-      width: _kSidebarWidth,
+      width: AppTheme.sidebarWidth,
       child: Container(
         decoration: const BoxDecoration(
           color: AppTheme.surface,
           border: Border(
-            left: BorderSide(color: AppTheme.border, width: 1),
+            left: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
           ),
         ),
         child: Column(
@@ -40,13 +38,13 @@ class Sidebar extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   QuickLaunch(onSpawn: onSpawn),
-                  const Divider(color: AppTheme.border, height: 1, thickness: 1),
+                  const Divider(color: AppTheme.border, height: 1, thickness: AppTheme.borderWidth),
                   const Expanded(child: TerminalList()),
                   const StatusBar(),
                 ],
               ),
             ),
-            const Divider(color: AppTheme.border, height: 1, thickness: 1),
+            const Divider(color: AppTheme.border, height: 1, thickness: AppTheme.borderWidth),
             // Bottom section: Tasks / Notes / Vault (~40%)
             const Expanded(
               flex: 4,

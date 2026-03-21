@@ -54,7 +54,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
         // TERMINALS / FILES tab header
         Container(
           height: 28,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
           child: Row(
             children: [
               _TabButton(
@@ -62,7 +62,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
                 active: _tab == 'terminals',
                 onTap: () => setState(() => _tab = 'terminals'),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppTheme.spacingMd),
               _TabButton(
                 label: 'FILES',
                 active: _tab == 'files',
@@ -74,7 +74,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
         // Filter input (terminals tab only)
         if (_tab == 'terminals')
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
             child: Row(
               children: [
                 const Text('\u25CF ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 8)),
@@ -82,14 +82,14 @@ class _TerminalListState extends ConsumerState<TerminalList> {
                   child: SizedBox(
                     height: 22,
                     child: TextField(
-                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11),
+                      style: AppTheme.bodyStyle,
                       decoration: InputDecoration(
                         hintText: 'Filter terminals\u2026',
-                        hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                        hintStyle: AppTheme.dimStyle,
                         filled: true,
                         fillColor: Colors.transparent,
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXs, vertical: AppTheme.spacingXs),
                         border: InputBorder.none,
                       ),
                       onChanged: (v) => setState(() => _filter = v),
@@ -99,7 +99,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
               ],
             ),
           ),
-        const Divider(color: AppTheme.border, height: 1, thickness: 1),
+        const Divider(color: AppTheme.border, height: 1, thickness: AppTheme.borderWidth),
         // Content
         Expanded(
           child: _tab == 'files'
@@ -124,14 +124,14 @@ class _TerminalListState extends ConsumerState<TerminalList> {
         .toList();
 
     if (terminals.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Text('No terminals', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd, vertical: AppTheme.spacingSm),
+        child: Text('No terminals', style: AppTheme.dimStyle),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXs + 2, vertical: AppTheme.spacingXs),
       itemCount: terminals.length,
       itemBuilder: (context, index) {
         final terminal = terminals[index];
@@ -171,7 +171,7 @@ class _TabButton extends StatelessWidget {
           color: active ? AppTheme.textPrimary : AppTheme.textSecondary,
           fontSize: 10,
           fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-          letterSpacing: 0.5,
+          letterSpacing: 0.8,
         ),
       ),
     );
@@ -203,8 +203,50 @@ class _TerminalListItem extends StatefulWidget {
   State<_TerminalListItem> createState() => _TerminalListItemState();
 }
 
-class _TerminalListItemState extends State<_TerminalListItem> {
+class _TerminalListItemState extends State<_TerminalListItem>
+    with SingleTickerProviderStateMixin {
   bool _hovered = false;
+  AnimationController? _pulseController;
+  Animation<double>? _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupPulse();
+  }
+
+  @override
+  void didUpdateWidget(_TerminalListItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      _disposePulse();
+      _setupPulse();
+    }
+  }
+
+  void _setupPulse() {
+    if (widget.isActive) {
+      _pulseController = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 2),
+      )..repeat(reverse: true);
+      _pulseAnimation = Tween(begin: 0.6, end: 1.0).animate(
+        CurvedAnimation(parent: _pulseController!, curve: Curves.easeInOut),
+      );
+    }
+  }
+
+  void _disposePulse() {
+    _pulseController?.dispose();
+    _pulseController = null;
+    _pulseAnimation = null;
+  }
+
+  @override
+  void dispose() {
+    _disposePulse();
+    super.dispose();
+  }
 
   void _showContextMenu(BuildContext context, Offset localPosition) async {
     final renderBox = context.findRenderObject() as RenderBox?;
@@ -221,25 +263,22 @@ class _TerminalListItemState extends State<_TerminalListItem> {
       ),
       color: AppTheme.surfaceLight,
       items: [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'rename',
-          child: Text(
-            'Rename',
-            style: TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-          ),
+          child: Text('Rename', style: AppTheme.bodyStyle),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'kill',
           child: Text(
             'Kill',
-            style: TextStyle(color: AppTheme.accentRed, fontSize: 13),
+            style: AppTheme.bodyStyle.copyWith(color: AppTheme.accentRed),
           ),
         ),
       ],
     );
 
     if (result == 'rename') {
-      _showRenameDialog(context);
+      if (mounted) _showRenameDialog(context);
     } else if (result == 'kill') {
       widget.onKill();
     }
@@ -251,10 +290,7 @@ class _TerminalListItemState extends State<_TerminalListItem> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surfaceLight,
-        title: const Text(
-          'Rename Terminal',
-          style: TextStyle(color: AppTheme.textPrimary, fontSize: 14),
-        ),
+        title: Text('Rename Terminal', style: AppTheme.titleStyle),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -277,7 +313,7 @@ class _TerminalListItemState extends State<_TerminalListItem> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: AppTheme.dimStyle),
           ),
           TextButton(
             onPressed: () {
@@ -285,7 +321,7 @@ class _TerminalListItemState extends State<_TerminalListItem> {
               if (value.isNotEmpty) widget.onRename(value);
               Navigator.of(ctx).pop();
             },
-            child: const Text('Rename', style: TextStyle(color: AppTheme.accentBlue)),
+            child: Text('Rename', style: AppTheme.bodyStyle.copyWith(color: AppTheme.accentBlue)),
           ),
         ],
       ),
@@ -294,6 +330,15 @@ class _TerminalListItemState extends State<_TerminalListItem> {
 
   @override
   Widget build(BuildContext context) {
+    final statusDot = Container(
+      width: 6,
+      height: 6,
+      decoration: BoxDecoration(
+        color: widget.statusColor,
+        shape: BoxShape.circle,
+      ),
+    );
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -301,27 +346,37 @@ class _TerminalListItemState extends State<_TerminalListItem> {
         onTap: widget.onTap,
         onSecondaryTapUp: (details) => _showContextMenu(context, details.localPosition),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
+          duration: AppTheme.hoverDuration,
+          curve: AppTheme.animCurve,
           margin: const EdgeInsets.symmetric(vertical: 1),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs + 1),
           decoration: BoxDecoration(
             color: widget.isActive
                 ? AppTheme.surfaceLight
                 : _hovered
                     ? AppTheme.surfaceLight.withValues(alpha: 0.5)
                     : Colors.transparent,
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(AppTheme.radius),
+            border: Border(
+              left: BorderSide(
+                color: widget.isActive ? AppTheme.accentBlue : Colors.transparent,
+                width: 2,
+              ),
+            ),
           ),
           child: Row(
             children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: widget.statusColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
+              if (widget.isActive && _pulseAnimation != null)
+                AnimatedBuilder(
+                  animation: _pulseAnimation!,
+                  builder: (context, child) => Opacity(
+                    opacity: _pulseAnimation!.value,
+                    child: child,
+                  ),
+                  child: statusDot,
+                )
+              else
+                statusDot,
               const SizedBox(width: 7),
               Expanded(
                 child: Column(
@@ -336,7 +391,7 @@ class _TerminalListItemState extends State<_TerminalListItem> {
                             : AppTheme.textPrimary.withValues(alpha: 0.85),
                         fontSize: 12,
                         fontWeight: widget.isActive
-                            ? FontWeight.w600
+                            ? FontWeight.w500
                             : FontWeight.normal,
                       ),
                       overflow: TextOverflow.ellipsis,

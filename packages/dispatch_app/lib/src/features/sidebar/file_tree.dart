@@ -74,7 +74,7 @@ class _FileTreeState extends ConsumerState<FileTree> {
   @override
   Widget build(BuildContext context) {
     // Reload when active group changes
-    ref.listen(projectsProvider.select((s) => s.activeGroupId), (_, __) => _loadEntries());
+    ref.listen(projectsProvider.select((s) => s.activeGroupId), (_, _) => _loadEntries());
     if (_entries == null) return const Center(child: Text('Loading...', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
     if (_entries!.isEmpty) return const Center(child: Text('No files', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
 
@@ -136,7 +136,7 @@ class _TreeNodeState extends State<_TreeNode> {
         GestureDetector(
           onTap: _toggle,
           child: Container(
-            padding: EdgeInsets.only(left: 8.0 + widget.depth * 14, top: 3, bottom: 3, right: 8),
+            padding: EdgeInsets.only(left: AppTheme.spacingSm + widget.depth * 14, top: AppTheme.spacingXs, bottom: AppTheme.spacingXs, right: AppTheme.spacingSm),
             child: Row(
               children: [
                 if (widget.isDirectory) ...[
