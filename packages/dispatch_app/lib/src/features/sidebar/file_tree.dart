@@ -72,14 +72,9 @@ class _FileTreeState extends ConsumerState<FileTree> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  Widget build(BuildContext context) {
     // Reload when active group changes
     ref.listen(projectsProvider.select((s) => s.activeGroupId), (_, __) => _loadEntries());
-  }
-
-  @override
-  Widget build(BuildContext context) {
     if (_entries == null) return const Center(child: Text('Loading...', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
     if (_entries!.isEmpty) return const Center(child: Text('No files', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
 
