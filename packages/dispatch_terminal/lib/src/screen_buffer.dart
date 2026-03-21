@@ -173,4 +173,20 @@ class ScreenBuffer {
   }
 
   bool get isAlternateScreen => _isAltScreen;
+
+  /// Extracts text from the active buffer in the given cell range (inclusive).
+  String getTextInRange(int startRow, int startCol, int endRow, int endCol) {
+    final buf = StringBuffer();
+    for (int r = startRow; r <= endRow; r++) {
+      if (r < 0 || r >= _rows) continue;
+      final cStart = r == startRow ? startCol : 0;
+      final cEnd = r == endRow ? endCol : _cols - 1;
+      for (int c = cStart; c <= cEnd; c++) {
+        if (c < 0 || c >= _cols) continue;
+        buf.writeCharCode(_lines[r][c].char);
+      }
+      if (r < endRow) buf.writeln();
+    }
+    return buf.toString().trimRight();
+  }
 }

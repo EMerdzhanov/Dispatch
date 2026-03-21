@@ -40,6 +40,20 @@ class _TerminalViewState extends State<TerminalView> {
   int _scrollOffset = 0;
   bool _wasAtBottom = true;
 
+  // Selection state (row, col)
+  (int, int)? _selectionStart;
+  (int, int)? _selectionEnd;
+  bool _isDragging = false;
+
+  bool get _hasSelection =>
+      _selectionStart != null && _selectionEnd != null &&
+      (_selectionStart!.$1 != _selectionEnd!.$1 ||
+       _selectionStart!.$2 != _selectionEnd!.$2);
+
+  // Cached cell metrics for hit testing
+  double _cellWidth = 8;
+  double _cellHeight = 16;
+
   @override
   void initState() {
     super.initState();
@@ -87,10 +101,70 @@ class _TerminalViewState extends State<TerminalView> {
     });
   }
 
+  (int, int) _hitTest(Offset position) {
+    final col = (position.dx / _cellWidth).floor().clamp(0, widget.terminal.buffer.cols - 1);
+    final row = (position.dy / _cellHeight).floor().clamp(0, widget.terminal.buffer.rows - 1);
+    return (row, col);
+  }
+
+  void _onPanStart(DragStartDetails details) {
+    final pos = _hitTest(details.localPosition);
+    setState(() {
+      _selectionStart = pos;
+      _selectionEnd = pos;
+      _isDragging = true;
+    });
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
+    if (!_isDragging) return;
+    final pos = _hitTest(details.localPosition);
+    setState(() {
+      _selectionEnd = pos;
+      _generation++; // force repaint
+    });
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    _isDragging = false;
+  }
+
+  /// Returns the normalized selection range (start <= end).
+  ((int, int), (int, int))? get _normalizedSelection {
+    if (_selectionStart == null || _selectionEnd == null) return null;
+    final s = _selectionStart!;
+    final e = _selectionEnd!;
+    if (s.$1 < e.$1 || (s.$1 == e.$1 && s.$2 <= e.$2)) {
+      return (s, e);
+    }
+    return (e, s);
+  }
+
   void _onKey(KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) return;
 
     final key = event.logicalKey;
+
+    // Handle Cmd+C (copy) and Cmd+V (paste) on macOS
+    if (HardwareKeyboard.instance.isMetaPressed) {
+      if (key == LogicalKeyboardKey.keyC && _hasSelection) {
+        final sel = _normalizedSelection;
+        if (sel != null) {
+          final text = widget.terminal.buffer.getTextInRange(
+            sel.$1.$1, sel.$1.$2, sel.$2.$1, sel.$2.$2,
+          );
+          Clipboard.setData(ClipboardData(text: text));
+        }
+        return;
+      }
+      if (key == LogicalKeyboardKey.keyV) {
+        Clipboard.getData('text/plain').then((data) {
+          if (data?.text != null) widget.onInput(data!.text!);
+        });
+        return;
+      }
+    }
+
     final String data;
 
     // Map special keys to escape sequences
@@ -137,6 +211,14 @@ class _TerminalViewState extends State<TerminalView> {
       return;
     }
 
+    // Clear selection on any input
+    if (_hasSelection) {
+      setState(() {
+        _selectionStart = null;
+        _selectionEnd = null;
+      });
+    }
+
     widget.onInput(data);
   }
 
@@ -156,10 +238,21 @@ class _TerminalViewState extends State<TerminalView> {
           }
         },
         child: GestureDetector(
-          onTap: () => _focusNode.requestFocus(),
+          onTap: () {
+            _focusNode.requestFocus();
+            // Clear selection on tap
+            setState(() {
+              _selectionStart = null;
+              _selectionEnd = null;
+            });
+          },
+          onPanStart: _onPanStart,
+          onPanUpdate: _onPanUpdate,
+          onPanEnd: _onPanEnd,
           child: LayoutBuilder(
             builder: (context, constraints) {
               _handleResize(constraints);
+              final sel = _normalizedSelection;
               return CustomPaint(
                 painter: TerminalRenderer(
                   buffer: widget.terminal.buffer,
@@ -169,6 +262,8 @@ class _TerminalViewState extends State<TerminalView> {
                   generation: _generation,
                   showCursor: _focusNode.hasFocus && _scrollOffset == 0,
                   scrollOffset: _scrollOffset,
+                  selectionStart: sel?.$1,
+                  selectionEnd: sel?.$2,
                 ),
                 size: Size(constraints.maxWidth, constraints.maxHeight),
               );
@@ -186,6 +281,9 @@ class _TerminalViewState extends State<TerminalView> {
       fontSize: widget.fontSize,
       fontFamily: widget.fontFamily,
     );
+
+    _cellWidth = renderer.cellWidth;
+    _cellHeight = renderer.cellHeight;
 
     final newCols = (constraints.maxWidth / renderer.cellWidth).floor();
     final newRows = (constraints.maxHeight / renderer.cellHeight).floor();

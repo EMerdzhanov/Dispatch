@@ -14,6 +14,8 @@ class TerminalRenderer extends CustomPainter {
   final int? cursorCol;
   final bool showCursor;
   final int scrollOffset;
+  final (int, int)? selectionStart;
+  final (int, int)? selectionEnd;
 
   late final double cellWidth;
   late final double cellHeight;
@@ -28,6 +30,8 @@ class TerminalRenderer extends CustomPainter {
     this.cursorCol,
     this.showCursor = true,
     this.scrollOffset = 0,
+    this.selectionStart,
+    this.selectionEnd,
   }) {
     // Measure cell size using a reference character
     final tp = TextPainter(
@@ -125,6 +129,25 @@ class TerminalRenderer extends CustomPainter {
       }
     }
 
+    // Draw selection highlight
+    if (selectionStart != null && selectionEnd != null) {
+      final selPaint = Paint()..color = theme.selection;
+      final sRow = selectionStart!.$1;
+      final sCol = selectionStart!.$2;
+      final eRow = selectionEnd!.$1;
+      final eCol = selectionEnd!.$2;
+
+      for (int row = sRow; row <= eRow; row++) {
+        if (row < 0 || row >= buffer.rows) continue;
+        final colStart = row == sRow ? sCol : 0;
+        final colEnd = row == eRow ? eCol : buffer.cols - 1;
+        final x = colStart * cellWidth;
+        final y = row * cellHeight;
+        final w = (colEnd - colStart + 1) * cellWidth;
+        canvas.drawRect(Rect.fromLTWH(x, y, w, cellHeight), selPaint);
+      }
+    }
+
     // Draw cursor (only when not scrolled back)
     if (showCursor && scrollOffset == 0 && cRow < buffer.rows && cCol < buffer.cols) {
       final cx = cCol * cellWidth;
@@ -151,6 +174,8 @@ class TerminalRenderer extends CustomPainter {
     return generation != oldDelegate.generation ||
         fontSize != oldDelegate.fontSize ||
         fontFamily != oldDelegate.fontFamily ||
-        scrollOffset != oldDelegate.scrollOffset;
+        scrollOffset != oldDelegate.scrollOffset ||
+        selectionStart != oldDelegate.selectionStart ||
+        selectionEnd != oldDelegate.selectionEnd;
   }
 }
