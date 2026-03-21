@@ -176,15 +176,6 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              // + File picker — inserts file path into terminal
-              GestureDetector(
-                onTap: _pickAndInsertFile,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4),
-                  child: Text('+', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w500)),
-                ),
-              ),
-              const SizedBox(width: 4),
               Text(
                 'Split \u2318D  Close \u2318W',
                 style: TextStyle(
