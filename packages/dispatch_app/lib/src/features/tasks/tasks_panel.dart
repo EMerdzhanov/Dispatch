@@ -1,34 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../persistence/auto_save.dart';
+import '../projects/projects_provider.dart';
 
-class _Task {
-  final String id;
-  String title;
-  bool done = false;
-
-  _Task({required this.id, required this.title});
-}
-
-class TasksPanel extends StatefulWidget {
+class TasksPanel extends ConsumerStatefulWidget {
   const TasksPanel({super.key});
 
   @override
-  State<TasksPanel> createState() => _TasksPanelState();
+  ConsumerState<TasksPanel> createState() => _TasksPanelState();
 }
 
-class _TasksPanelState extends State<TasksPanel> {
-  final List<_Task> _tasks = [];
+class _TasksPanelState extends ConsumerState<TasksPanel> {
+  List<Task> _tasks = [];
   bool _adding = false;
   final _addController = TextEditingController();
   final _addFocus = FocusNode();
-  int _idCounter = 0;
+  String? _lastCwd;
 
   @override
   void dispose() {
     _addController.dispose();
     _addFocus.dispose();
     super.dispose();
+  }
+
+  String? _getActiveCwd() {
+    final projects = ref.read(projectsProvider);
+    final group = projects.groups
+        .where((g) => g.id == projects.activeGroupId)
+        .firstOrNull;
+    return group?.cwd;
+  }
+
+  Future<void> _loadTasks() async {
+    final cwd = _getActiveCwd();
+    if (cwd == null) {
+      setState(() => _tasks = []);
+      return;
+    }
+    final db = ref.read(databaseProvider);
+    final tasks = await db.tasksDao.getTasksForProject(cwd);
+    if (mounted) {
+      setState(() {
+        _tasks = tasks;
+        _lastCwd = cwd;
+      });
+    }
   }
 
   void _startAdding() {
@@ -39,12 +59,15 @@ class _TasksPanelState extends State<TasksPanel> {
     });
   }
 
-  void _commitAdd() {
+  Future<void> _commitAdd() async {
     final text = _addController.text.trim();
     if (text.isNotEmpty) {
-      setState(() {
-        _tasks.add(_Task(id: 'task_${++_idCounter}', title: text));
-      });
+      final cwd = _getActiveCwd();
+      if (cwd != null) {
+        final db = ref.read(databaseProvider);
+        await db.tasksDao.insertTask(projectCwd: cwd, title: text);
+        await _loadTasks();
+      }
     }
     setState(() => _adding = false);
     _addController.clear();
@@ -55,19 +78,32 @@ class _TasksPanelState extends State<TasksPanel> {
     _addController.clear();
   }
 
-  void _toggleTask(String id) {
-    setState(() {
-      final task = _tasks.firstWhere((t) => t.id == id);
-      task.done = !task.done;
-    });
+  Future<void> _toggleTask(int id) async {
+    final db = ref.read(databaseProvider);
+    await db.tasksDao.toggleDone(id);
+    await _loadTasks();
   }
 
-  void _deleteTask(String id) {
-    setState(() => _tasks.removeWhere((t) => t.id == id));
+  Future<void> _deleteTask(int id) async {
+    final db = ref.read(databaseProvider);
+    await db.tasksDao.deleteTask(id);
+    await _loadTasks();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch for project changes and reload tasks
+    final projects = ref.watch(projectsProvider);
+    final group = projects.groups
+        .where((g) => g.id == projects.activeGroupId)
+        .firstOrNull;
+    final cwd = group?.cwd;
+
+    if (cwd != _lastCwd) {
+      _lastCwd = cwd;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadTasks());
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -148,7 +184,7 @@ class _TasksPanelState extends State<TasksPanel> {
 }
 
 class _TaskItem extends StatefulWidget {
-  final _Task task;
+  final Task task;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
 
