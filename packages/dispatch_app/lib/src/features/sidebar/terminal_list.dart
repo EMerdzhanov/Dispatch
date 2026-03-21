@@ -5,9 +5,18 @@ import '../../core/models/terminal_entry.dart';
 import '../../core/theme/app_theme.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_provider.dart';
+import 'file_tree.dart';
 
-class TerminalList extends ConsumerWidget {
+class TerminalList extends ConsumerStatefulWidget {
   const TerminalList({super.key});
+
+  @override
+  ConsumerState<TerminalList> createState() => _TerminalListState();
+}
+
+class _TerminalListState extends ConsumerState<TerminalList> {
+  String _tab = 'terminals'; // 'terminals' | 'files'
+  String _filter = '';
 
   Color _statusColor(TerminalStatus status, bool isActive) {
     if (isActive) return AppTheme.accentBlue;
@@ -29,7 +38,7 @@ class TerminalList extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final terminalsState = ref.watch(terminalsProvider);
     final projectsState = ref.watch(projectsProvider);
 
@@ -38,7 +47,78 @@ class TerminalList extends ConsumerWidget {
         .firstOrNull;
 
     final terminalIds = activeGroup?.terminalIds ?? [];
-    final terminals = terminalIds
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // TERMINALS / FILES tab header
+        Container(
+          height: 28,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: [
+              _TabButton(
+                label: 'TERMINALS (${terminalIds.length})',
+                active: _tab == 'terminals',
+                onTap: () => setState(() => _tab = 'terminals'),
+              ),
+              const SizedBox(width: 12),
+              _TabButton(
+                label: 'FILES',
+                active: _tab == 'files',
+                onTap: () => setState(() => _tab = 'files'),
+              ),
+            ],
+          ),
+        ),
+        // Filter input (terminals tab only)
+        if (_tab == 'terminals')
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              children: [
+                const Text('\u25CF ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 8)),
+                Expanded(
+                  child: SizedBox(
+                    height: 22,
+                    child: TextField(
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11),
+                      decoration: InputDecoration(
+                        hintText: 'Filter terminals\u2026',
+                        hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (v) => setState(() => _filter = v),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const Divider(color: AppTheme.border, height: 1, thickness: 1),
+        // Content
+        Expanded(
+          child: _tab == 'files'
+              ? const FileTree()
+              : _buildTerminalList(terminalsState, terminalIds),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTerminalList(TerminalsState terminalsState, List<String> terminalIds) {
+    final filtered = _filter.isEmpty
+        ? terminalIds
+        : terminalIds.where((id) {
+            final t = terminalsState.terminals[id];
+            return t != null && t.command.toLowerCase().contains(_filter.toLowerCase());
+          }).toList();
+
+    final terminals = filtered
         .map((id) => terminalsState.terminals[id])
         .whereType<TerminalEntry>()
         .toList();
@@ -46,13 +126,7 @@ class TerminalList extends ConsumerWidget {
     if (terminals.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Text(
-          'No terminals',
-          style: TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 11,
-          ),
-        ),
+        child: Text('No terminals', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
       );
     }
 
@@ -63,9 +137,7 @@ class TerminalList extends ConsumerWidget {
         final terminal = terminals[index];
         final isActive = terminal.id == terminalsState.activeTerminalId;
         final statusColor = _statusColor(terminal.status, isActive);
-        final label = terminal.label ??
-            terminal.presetName ??
-            terminal.command.split(' ').first;
+        final label = terminal.label ?? terminal.presetName ?? terminal.command.split(' ').first;
 
         return _TerminalListItem(
           terminal: terminal,
@@ -73,17 +145,35 @@ class TerminalList extends ConsumerWidget {
           statusColor: statusColor,
           label: label,
           cwdDisplay: _truncateCwd(terminal.cwd),
-          onTap: () {
-            ref.read(terminalsProvider.notifier).setActiveTerminal(terminal.id);
-          },
-          onRename: (newLabel) {
-            ref.read(terminalsProvider.notifier).renameTerminal(terminal.id, newLabel);
-          },
-          onKill: () {
-            ref.read(terminalsProvider.notifier).removeTerminal(terminal.id);
-          },
+          onTap: () => ref.read(terminalsProvider.notifier).setActiveTerminal(terminal.id),
+          onRename: (newLabel) => ref.read(terminalsProvider.notifier).renameTerminal(terminal.id, newLabel),
+          onKill: () => ref.read(terminalsProvider.notifier).removeTerminal(terminal.id),
         );
       },
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _TabButton({required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: active ? AppTheme.textPrimary : AppTheme.textSecondary,
+          fontSize: 10,
+          fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+          letterSpacing: 0.5,
+        ),
+      ),
     );
   }
 }
