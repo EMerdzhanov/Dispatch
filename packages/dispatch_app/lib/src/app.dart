@@ -13,6 +13,7 @@ import 'features/projects/tab_bar.dart';
 import 'features/projects/welcome_screen.dart';
 import 'features/terminal/terminal_provider.dart';
 import 'features/terminal/terminal_area.dart';
+import 'features/terminal/terminal_pane.dart';
 import 'features/sidebar/sidebar.dart';
 import 'features/command_palette/command_palette.dart';
 import 'features/command_palette/quick_switcher.dart';
@@ -78,9 +79,24 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
     ref.read(terminalsProvider.notifier).setActiveTerminal(terminalId);
   }
 
+  Future<void> _handlePickFile() async {
+    final result = await FilePicker.platform.pickFiles(dialogTitle: 'Select File');
+    if (result == null || result.files.isEmpty) return;
+    final filePath = result.files.single.path;
+    if (filePath == null) return;
+
+    final activeId = ref.read(terminalsProvider).activeTerminalId;
+    if (activeId == null) return;
+
+    final terminal = TerminalPane.terminalRegistry[activeId];
+    if (terminal == null) return;
+
+    final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
+    final quoted = needsQuoting ? "'${filePath.replaceAll("'", "'\\''")}'" : filePath;
+    terminal.textInput('$quoted ');
+  }
+
   Future<void> _handleOpenFolder() async {
-    debugPrint('[App] _handleOpenFolder called');
-    debugPrint(StackTrace.current.toString());
     final result = await FilePicker.platform.getDirectoryPath(
       dialogTitle: 'Open Project Folder',
     );
@@ -187,7 +203,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
                   const _TitleBar(),
                   // Tab bar
                   ProjectTabBar(
-                    onOpenFolder: _handleOpenFolder,
+                    onOpenFolder: _handlePickFile,
                     onOpenSettings: () =>
                         setState(() => _settingsOpen = true),
                     onOpenShortcuts: () =>

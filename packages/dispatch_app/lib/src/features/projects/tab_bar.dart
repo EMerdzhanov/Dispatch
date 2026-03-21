@@ -121,6 +121,13 @@ class ProjectTabBar extends ConsumerWidget {
             ),
           ),
 
+          // "+" file picker button
+          _IconButton(
+            icon: Icons.add,
+            tooltip: 'Insert file path',
+            onTap: onOpenFolder,
+          ),
+
           const SizedBox(width: AppTheme.spacingXs),
 
           // Settings gear icon
