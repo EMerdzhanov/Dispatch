@@ -130,11 +130,10 @@ class _TerminalListState extends ConsumerState<TerminalList> {
       );
     }
 
-    return ListView.builder(
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXs + 2, vertical: AppTheme.spacingXs),
-      itemCount: terminals.length,
-      itemBuilder: (context, index) {
-        final terminal = terminals[index];
+      child: Column(
+        children: terminals.map((terminal) {
         final isActive = terminal.id == terminalsState.activeTerminalId;
         final statusColor = _statusColor(terminal.status, isActive);
         final label = terminal.label ?? terminal.presetName ?? terminal.command.split(' ').first;
@@ -149,7 +148,8 @@ class _TerminalListState extends ConsumerState<TerminalList> {
           onRename: (newLabel) => ref.read(terminalsProvider.notifier).renameTerminal(terminal.id, newLabel),
           onKill: () => ref.read(terminalsProvider.notifier).removeTerminal(terminal.id),
         );
-      },
+      }).toList(),
+      ),
     );
   }
 }
@@ -203,50 +203,8 @@ class _TerminalListItem extends StatefulWidget {
   State<_TerminalListItem> createState() => _TerminalListItemState();
 }
 
-class _TerminalListItemState extends State<_TerminalListItem>
-    with SingleTickerProviderStateMixin {
+class _TerminalListItemState extends State<_TerminalListItem> {
   bool _hovered = false;
-  AnimationController? _pulseController;
-  Animation<double>? _pulseAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _setupPulse();
-  }
-
-  @override
-  void didUpdateWidget(_TerminalListItem oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isActive != oldWidget.isActive) {
-      _disposePulse();
-      _setupPulse();
-    }
-  }
-
-  void _setupPulse() {
-    if (widget.isActive) {
-      _pulseController = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 2),
-      )..repeat(reverse: true);
-      _pulseAnimation = Tween(begin: 0.6, end: 1.0).animate(
-        CurvedAnimation(parent: _pulseController!, curve: Curves.easeInOut),
-      );
-    }
-  }
-
-  void _disposePulse() {
-    _pulseController?.dispose();
-    _pulseController = null;
-    _pulseAnimation = null;
-  }
-
-  @override
-  void dispose() {
-    _disposePulse();
-    super.dispose();
-  }
 
   void _showContextMenu(BuildContext context, Offset localPosition) async {
     final renderBox = context.findRenderObject() as RenderBox?;
@@ -366,17 +324,7 @@ class _TerminalListItemState extends State<_TerminalListItem>
           ),
           child: Row(
             children: [
-              if (widget.isActive && _pulseAnimation != null)
-                AnimatedBuilder(
-                  animation: _pulseAnimation!,
-                  builder: (context, child) => Opacity(
-                    opacity: _pulseAnimation!.value,
-                    child: child,
-                  ),
-                  child: statusDot,
-                )
-              else
-                statusDot,
+              statusDot,
               const SizedBox(width: 7),
               Expanded(
                 child: Column(

@@ -54,7 +54,9 @@ class TerminalArea extends ConsumerWidget {
           activeBrowserTabId: activeBrowserTabId,
           showBrowser: showBrowser,
         ),
-        // Content: browser or terminal
+        // Content: browser or terminals
+        // Keep ALL terminal panes alive — show/hide with Offstage.
+        // This preserves PTY sessions when switching between terminals.
         Expanded(
           child: showBrowser
               ? BrowserPanel(
@@ -63,9 +65,16 @@ class TerminalArea extends ConsumerWidget {
                 )
               : activeGroup.splitLayout != null
                   ? SplitContainer(node: activeGroup.splitLayout!)
-                  : TerminalPane(
-                      key: ValueKey(terminalId),
-                      terminalId: terminalId,
+                  : Stack(
+                      children: activeGroup.terminalIds.map((id) {
+                        return Offstage(
+                          offstage: id != terminalId,
+                          child: TerminalPane(
+                            key: ValueKey(id),
+                            terminalId: id,
+                          ),
+                        );
+                      }).toList(),
                     ),
         ),
       ],
