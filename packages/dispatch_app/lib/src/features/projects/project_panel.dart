@@ -63,9 +63,14 @@ class _TabBar extends StatelessWidget {
       child: Row(
         children: _ProjectTab.values.map((tab) {
           final isActive = tab == activeTab;
+          final icon = switch (tab) {
+            _ProjectTab.tasks => '\u2611',  // ☑
+            _ProjectTab.notes => '\u{1F4DD}', // 📝
+            _ProjectTab.vault => '\u{1F511}', // 🔑
+          };
           final label = tab.name[0].toUpperCase() + tab.name.substring(1);
           return _TabButton(
-            label: label,
+            label: '$icon $label',
             isActive: isActive,
             onTap: () => onTabSelected(tab),
           );
