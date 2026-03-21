@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' hide Column;
 
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
@@ -16,6 +17,7 @@ class TasksPanel extends ConsumerStatefulWidget {
 class _TasksPanelState extends ConsumerState<TasksPanel> {
   List<Task> _tasks = [];
   bool _adding = false;
+  int? _expandedId;
   final _addController = TextEditingController();
   final _addFocus = FocusNode();
   String? _lastCwd;
@@ -84,9 +86,17 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
     await _loadTasks();
   }
 
+  Future<void> _updateDescription(int id, String description) async {
+    final db = ref.read(databaseProvider);
+    await (db.update(db.tasks)..where((t) => t.id.equals(id)))
+        .write(TasksCompanion(description: Value(description)));
+    await _loadTasks();
+  }
+
   Future<void> _deleteTask(int id) async {
     final db = ref.read(databaseProvider);
     await db.tasksDao.deleteTask(id);
+    if (_expandedId == id) _expandedId = null;
     await _loadTasks();
   }
 
@@ -132,7 +142,12 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
                     ..._tasks.map(
                       (task) => _TaskItem(
                         task: task,
+                        expanded: _expandedId == task.id,
                         onToggle: () => _toggleTask(task.id),
+                        onTitleTap: () => setState(() {
+                          _expandedId = _expandedId == task.id ? null : task.id;
+                        }),
+                        onDescriptionChanged: (desc) => _updateDescription(task.id, desc),
                         onDelete: () => _deleteTask(task.id),
                       ),
                     ),
@@ -185,12 +200,18 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
 
 class _TaskItem extends StatefulWidget {
   final Task task;
+  final bool expanded;
   final VoidCallback onToggle;
+  final VoidCallback onTitleTap;
+  final void Function(String) onDescriptionChanged;
   final VoidCallback onDelete;
 
   const _TaskItem({
     required this.task,
+    required this.expanded,
     required this.onToggle,
+    required this.onTitleTap,
+    required this.onDescriptionChanged,
     required this.onDelete,
   });
 
@@ -206,49 +227,72 @@ class _TaskItemState extends State<_TaskItem> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: widget.onToggle,
-              child: Icon(
-                widget.task.done
-                    ? Icons.check_box
-                    : Icons.check_box_outline_blank,
-                size: 16,
-                color: widget.task.done
-                    ? AppTheme.accentBlue
-                    : AppTheme.textSecondary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            color: _hovered || widget.expanded ? AppTheme.surfaceLight : Colors.transparent,
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: widget.onToggle,
+                  child: Icon(
+                    widget.task.done
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                    size: 16,
+                    color: widget.task.done
+                        ? AppTheme.accentBlue
+                        : AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: widget.onTitleTap,
+                    child: Text(
+                      widget.task.title,
+                      style: TextStyle(
+                        color: widget.task.done
+                            ? AppTheme.textSecondary
+                            : AppTheme.textPrimary,
+                        fontSize: 12,
+                        decoration: widget.task.done
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                ),
+                if (_hovered)
+                  GestureDetector(
+                    onTap: widget.onDelete,
+                    child: const Icon(Icons.close, size: 14, color: AppTheme.textSecondary),
+                  ),
+              ],
+            ),
+          ),
+          // Expandable description
+          if (widget.expanded)
+            Container(
+              color: AppTheme.surfaceLight,
+              padding: const EdgeInsets.only(left: 36, right: 12, bottom: 8),
+              child: TextField(
+                controller: TextEditingController(text: widget.task.description),
+                maxLines: 3,
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  hintText: 'Add description...',
+                  hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                ),
+                onChanged: widget.onDescriptionChanged,
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                widget.task.title,
-                style: TextStyle(
-                  color: widget.task.done
-                      ? AppTheme.textSecondary
-                      : AppTheme.textPrimary,
-                  fontSize: 12,
-                  decoration: widget.task.done
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
-                ),
-              ),
-            ),
-            if (_hovered)
-              GestureDetector(
-                onTap: widget.onDelete,
-                child: const Icon(
-                  Icons.close,
-                  size: 14,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }
