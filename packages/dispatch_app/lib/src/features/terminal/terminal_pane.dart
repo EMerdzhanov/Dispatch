@@ -152,7 +152,8 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                 _terminal,
                 textStyle: xterm.TerminalStyle(
                   fontSize: settings.fontSize,
-                  fontFamily: settings.fontFamily,
+                  fontFamily: 'Menlo',
+                  fontFamilyFallback: const ['SF Mono', 'Monaco', 'Courier New', 'monospace'],
                 ),
                 theme: const xterm.TerminalTheme(
                   cursor: Color(0xFFAAAAAA),
