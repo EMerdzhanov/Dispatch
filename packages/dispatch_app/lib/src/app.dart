@@ -204,6 +204,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
                   // Tab bar
                   ProjectTabBar(
                     onOpenFolder: _handlePickFile,
+                    onNewTab: _handleOpenFolder,
                     onOpenSettings: () =>
                         setState(() => _settingsOpen = true),
                     onOpenShortcuts: () =>

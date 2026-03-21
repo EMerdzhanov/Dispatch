@@ -7,12 +7,14 @@ import '../terminal/terminal_provider.dart';
 
 class ProjectTabBar extends ConsumerWidget {
   final VoidCallback onOpenFolder;
+  final VoidCallback onNewTab;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenShortcuts;
 
   const ProjectTabBar({
     super.key,
     required this.onOpenFolder,
+    required this.onNewTab,
     required this.onOpenSettings,
     required this.onOpenShortcuts,
   });
@@ -42,7 +44,8 @@ class ProjectTabBar extends ConsumerWidget {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: List.generate(groups.length, (index) {
+                  children: [
+                    ...List.generate(groups.length, (index) {
                   final group = groups[index];
                   final isActive = group.id == activeGroupId;
                   final terminalCount = group.terminalIds.length;
@@ -116,6 +119,18 @@ class ProjectTabBar extends ConsumerWidget {
                     },
                   );
                 }),
+                    // + button to add new project tab
+                    GestureDetector(
+                      onTap: onNewTab,
+                      child: Container(
+                        height: 26,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: const Center(
+                          child: Text('+', style: TextStyle(color: Color(0xFF666666), fontSize: 16)),
+                        ),
+                      ),
+                    ),
+                  ],
               ),
             ),
             ),
