@@ -296,93 +296,101 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
   }
 
   Widget _buildFontSizeRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Font Size',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+        const SizedBox(
+          width: 100,
+          child: Text(
+            'Font Size',
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
-            Text(
-              _fontSize.toStringAsFixed(0),
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        SliderTheme(
-          data: SliderThemeData(
-            trackHeight: 2,
-            activeTrackColor: AppTheme.accentBlue,
-            inactiveTrackColor: AppTheme.border,
-            thumbColor: AppTheme.accentBlue,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: SliderComponentShape.noOverlay,
-          ),
-          child: Slider(
-            value: _fontSize,
-            min: 8,
-            max: 24,
-            divisions: 16,
-            onChanged: (v) => setState(() => _fontSize = v),
           ),
         ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 60,
+          child: TextField(
+            controller: TextEditingController(text: _fontSize.toStringAsFixed(0)),
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppTheme.surfaceLight,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: AppTheme.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: AppTheme.border),
+              ),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            ),
+            onChanged: (v) {
+              final parsed = double.tryParse(v);
+              if (parsed != null && parsed >= 8 && parsed <= 24) {
+                setState(() => _fontSize = parsed);
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        const Text('(8–24)', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
       ],
     );
   }
 
   Widget _buildLineHeightRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Line Height',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+        const SizedBox(
+          width: 100,
+          child: Text(
+            'Line Height',
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
-            Text(
-              _lineHeight.toStringAsFixed(1),
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        SliderTheme(
-          data: SliderThemeData(
-            trackHeight: 2,
-            activeTrackColor: AppTheme.accentBlue,
-            inactiveTrackColor: AppTheme.border,
-            thumbColor: AppTheme.accentBlue,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: SliderComponentShape.noOverlay,
-          ),
-          child: Slider(
-            value: _lineHeight,
-            min: 1.0,
-            max: 2.0,
-            divisions: 10,
-            onChanged: (v) => setState(() => _lineHeight = v),
           ),
         ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 60,
+          child: TextField(
+            controller: TextEditingController(text: _lineHeight.toStringAsFixed(1)),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppTheme.surfaceLight,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: AppTheme.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: AppTheme.border),
+              ),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            ),
+            onChanged: (v) {
+              final parsed = double.tryParse(v);
+              if (parsed != null && parsed >= 1.0 && parsed <= 2.0) {
+                setState(() => _lineHeight = parsed);
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        const Text('(1.0–2.0)', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
       ],
     );
   }
@@ -402,12 +410,30 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
             fontSize: 13,
           ),
         ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeTrackColor: AppTheme.accentBlue,
-          inactiveThumbColor: AppTheme.textSecondary,
-          inactiveTrackColor: AppTheme.surfaceLight,
+        GestureDetector(
+          onTap: () => onChanged(!value),
+          child: Container(
+            width: 44,
+            height: 24,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: value ? AppTheme.accentBlue : AppTheme.surfaceLight,
+              border: Border.all(color: value ? AppTheme.accentBlue : AppTheme.border),
+            ),
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 150),
+              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: 20,
+                height: 20,
+                margin: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: value ? Colors.white : AppTheme.textSecondary,
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );
