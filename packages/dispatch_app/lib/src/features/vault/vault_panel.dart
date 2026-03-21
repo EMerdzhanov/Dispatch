@@ -89,7 +89,21 @@ class _VaultPanelState extends State<VaultPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _PanelHeader(title: 'Vault', onAdd: _startAdding),
+        // Dashed "Add Secret" box
+        Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingSm),
+          child: GestureDetector(
+            onTap: _startAdding,
+            child: CustomPaint(
+              painter: _DashedBorderPainter(color: AppTheme.border, radius: AppTheme.radius),
+              child: Container(
+                height: 36,
+                alignment: Alignment.center,
+                child: const Text('+ Add Secret', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              ),
+            ),
+          ),
+        ),
         Expanded(
           child: _secrets.isEmpty && !_adding
               ? const _EmptyState(message: 'No secrets stored')
@@ -296,36 +310,28 @@ class _IconButton extends StatelessWidget {
   }
 }
 
-class _PanelHeader extends StatelessWidget {
-  final String title;
-  final VoidCallback onAdd;
-
-  const _PanelHeader({required this.title, required this.onAdd});
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+  _DashedBorderPainter({required this.color, required this.radius});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
-      ),
-      child: Row(
-        children: [
-          Text(
-            title.toUpperCase(),
-            style: AppTheme.labelStyle,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: onAdd,
-            child: const Icon(Icons.add, size: 16, color: AppTheme.textSecondary),
-          ),
-        ],
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..strokeWidth = 1..style = PaintingStyle.stroke;
+    final path = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, size.width, size.height), Radius.circular(radius)));
+    const dashWidth = 6.0;
+    const dashSpace = 4.0;
+    for (final metric in path.computeMetrics()) {
+      double d = 0;
+      while (d < metric.length) {
+        canvas.drawPath(metric.extractPath(d, (d + dashWidth).clamp(0, metric.length).toDouble()), paint);
+        d += dashWidth + dashSpace;
+      }
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _EmptyState extends StatelessWidget {

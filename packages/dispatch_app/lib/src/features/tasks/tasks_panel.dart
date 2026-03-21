@@ -71,13 +71,28 @@ class _TasksPanelState extends State<TasksPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _PanelHeader(title: 'Tasks', onAdd: _startAdding),
+        // Dashed "Add Task" box
+        Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingSm),
+          child: GestureDetector(
+            onTap: _startAdding,
+            child: CustomPaint(
+              painter: _DashedBorderPainter(color: AppTheme.border, radius: AppTheme.radius),
+              child: Container(
+                height: 36,
+                alignment: Alignment.center,
+                child: const Text('+ Add Task', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              ),
+            ),
+          ),
+        ),
         Expanded(
           child: _tasks.isEmpty && !_adding
               ? const _EmptyState(message: 'No tasks yet')
               : ListView(
                   padding: EdgeInsets.zero,
                   children: [
+                    if (_adding) _buildAddRow(),
                     ..._tasks.map(
                       (task) => _TaskItem(
                         task: task,
@@ -85,7 +100,6 @@ class _TasksPanelState extends State<TasksPanel> {
                         onDelete: () => _deleteTask(task.id),
                       ),
                     ),
-                    if (_adding) _buildAddRow(),
                   ],
                 ),
         ),
@@ -204,36 +218,28 @@ class _TaskItemState extends State<_TaskItem> {
   }
 }
 
-class _PanelHeader extends StatelessWidget {
-  final String title;
-  final VoidCallback onAdd;
-
-  const _PanelHeader({required this.title, required this.onAdd});
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+  _DashedBorderPainter({required this.color, required this.radius});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
-      ),
-      child: Row(
-        children: [
-          Text(
-            title.toUpperCase(),
-            style: AppTheme.labelStyle,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: onAdd,
-            child: const Icon(Icons.add, size: 16, color: AppTheme.textSecondary),
-          ),
-        ],
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..strokeWidth = 1..style = PaintingStyle.stroke;
+    final path = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, size.width, size.height), Radius.circular(radius)));
+    const dashWidth = 6.0;
+    const dashSpace = 4.0;
+    for (final metric in path.computeMetrics()) {
+      double d = 0;
+      while (d < metric.length) {
+        canvas.drawPath(metric.extractPath(d, (d + dashWidth).clamp(0, metric.length).toDouble()), paint);
+        d += dashWidth + dashSpace;
+      }
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _EmptyState extends StatelessWidget {

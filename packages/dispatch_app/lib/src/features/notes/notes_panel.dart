@@ -96,9 +96,32 @@ class _NotesPanelState extends State<NotesPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _PanelHeader(
-          title: 'Notes',
-          onAdd: _addNote,
+        // Dashed "Add Note" box
+        Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingSm),
+          child: GestureDetector(
+            onTap: _addNote,
+            child: Container(
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppTheme.radius),
+                border: Border.all(
+                  color: AppTheme.border,
+                  width: 1,
+                  strokeAlign: BorderSide.strokeAlignInside,
+                ),
+              ),
+              child: CustomPaint(
+                painter: _DashedBorderPainter(color: AppTheme.border, radius: AppTheme.radius),
+                child: const Center(
+                  child: Text(
+                    '+ Add Note',
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
         Expanded(
           child: _notes.isEmpty
@@ -269,36 +292,41 @@ class _NoteListItemState extends State<_NoteListItem> {
   }
 }
 
-class _PanelHeader extends StatelessWidget {
-  final String title;
-  final VoidCallback onAdd;
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double radius;
 
-  const _PanelHeader({required this.title, required this.onAdd});
+  _DashedBorderPainter({required this.color, required this.radius});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
-      ),
-      child: Row(
-        children: [
-          Text(
-            title.toUpperCase(),
-            style: AppTheme.labelStyle,
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: onAdd,
-            child: const Icon(Icons.add, size: 16, color: AppTheme.textSecondary),
-          ),
-        ],
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Radius.circular(radius),
+      ));
+
+    const dashWidth = 6.0;
+    const dashSpace = 4.0;
+
+    final metrics = path.computeMetrics();
+    for (final metric in metrics) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final end = (distance + dashWidth).clamp(0, metric.length);
+        canvas.drawPath(metric.extractPath(distance, end.toDouble()), paint);
+        distance += dashWidth + dashSpace;
+      }
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _EmptyState extends StatelessWidget {
