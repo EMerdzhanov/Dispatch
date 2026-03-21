@@ -55,12 +55,12 @@ class _TabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(AppTheme.spacingXs),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
       child: Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: AppTheme.tabTrack,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(7),
           border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
         ),
         child: Row(
@@ -113,10 +113,11 @@ class _TabButtonState extends State<_TabButton> {
           child: AnimatedContainer(
             duration: AppTheme.hoverDuration,
             curve: AppTheme.animCurve,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            height: 24,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
               color: widget.isActive ? AppTheme.surfaceLight : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(5),
               boxShadow: widget.isActive
                   ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
                   : null,
@@ -130,9 +131,11 @@ class _TabButtonState extends State<_TabButton> {
                       : _hovered
                           ? AppTheme.textPrimary
                           : const Color(0xFF666666),
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: widget.isActive ? FontWeight.w500 : FontWeight.normal,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),

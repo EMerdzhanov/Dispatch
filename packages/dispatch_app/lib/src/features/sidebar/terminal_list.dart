@@ -55,10 +55,10 @@ class _TerminalListState extends ConsumerState<TerminalList> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
           child: Container(
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               color: AppTheme.tabTrack,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(7),
               border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
             ),
             child: Row(
@@ -174,10 +174,11 @@ class _TabButton extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: AppTheme.hoverDuration,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+          height: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             color: active ? AppTheme.surfaceLight : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(5),
             boxShadow: active
                 ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
                 : null,
@@ -189,8 +190,10 @@ class _TabButton extends StatelessWidget {
               color: active ? AppTheme.textPrimary : const Color(0xFF666666),
               fontSize: 10,
               fontWeight: active ? FontWeight.w500 : FontWeight.normal,
-              letterSpacing: 0.8,
+              letterSpacing: 0.5,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ),
