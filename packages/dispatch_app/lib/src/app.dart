@@ -266,32 +266,37 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
         return Stack(
           children: [
             child!,
-            CommandPalette(
-              open: _paletteOpen,
-              onClose: () => setState(() => _paletteOpen = false),
-              onSpawn: (cmd, {env}) {
-                _handleSpawn(cmd, env: env);
-                setState(() => _paletteOpen = false);
-              },
-            ),
-            QuickSwitcher(
-              open: _searchOpen,
-              onClose: () => setState(() => _searchOpen = false),
-            ),
-            SettingsPanel(
-              open: _settingsOpen,
-              onClose: () => setState(() => _settingsOpen = false),
-            ),
-            ShortcutsPanel(
-              open: _shortcutsOpen,
-              onClose: () => setState(() => _shortcutsOpen = false),
-            ),
-            SaveTemplateDialog(
-              open: _saveTemplateOpen,
-              defaultName: _activeGroupLabel(),
-              onClose: () => setState(() => _saveTemplateOpen = false),
-              onSave: _handleSaveTemplate,
-            ),
+            if (_paletteOpen)
+              CommandPalette(
+                open: true,
+                onClose: () => setState(() => _paletteOpen = false),
+                onSpawn: (cmd, {env}) {
+                  _handleSpawn(cmd, env: env);
+                  setState(() => _paletteOpen = false);
+                },
+              ),
+            if (_searchOpen)
+              QuickSwitcher(
+                open: true,
+                onClose: () => setState(() => _searchOpen = false),
+              ),
+            if (_settingsOpen)
+              SettingsPanel(
+                open: true,
+                onClose: () => setState(() => _settingsOpen = false),
+              ),
+            if (_shortcutsOpen)
+              ShortcutsPanel(
+                open: true,
+                onClose: () => setState(() => _shortcutsOpen = false),
+              ),
+            if (_saveTemplateOpen)
+              SaveTemplateDialog(
+                open: true,
+                defaultName: _activeGroupLabel(),
+                onClose: () => setState(() => _saveTemplateOpen = false),
+                onSave: _handleSaveTemplate,
+              ),
           ],
         );
       },

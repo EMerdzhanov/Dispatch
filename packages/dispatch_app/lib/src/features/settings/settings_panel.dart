@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -106,16 +105,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
       _initFromSettings(settings);
     }
 
-    return KeyboardListener(
-      focusNode: FocusNode(),
-      autofocus: false,
-      onKeyEvent: (event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.escape) {
-          widget.onClose();
-        }
-      },
-      child: Stack(
+    return Stack(
         children: [
           // Backdrop
           GestureDetector(
@@ -191,7 +181,6 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
             ),
           ),
         ],
-      ),
     );
   }
 
