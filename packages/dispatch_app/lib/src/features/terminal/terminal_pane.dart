@@ -22,6 +22,8 @@ class TerminalPane extends ConsumerStatefulWidget {
 
   /// Global PTY registry so other widgets (e.g. FileTree) can write to a terminal.
   static final Map<String, Pty> ptyRegistry = {};
+  /// Global xterm.Terminal registry — used to input text into the terminal.
+  static final Map<String, xterm.Terminal> terminalRegistry = {};
 
   @override
   ConsumerState<TerminalPane> createState() => _TerminalPaneState();
@@ -35,6 +37,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
   void initState() {
     super.initState();
     _terminal = xterm.Terminal(maxLines: 10000);
+    TerminalPane.terminalRegistry[widget.terminalId] = _terminal;
 
     // Wire resize: when xterm recalculates size, resize the PTY
     _terminal.onResize = (w, h, pw, ph) {
@@ -253,6 +256,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
   @override
   void dispose() {
     TerminalPane.ptyRegistry.remove(widget.terminalId);
+    TerminalPane.terminalRegistry.remove(widget.terminalId);
     _pty?.kill();
     super.dispose();
   }

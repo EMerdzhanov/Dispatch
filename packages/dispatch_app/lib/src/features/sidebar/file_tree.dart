@@ -75,17 +75,22 @@ class _FileTreeState extends ConsumerState<FileTree> {
 
   void _onFileClick(String filePath) {
     final activeId = ref.read(terminalsProvider).activeTerminalId;
-    debugPrint('[FileTree] activeTerminalId=$activeId, registry keys=${TerminalPane.ptyRegistry.keys.toList()}');
     if (activeId == null) return;
 
-    final pty = TerminalPane.ptyRegistry[activeId];
-    debugPrint('[FileTree] pty for $activeId: ${pty != null ? "found" : "NULL"}');
-    if (pty == null) return;
+    // Try terminal registry first (types via xterm's onOutput → PTY)
+    final terminal = TerminalPane.terminalRegistry[activeId];
+    if (terminal != null) {
+      final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
+      final quoted = needsQuoting ? "'${filePath.replaceAll("'", "'\\''")}'" : filePath;
+      terminal.textInput('$quoted ');
+      return;
+    }
 
-    // Shell-quote paths with spaces or special chars
+    // Fallback: write to PTY directly
+    final pty = TerminalPane.ptyRegistry[activeId];
+    if (pty == null) return;
     final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
     final quoted = needsQuoting ? "'${filePath.replaceAll("'", "'\\''")}'" : filePath;
-    debugPrint('[FileTree] writing: $quoted');
     pty.write(const Utf8Encoder().convert('$quoted '));
   }
 
