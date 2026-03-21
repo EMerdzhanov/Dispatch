@@ -80,7 +80,7 @@ class ShortcutsPanel extends StatelessWidget {
                         shrinkWrap: true,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: _shortcuts.length,
-                        separatorBuilder: (_, __) => const Divider(
+                        separatorBuilder: (_, _) => const Divider(
                           height: 1,
                           color: AppTheme.border,
                           indent: 16,

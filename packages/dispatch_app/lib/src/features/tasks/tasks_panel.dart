@@ -5,9 +5,9 @@ import '../../core/theme/app_theme.dart';
 class _Task {
   final String id;
   String title;
-  bool done;
+  bool done = false;
 
-  _Task({required this.id, required this.title, this.done = false});
+  _Task({required this.id, required this.title});
 }
 
 class TasksPanel extends StatefulWidget {

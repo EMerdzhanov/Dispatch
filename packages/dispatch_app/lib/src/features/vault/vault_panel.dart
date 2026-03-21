@@ -7,13 +7,12 @@ class _Secret {
   final String id;
   String label;
   String value;
-  bool visible;
+  bool visible = false;
 
   _Secret({
     required this.id,
     required this.label,
     required this.value,
-    this.visible = false,
   });
 }
 

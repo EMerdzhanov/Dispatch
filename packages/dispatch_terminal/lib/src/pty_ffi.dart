@@ -325,7 +325,7 @@ class PtyFfi {
       }
       var written = 0;
       while (written < bytes.length) {
-        final n = _write(fd, buf.elementAt(written), bytes.length - written);
+        final n = _write(fd, buf + written, bytes.length - written);
         if (n < 0) {
           throw StateError('write() failed');
         }

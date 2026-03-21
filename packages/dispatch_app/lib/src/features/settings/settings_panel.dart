@@ -416,7 +416,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: AppTheme.accentBlue,
+          activeTrackColor: AppTheme.accentBlue,
           inactiveThumbColor: AppTheme.textSecondary,
           inactiveTrackColor: AppTheme.surfaceLight,
         ),

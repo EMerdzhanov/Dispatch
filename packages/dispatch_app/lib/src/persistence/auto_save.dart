@@ -39,9 +39,9 @@ class AutoSaveNotifier extends Notifier<void> {
 
   @override
   void build() {
-    ref.listen(projectsProvider, (_, __) => _scheduleSave());
-    ref.listen(presetsProvider, (_, __) => _scheduleSave());
-    ref.listen(settingsProvider, (_, __) => _scheduleSave());
+    ref.listen(projectsProvider, (_, _) => _scheduleSave());
+    ref.listen(presetsProvider, (_, _) => _scheduleSave());
+    ref.listen(settingsProvider, (_, _) => _scheduleSave());
   }
 
   void _scheduleSave() {
