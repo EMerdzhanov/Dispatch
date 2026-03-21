@@ -168,6 +168,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
             children: [
               xterm.TerminalView(
                 _terminal,
+                padding: const EdgeInsets.all(8),
                 textStyle: xterm.TerminalStyle.fromTextStyle(
                   TextStyle(
                     fontSize: settings.fontSize,
