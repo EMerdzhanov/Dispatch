@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xterm/xterm.dart' as xterm;
 import 'package:flutter_pty/flutter_pty.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/models/terminal_entry.dart';
@@ -117,6 +118,20 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     }
   }
 
+  Future<void> _pickAndInsertFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      dialogTitle: 'Select File',
+    );
+    if (result == null || result.files.isEmpty) return;
+    final filePath = result.files.single.path;
+    if (filePath == null) return;
+
+    // Shell-quote if needed
+    final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
+    final quoted = needsQuoting ? "'${filePath.replaceAll("'", "'\\''")}'" : filePath;
+    _terminal.textInput('$quoted ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -161,6 +176,15 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              // 📎 File picker — inserts file path into terminal
+              GestureDetector(
+                onTap: _pickAndInsertFile,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: Text('\u{1F4CE}', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+              const SizedBox(width: 4),
               Text(
                 'Split \u2318D  Close \u2318W',
                 style: TextStyle(
