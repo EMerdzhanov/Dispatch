@@ -4,3 +4,4 @@ library dispatch_terminal;
 export 'src/cell.dart';
 export 'src/screen_buffer.dart';
 export 'src/vt_parser.dart';
+export 'src/terminal.dart';
