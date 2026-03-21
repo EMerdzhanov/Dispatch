@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:dispatch_terminal/dispatch_terminal.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'core/theme/app_theme.dart';
@@ -18,15 +17,12 @@ import 'features/sidebar/sidebar.dart';
 import 'features/command_palette/command_palette.dart';
 import 'features/command_palette/quick_switcher.dart';
 import 'features/settings/settings_panel.dart';
-import 'features/settings/settings_provider.dart';
 import 'features/shortcuts/shortcuts_panel.dart';
 import 'persistence/auto_save.dart';
 import 'core/models/terminal_entry.dart';
 import 'core/models/template.dart';
-import 'features/terminal/terminal_monitor.dart';
 import 'features/terminal/save_template_dialog.dart';
 import 'features/terminal/templates_provider.dart';
-import 'features/terminal/session_registry.dart';
 
 class DispatchApp extends ConsumerStatefulWidget {
   const DispatchApp({super.key});
@@ -42,46 +38,17 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   bool _shortcutsOpen = false;
   bool _saveTemplateOpen = false;
   bool _loaded = false;
-  late PtyManager _ptyManager;
-  late TerminalMonitor _terminalMonitor;
+  int _terminalCounter = 0;
 
   @override
   void initState() {
     super.initState();
-    _ptyManager = PtyManager();
-    _terminalMonitor = TerminalMonitor(
-      onStatusChange: (terminalId, status) {
-        if (status == TerminalActivityStatus.success ||
-            status == TerminalActivityStatus.error) {
-          final settings = ref.read(settingsProvider);
-          if (settings.notificationsEnabled) {
-            TerminalMonitor.sendNotification(
-              title:
-                  'Dispatch: ${status == TerminalActivityStatus.success ? "Task Complete" : "Error Detected"}',
-              body: 'Terminal activity detected',
-            );
-          }
-        }
-      },
-      onUrlDetected: (terminalId, url) {
-        // URL detected in terminal output — available for future use
-        debugPrint('URL detected in $terminalId: $url');
-      },
-    );
     // Load saved state after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await loadSavedState(ref);
-      // Initialize auto-save listener
       ref.read(autoSaveProvider);
       setState(() => _loaded = true);
     });
-  }
-
-  @override
-  void dispose() {
-    _ptyManager.disposeAll();
-    _terminalMonitor.disposeAll();
-    super.dispose();
   }
 
   Future<void> _handleSpawn(String command, {Map<String, String>? env}) async {
@@ -94,44 +61,21 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
     final groupId = activeGroup?.id ??
         ref.read(projectsProvider.notifier).findOrCreateGroup(cwd);
 
-    final session = await _ptyManager.spawn(
-      executable: ref.read(settingsProvider).shell,
-      cwd: cwd,
-      cols: 80,
-      rows: 24,
-      command: command != '\$SHELL' ? command : null,
-      env: env ?? {},
-    );
+    // Generate a unique terminal ID
+    _terminalCounter++;
+    final terminalId = 'term-${DateTime.now().millisecondsSinceEpoch}-$_terminalCounter';
 
+    // Add terminal entry — TerminalPane will spawn the PTY itself
     ref.read(terminalsProvider.notifier).addTerminal(
           groupId,
           TerminalEntry(
-            id: session.id,
+            id: terminalId,
             command: command,
             cwd: cwd,
             status: TerminalStatus.running,
           ),
         );
-    ref.read(terminalsProvider.notifier).setActiveTerminal(session.id);
-
-    // Register session so TerminalPane can access it
-    ref.read(sessionRegistryProvider.notifier).register(session.id, session);
-
-    // Feed PTY output to the terminal monitor
-    session.dataStream.listen((data) {
-      _terminalMonitor.onData(session.id, data);
-    });
-
-    // Listen for exit
-    session.exitCode.then((code) {
-      ref.read(terminalsProvider.notifier).updateStatus(
-            session.id,
-            TerminalStatus.exited,
-            exitCode: code,
-          );
-      _terminalMonitor.cleanup(session.id);
-      ref.read(sessionRegistryProvider.notifier).unregister(session.id);
-    });
+    ref.read(terminalsProvider.notifier).setActiveTerminal(terminalId);
   }
 
   Future<void> _handleOpenFolder() async {

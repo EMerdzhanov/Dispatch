@@ -1,14 +1,18 @@
-import 'package:dispatch_terminal/dispatch_terminal.dart';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:xterm/xterm.dart' as xterm;
+import 'package:flutter_pty/flutter_pty.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/models/terminal_entry.dart';
 import '../settings/settings_provider.dart';
-import 'session_registry.dart';
 import 'terminal_provider.dart';
 
-/// A single terminal pane that wraps [TerminalView] and connects to a [PtySession].
+/// A single terminal pane using the xterm package for rendering
+/// and flutter_pty for native PTY management.
 class TerminalPane extends ConsumerStatefulWidget {
   final String terminalId;
 
@@ -19,33 +23,78 @@ class TerminalPane extends ConsumerStatefulWidget {
 }
 
 class _TerminalPaneState extends ConsumerState<TerminalPane> {
-  late Terminal _terminal;
-  PtySession? _session;
-  bool _connected = false;
+  late xterm.Terminal _terminal;
+  Pty? _pty;
 
   @override
   void initState() {
     super.initState();
-    _terminal = Terminal(cols: 80, rows: 24);
+    _terminal = xterm.Terminal(maxLines: 10000);
+
+    // Wire resize: when xterm recalculates size, resize the PTY
+    _terminal.onResize = (w, h, pw, ph) {
+      _pty?.resize(h, w);
+    };
+
+    _startPty();
   }
 
-  void _connectSession(PtySession session) {
-    if (_connected) return;
-    _session = session;
-    _connected = true;
+  void _startPty() {
+    final entry = ref.read(terminalsProvider).terminals[widget.terminalId];
+    if (entry == null) return;
+
+    final shell = ref.read(settingsProvider).shell;
+    final cwd = entry.cwd;
+    final command = entry.command;
+
+    // Spawn the PTY using flutter_pty
+    _pty = Pty.start(
+      shell,
+      arguments: ['--login'],
+      environment: {
+        ...Platform.environment,
+        'TERM': 'xterm-256color',
+        'COLORTERM': 'truecolor',
+      },
+      workingDirectory: cwd,
+    );
+
+    // Wire PTY output → terminal
+    _pty!.output.cast<List<int>>().transform(const Utf8Decoder()).listen((data) {
+      _terminal.write(data);
+    });
+
+    // Wire terminal input → PTY
+    _terminal.onOutput = (data) {
+      _pty!.write(const Utf8Encoder().convert(data));
+    };
+
+    // Handle PTY exit
+    _pty!.exitCode.then((code) {
+      if (mounted) {
+        ref.read(terminalsProvider.notifier).updateStatus(
+              widget.terminalId,
+              TerminalStatus.exited,
+              exitCode: code,
+            );
+      }
+    });
+
+    // If the command is not $SHELL, type it into the shell
+    if (command != '\$SHELL' && command.isNotEmpty) {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (_pty != null) {
+          _pty!.write(const Utf8Encoder().convert('$command\r'));
+        }
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
-    final sessions = ref.watch(sessionRegistryProvider);
-    final session = sessions[widget.terminalId];
     final entry = ref.watch(terminalsProvider.select(
         (s) => s.terminals[widget.terminalId]));
-
-    if (session != null) {
-      _connectSession(session);
-    }
 
     final isExited = entry?.status == TerminalStatus.exited;
 
@@ -99,15 +148,39 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
         Expanded(
           child: Stack(
             children: [
-              TerminalView(
-                terminal: _terminal,
-                dataStream: _session?.dataStream ?? const Stream.empty(),
-                onInput: (data) => _session?.write(data),
-                fontSize: settings.fontSize,
-                fontFamily: settings.fontFamily,
-                theme: TerminalTheme.dark,
+              xterm.TerminalView(
+                _terminal,
+                textStyle: xterm.TerminalStyle(
+                  fontSize: settings.fontSize,
+                  fontFamily: settings.fontFamily,
+                ),
+                theme: const xterm.TerminalTheme(
+                  cursor: Color(0xFFAAAAAA),
+                  selection: Color(0x803A6FD6),
+                  foreground: Color(0xFFCCCCCC),
+                  background: Color(0xFF0A0A1A),
+                  black: Color(0xFF000000),
+                  red: Color(0xFFCD0000),
+                  green: Color(0xFF00CD00),
+                  yellow: Color(0xFFCDCD00),
+                  blue: Color(0xFF0000EE),
+                  magenta: Color(0xFFCD00CD),
+                  cyan: Color(0xFF00CDCD),
+                  white: Color(0xFFE5E5E5),
+                  brightBlack: Color(0xFF7F7F7F),
+                  brightRed: Color(0xFFFF0000),
+                  brightGreen: Color(0xFF00FF00),
+                  brightYellow: Color(0xFFFFFF00),
+                  brightBlue: Color(0xFF5C5CFF),
+                  brightMagenta: Color(0xFFFF00FF),
+                  brightCyan: Color(0xFF00FFFF),
+                  brightWhite: Color(0xFFFFFFFF),
+                  searchHitBackground: Color(0xFF444444),
+                  searchHitBackgroundCurrent: Color(0xFFFFFF00),
+                  searchHitForeground: Color(0xFF000000),
+                ),
                 autofocus: true,
-                onResize: (cols, rows) => _session?.resize(cols, rows),
+                hardwareKeyboardOnly: true,
               ),
               if (isExited)
                 Container(
@@ -136,22 +209,19 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     );
   }
 
-  String _headerLabel(dynamic entry) {
+  String _headerLabel(TerminalEntry? entry) {
     if (entry == null) return '';
-    final command = entry.command as String;
-    final cwd = entry.cwd as String;
-    final shortCmd = command.split(' ').first.split('/').last;
-    final folder = cwd.split('/').last;
-    final label = entry.label;
-    if (label != null && (label as String).isNotEmpty) {
-      return '$label — $folder';
+    final shortCmd = entry.command.split(' ').first.split('/').last;
+    final folder = entry.cwd.split('/').last;
+    if (entry.label != null && entry.label!.isNotEmpty) {
+      return '${entry.label} \u2014 $folder';
     }
-    return '$shortCmd — $folder';
+    return '$shortCmd \u2014 $folder';
   }
 
   @override
   void dispose() {
-    // Don't dispose the session — it's managed by PtyManager in app.dart
+    _pty?.kill();
     super.dispose();
   }
 }
