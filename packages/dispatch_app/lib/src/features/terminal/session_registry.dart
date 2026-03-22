@@ -40,45 +40,43 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
   @override
   Map<String, TerminalSessionRecord> build() => {};
 
-  void register(String terminalId, {PtySession? session, Pty? pty}) {
-    state = {
-      ...state,
-      terminalId: TerminalSessionRecord(session: session, pty: pty),
-    };
+  void register(String id, {PtySession? session, Pty? pty}) {
+    final updated = Map<String, TerminalSessionRecord>.from(state);
+    updated[id] = TerminalSessionRecord(session: session, pty: pty);
+    state = updated;
   }
 
   /// Get the Pty handle for a terminal (for writing commands / killing).
-  Pty? getPty(String terminalId) => state[terminalId]?.pty;
+  Pty? getPty(String id) => state[id]?.pty;
 
-  void unregister(String terminalId) {
-    state = Map.of(state)..remove(terminalId);
+  void unregister(String id) {
+    state = Map<String, TerminalSessionRecord>.from(state)..remove(id);
   }
 
-  PtySession? getSession(String terminalId) => state[terminalId]?.session;
+  PtySession? getSession(String id) => state[id]?.session;
 
   /// Append output lines to the terminal's rolling buffer.
-  void appendOutput(String terminalId, String data) {
-    final record = state[terminalId];
+  void appendOutput(String id, String data) {
+    final record = state[id];
     if (record == null) return;
     final newBuffer = Queue<String>.of(record.outputBuffer);
     for (final line in data.split('\n')) {
       newBuffer.addLast(line);
       while (newBuffer.length > maxOutputLines) newBuffer.removeFirst();
     }
-    state = {
-      ...state,
-      terminalId: TerminalSessionRecord(
-        session: record.session,
-        pty: record.pty,
-        outputBuffer: newBuffer,
-        meta: record.meta,
-      ),
-    };
+    final updated = Map<String, TerminalSessionRecord>.from(state);
+    updated[id] = TerminalSessionRecord(
+      session: record.session,
+      pty: record.pty,
+      outputBuffer: newBuffer,
+      meta: record.meta,
+    );
+    state = updated;
   }
 
   /// Read the last N lines from a terminal's output buffer.
-  String readOutput(String terminalId, {int lines = 100}) {
-    final record = state[terminalId];
+  String readOutput(String id, {int lines = 100}) {
+    final record = state[id];
     if (record == null) return '';
     final asList = record.outputBuffer.toList();
     final start = asList.length > lines ? asList.length - lines : 0;
@@ -86,26 +84,25 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
   }
 
   /// Update activity metadata for a terminal.
-  void updateMeta(String terminalId, {String? activityStatus}) {
-    final record = state[terminalId];
+  void updateMeta(String id, {String? activityStatus}) {
+    final record = state[id];
     if (record == null) return;
 
-    state = {
-      ...state,
-      terminalId: TerminalSessionRecord(
-        session: record.session,
-        pty: record.pty,
-        outputBuffer: record.outputBuffer,
-        meta: TerminalSessionMeta(
-          lastActivityTime: DateTime.now(),
-          activityStatus: activityStatus,
-        ),
+    final updated = Map<String, TerminalSessionRecord>.from(state);
+    updated[id] = TerminalSessionRecord(
+      session: record.session,
+      pty: record.pty,
+      outputBuffer: record.outputBuffer,
+      meta: TerminalSessionMeta(
+        lastActivityTime: DateTime.now(),
+        activityStatus: activityStatus,
       ),
-    };
+    );
+    state = updated;
   }
 
   /// Get metadata for a terminal.
-  TerminalSessionMeta? getMeta(String terminalId) => state[terminalId]?.meta;
+  TerminalSessionMeta? getMeta(String id) => state[id]?.meta;
 }
 
 final sessionRegistryProvider =

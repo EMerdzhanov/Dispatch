@@ -90,7 +90,7 @@ Future<Map<String, dynamic>> _runCommand(Ref ref, Map<String, dynamic> params) a
   }
   if (pty == null) return {'success': false, 'error': 'Terminal PTY not found'};
 
-  pty.write(const Utf8Encoder().convert('$command\n'));
+  pty.write(const Utf8Encoder().convert('$command\r'));
   return {'success': true};
 }
 
