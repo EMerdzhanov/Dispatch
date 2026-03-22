@@ -2,8 +2,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 
 class _ShortcutEntry {
   final String action;
@@ -25,7 +27,7 @@ const _shortcuts = [
   _ShortcutEntry(action: 'Save Template', keys: ['\u2318', '\u21E7', 'S']),
 ];
 
-class ShortcutsPanel extends StatelessWidget {
+class ShortcutsPanel extends ConsumerWidget {
   final bool open;
   final VoidCallback onClose;
 
@@ -36,8 +38,10 @@ class ShortcutsPanel extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (!open) return const SizedBox.shrink();
+
+    final theme = AppTheme(ref.watch(activeThemeProvider));
 
     return KeyboardListener(
       focusNode: FocusNode(),
@@ -79,13 +83,13 @@ class ShortcutsPanel extends StatelessWidget {
                   child: Material(
                     color: Colors.transparent,
                     child: Container(
-                      decoration: AppTheme.overlayDecoration,
+                      decoration: theme.overlayDecoration,
                       clipBehavior: Clip.antiAlias,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildHeader(),
+                          _buildHeader(theme),
                           Flexible(
                             child: ListView.separated(
                               shrinkWrap: true,
@@ -93,14 +97,14 @@ class ShortcutsPanel extends StatelessWidget {
                               itemCount: _shortcuts.length,
                               separatorBuilder: (_, _) => Divider(
                                 height: 1,
-                                color: AppTheme.border,
+                                color: theme.border,
                                 thickness: AppTheme.borderWidth,
                                 indent: AppTheme.spacingLg,
                                 endIndent: AppTheme.spacingLg,
                               ),
                               itemBuilder: (context, index) {
                                 final entry = _shortcuts[index];
-                                return _ShortcutRow(entry: entry);
+                                return _ShortcutRow(entry: entry, theme: theme);
                               },
                             ),
                           ),
@@ -117,25 +121,25 @@ class ShortcutsPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppTheme theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: theme.border, width: AppTheme.borderWidth)),
       ),
       child: Row(
         children: [
           Text(
             'Keyboard Shortcuts',
-            style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w600),
+            style: theme.titleStyle.copyWith(fontWeight: FontWeight.w600),
           ),
           const Spacer(),
           GestureDetector(
             onTap: onClose,
-            child: const Icon(
+            child: Icon(
               Icons.close,
               size: 16,
-              color: AppTheme.textSecondary,
+              color: theme.textSecondary,
             ),
           ),
         ],
@@ -146,8 +150,9 @@ class ShortcutsPanel extends StatelessWidget {
 
 class _ShortcutRow extends StatefulWidget {
   final _ShortcutEntry entry;
+  final AppTheme theme;
 
-  const _ShortcutRow({required this.entry});
+  const _ShortcutRow({required this.entry, required this.theme});
 
   @override
   State<_ShortcutRow> createState() => _ShortcutRowState();
@@ -158,19 +163,20 @@ class _ShortcutRowState extends State<_ShortcutRow> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: AnimatedContainer(
         duration: AppTheme.hoverDuration,
         padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: 10),
-        color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
+        color: _hovered ? theme.surfaceLight : Colors.transparent,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               widget.entry.action,
-              style: AppTheme.bodyStyle,
+              style: theme.bodyStyle,
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -179,7 +185,7 @@ class _ShortcutRowState extends State<_ShortcutRow> {
                 return Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _KeyBadge(label: entry.value),
+                    _KeyBadge(label: entry.value, theme: theme),
                     if (!isLast) const SizedBox(width: AppTheme.spacingXs),
                   ],
                 );
@@ -194,21 +200,22 @@ class _ShortcutRowState extends State<_ShortcutRow> {
 
 class _KeyBadge extends StatelessWidget {
   final String label;
+  final AppTheme theme;
 
-  const _KeyBadge({required this.label});
+  const _KeyBadge({required this.label, required this.theme});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceLight,
+        color: theme.surfaceLight,
         borderRadius: BorderRadius.circular(AppTheme.radius),
-        border: Border.all(color: AppTheme.border, width: AppTheme.borderWidth),
+        border: Border.all(color: theme.border, width: AppTheme.borderWidth),
       ),
       child: Text(
         label,
-        style: AppTheme.bodyStyle.copyWith(fontFamily: '.AppleSystemUIFont'),
+        style: theme.bodyStyle.copyWith(fontFamily: '.AppleSystemUIFont'),
       ),
     );
   }

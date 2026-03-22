@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../projects/projects_provider.dart';
 
@@ -113,6 +114,7 @@ class _VaultPanelState extends ConsumerState<VaultPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     // Watch for project changes and reload entries
     final projects = ref.watch(projectsProvider);
     final group = projects.groups
@@ -135,18 +137,18 @@ class _VaultPanelState extends ConsumerState<VaultPanel> {
           child: GestureDetector(
             onTap: _startAdding,
             child: CustomPaint(
-              painter: _DashedBorderPainter(color: AppTheme.border, radius: AppTheme.radius),
+              painter: _DashedBorderPainter(color: theme.border, radius: AppTheme.radius),
               child: Container(
                 height: 36,
                 alignment: Alignment.center,
-                child: const Text('+ Add Secret', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                child: Text('+ Add Secret', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
               ),
             ),
           ),
         ),
         Expanded(
           child: _secrets.isEmpty && !_adding
-              ? const _EmptyState(message: 'No secrets stored')
+              ? _EmptyState(message: 'No secrets stored', theme: theme)
               : ListView(
                   padding: EdgeInsets.zero,
                   children: [
@@ -158,9 +160,10 @@ class _VaultPanelState extends ConsumerState<VaultPanel> {
                             _toggleVisibility(secret.id),
                         onCopy: () => _copyToClipboard(secret.encryptedValue),
                         onDelete: () => _deleteSecret(secret.id),
+                        theme: theme,
                       ),
                     ),
-                    if (_adding) _buildAddForm(),
+                    if (_adding) _buildAddForm(theme),
                   ],
                 ),
         ),
@@ -168,12 +171,12 @@ class _VaultPanelState extends ConsumerState<VaultPanel> {
     );
   }
 
-  Widget _buildAddForm() {
+  Widget _buildAddForm(AppTheme theme) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: const BoxDecoration(
-        color: AppTheme.surfaceLight,
-        border: Border(bottom: BorderSide(color: AppTheme.border)),
+      decoration: BoxDecoration(
+        color: theme.surfaceLight,
+        border: Border(bottom: BorderSide(color: theme.border)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -181,54 +184,54 @@ class _VaultPanelState extends ConsumerState<VaultPanel> {
           TextField(
             controller: _labelController,
             focusNode: _labelFocus,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
+            style: TextStyle(color: theme.textPrimary, fontSize: 12),
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius),
-                borderSide: const BorderSide(color: AppTheme.border),
+                borderSide: BorderSide(color: theme.border),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius),
-                borderSide: const BorderSide(color: AppTheme.border),
+                borderSide: BorderSide(color: theme.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius),
-                borderSide: const BorderSide(color: AppTheme.accentBlue),
+                borderSide: BorderSide(color: theme.accentBlue),
               ),
               filled: true,
-              fillColor: AppTheme.surfaceLight,
+              fillColor: theme.surfaceLight,
               isDense: true,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               hintText: 'Label',
-              hintStyle: const TextStyle(color: AppTheme.textSecondary),
+              hintStyle: TextStyle(color: theme.textSecondary),
             ),
           ),
           const SizedBox(height: 6),
           TextField(
             controller: _valueController,
             obscureText: true,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
+            style: TextStyle(color: theme.textPrimary, fontSize: 12),
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius),
-                borderSide: const BorderSide(color: AppTheme.border),
+                borderSide: BorderSide(color: theme.border),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius),
-                borderSide: const BorderSide(color: AppTheme.border),
+                borderSide: BorderSide(color: theme.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radius),
-                borderSide: const BorderSide(color: AppTheme.accentBlue),
+                borderSide: BorderSide(color: theme.accentBlue),
               ),
               filled: true,
-              fillColor: AppTheme.surfaceLight,
+              fillColor: theme.surfaceLight,
               isDense: true,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               hintText: 'Value',
-              hintStyle: const TextStyle(color: AppTheme.textSecondary),
+              hintStyle: TextStyle(color: theme.textSecondary),
             ),
             onSubmitted: (_) => _commitAdd(),
           ),
@@ -238,17 +241,17 @@ class _VaultPanelState extends ConsumerState<VaultPanel> {
             children: [
               GestureDetector(
                 onTap: _cancelAdd,
-                child: const Text(
+                child: Text(
                   'Cancel',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                  style: TextStyle(color: theme.textSecondary, fontSize: 12),
                 ),
               ),
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: _commitAdd,
-                child: const Text(
+                child: Text(
                   'Add',
-                  style: TextStyle(color: AppTheme.accentBlue, fontSize: 12),
+                  style: TextStyle(color: theme.accentBlue, fontSize: 12),
                 ),
               ),
             ],
@@ -265,6 +268,7 @@ class _SecretItem extends StatefulWidget {
   final VoidCallback onToggleVisibility;
   final VoidCallback onCopy;
   final VoidCallback onDelete;
+  final AppTheme theme;
 
   const _SecretItem({
     required this.secret,
@@ -272,6 +276,7 @@ class _SecretItem extends StatefulWidget {
     required this.onToggleVisibility,
     required this.onCopy,
     required this.onDelete,
+    required this.theme,
   });
 
   @override
@@ -283,6 +288,7 @@ class _SecretItemState extends State<_SecretItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     final maskedValue = widget.visible
         ? widget.secret.encryptedValue
         : '\u2022\u2022\u2022\u2022\u2022\u2022';
@@ -292,7 +298,7 @@ class _SecretItemState extends State<_SecretItem> {
       onExit: (_) => setState(() => _hovered = false),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
+        color: _hovered ? theme.surfaceLight : Colors.transparent,
         child: Row(
           children: [
             Expanded(
@@ -301,16 +307,16 @@ class _SecretItemState extends State<_SecretItem> {
                 children: [
                   Text(
                     widget.secret.label,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
+                    style: TextStyle(
+                      color: theme.textPrimary,
                       fontSize: 12,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     maskedValue,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
+                    style: TextStyle(
+                      color: theme.textSecondary,
                       fontSize: 12,
                       letterSpacing: 1,
                     ),
@@ -325,11 +331,12 @@ class _SecretItemState extends State<_SecretItem> {
                     ? Icons.visibility_off
                     : Icons.visibility,
                 onTap: widget.onToggleVisibility,
+                theme: theme,
               ),
               const SizedBox(width: 4),
-              _IconButton(icon: Icons.copy, onTap: widget.onCopy),
+              _IconButton(icon: Icons.copy, onTap: widget.onCopy, theme: theme),
               const SizedBox(width: 4),
-              _IconButton(icon: Icons.close, onTap: widget.onDelete),
+              _IconButton(icon: Icons.close, onTap: widget.onDelete, theme: theme),
             ],
           ],
         ),
@@ -341,14 +348,15 @@ class _SecretItemState extends State<_SecretItem> {
 class _IconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
+  final AppTheme theme;
 
-  const _IconButton({required this.icon, required this.onTap});
+  const _IconButton({required this.icon, required this.onTap, required this.theme});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Icon(icon, size: 14, color: AppTheme.textSecondary),
+      child: Icon(icon, size: 14, color: theme.textSecondary),
     );
   }
 }
@@ -379,15 +387,16 @@ class _DashedBorderPainter extends CustomPainter {
 
 class _EmptyState extends StatelessWidget {
   final String message;
+  final AppTheme theme;
 
-  const _EmptyState({required this.message});
+  const _EmptyState({required this.message, required this.theme});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Text(
         message,
-        style: AppTheme.dimStyle,
+        style: theme.dimStyle,
       ),
     );
   }

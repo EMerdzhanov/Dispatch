@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../projects/projects_provider.dart';
 
@@ -102,6 +103,7 @@ class _NotesPanelState extends ConsumerState<NotesPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     // Watch for project changes and reload notes
     final projects = ref.watch(projectsProvider);
     final group = projects.groups
@@ -116,12 +118,12 @@ class _NotesPanelState extends ConsumerState<NotesPanel> {
     }
 
     if (_editing != null) {
-      return _buildEditor();
+      return _buildEditor(theme);
     }
-    return _buildList();
+    return _buildList(theme);
   }
 
-  Widget _buildList() {
+  Widget _buildList(AppTheme theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -135,17 +137,17 @@ class _NotesPanelState extends ConsumerState<NotesPanel> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTheme.radius),
                 border: Border.all(
-                  color: AppTheme.border,
+                  color: theme.border,
                   width: 1,
                   strokeAlign: BorderSide.strokeAlignInside,
                 ),
               ),
               child: CustomPaint(
-                painter: _DashedBorderPainter(color: AppTheme.border, radius: AppTheme.radius),
-                child: const Center(
+                painter: _DashedBorderPainter(color: theme.border, radius: AppTheme.radius),
+                child: Center(
                   child: Text(
                     '+ Add Note',
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                    style: TextStyle(color: theme.textSecondary, fontSize: 12),
                   ),
                 ),
               ),
@@ -154,7 +156,7 @@ class _NotesPanelState extends ConsumerState<NotesPanel> {
         ),
         Expanded(
           child: _notes.isEmpty
-              ? const _EmptyState(message: 'No notes yet')
+              ? _EmptyState(message: 'No notes yet', theme: theme)
               : ListView.builder(
                   padding: EdgeInsets.zero,
                   itemCount: _notes.length,
@@ -165,6 +167,7 @@ class _NotesPanelState extends ConsumerState<NotesPanel> {
                       timeText: _formatTime(note.updatedAt),
                       onTap: () => _openNote(note),
                       onDelete: () => _deleteNote(note.id),
+                      theme: theme,
                     );
                   },
                 ),
@@ -173,50 +176,50 @@ class _NotesPanelState extends ConsumerState<NotesPanel> {
     );
   }
 
-  Widget _buildEditor() {
+  Widget _buildEditor(AppTheme theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
           height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: const BoxDecoration(
-            color: AppTheme.surface,
-            border: Border(bottom: BorderSide(color: AppTheme.border)),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border(bottom: BorderSide(color: theme.border)),
           ),
           child: Row(
             children: [
               GestureDetector(
                 onTap: _saveEditing,
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back,
                   size: 16,
-                  color: AppTheme.accentBlue,
+                  color: theme.accentBlue,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _titleController,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                  style: TextStyle(
+                    color: theme.textPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                     hintText: 'Note title',
-                    hintStyle: TextStyle(color: AppTheme.textSecondary),
+                    hintStyle: TextStyle(color: theme.textSecondary),
                   ),
                 ),
               ),
               GestureDetector(
                 onTap: _saveEditing,
-                child: const Text(
+                child: Text(
                   'Done',
-                  style: TextStyle(color: AppTheme.accentBlue, fontSize: 12),
+                  style: TextStyle(color: theme.accentBlue, fontSize: 12),
                 ),
               ),
             ],
@@ -224,23 +227,23 @@ class _NotesPanelState extends ConsumerState<NotesPanel> {
         ),
         Expanded(
           child: Container(
-            color: AppTheme.surface,
+            color: theme.surface,
             padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _bodyController,
               maxLines: null,
               expands: true,
               textAlignVertical: TextAlignVertical.top,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
+              style: TextStyle(
+                color: theme.textPrimary,
                 fontSize: 12,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
                 hintText: 'Write your note here...',
-                hintStyle: TextStyle(color: AppTheme.textSecondary),
+                hintStyle: TextStyle(color: theme.textSecondary),
               ),
             ),
           ),
@@ -255,12 +258,14 @@ class _NoteListItem extends StatefulWidget {
   final String timeText;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final AppTheme theme;
 
   const _NoteListItem({
     required this.note,
     required this.timeText,
     required this.onTap,
     required this.onDelete,
+    required this.theme,
   });
 
   @override
@@ -272,6 +277,7 @@ class _NoteListItemState extends State<_NoteListItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -279,7 +285,7 @@ class _NoteListItemState extends State<_NoteListItem> {
         onTap: widget.onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
+          color: _hovered ? theme.surfaceLight : Colors.transparent,
           child: Row(
             children: [
               Expanded(
@@ -288,16 +294,16 @@ class _NoteListItemState extends State<_NoteListItem> {
                   children: [
                     Text(
                       widget.note.title,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
+                      style: TextStyle(
+                        color: theme.textPrimary,
                         fontSize: 12,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       widget.timeText,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
+                      style: TextStyle(
+                        color: theme.textSecondary,
                         fontSize: 10,
                       ),
                     ),
@@ -307,10 +313,10 @@ class _NoteListItemState extends State<_NoteListItem> {
               if (_hovered)
                 GestureDetector(
                   onTap: widget.onDelete,
-                  child: const Icon(
+                  child: Icon(
                     Icons.close,
                     size: 14,
-                    color: AppTheme.textSecondary,
+                    color: theme.textSecondary,
                   ),
                 ),
             ],
@@ -360,15 +366,16 @@ class _DashedBorderPainter extends CustomPainter {
 
 class _EmptyState extends StatelessWidget {
   final String message;
+  final AppTheme theme;
 
-  const _EmptyState({required this.message});
+  const _EmptyState({required this.message, required this.theme});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Text(
         message,
-        style: AppTheme.dimStyle,
+        style: theme.dimStyle,
       ),
     );
   }

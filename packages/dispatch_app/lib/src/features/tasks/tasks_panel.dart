@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' hide Column;
 
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../projects/projects_provider.dart';
 
@@ -102,6 +103,7 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     // Watch for project changes and reload tasks
     final projects = ref.watch(projectsProvider);
     final group = projects.groups
@@ -123,22 +125,22 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
           child: GestureDetector(
             onTap: _startAdding,
             child: CustomPaint(
-              painter: _DashedBorderPainter(color: AppTheme.border, radius: AppTheme.radius),
+              painter: _DashedBorderPainter(color: theme.border, radius: AppTheme.radius),
               child: Container(
                 height: 36,
                 alignment: Alignment.center,
-                child: const Text('+ Add Task', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                child: Text('+ Add Task', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
               ),
             ),
           ),
         ),
         Expanded(
           child: _tasks.isEmpty && !_adding
-              ? const _EmptyState(message: 'No tasks yet')
+              ? _EmptyState(message: 'No tasks yet', theme: theme)
               : ListView(
                   padding: EdgeInsets.zero,
                   children: [
-                    if (_adding) _buildAddRow(),
+                    if (_adding) _buildAddRow(theme),
                     ..._tasks.map(
                       (task) => _TaskItem(
                         task: task,
@@ -149,6 +151,7 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
                         }),
                         onDescriptionChanged: (desc) => _updateDescription(task.id, desc),
                         onDelete: () => _deleteTask(task.id),
+                        theme: theme,
                       ),
                     ),
                   ],
@@ -158,18 +161,18 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
     );
   }
 
-  Widget _buildAddRow() {
+  Widget _buildAddRow(AppTheme theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 20,
             height: 20,
             child: Icon(
               Icons.check_box_outline_blank,
               size: 16,
-              color: AppTheme.textSecondary,
+              color: theme.textSecondary,
             ),
           ),
           const SizedBox(width: 8),
@@ -177,20 +180,20 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
             child: TextField(
               controller: _addController,
               focusNode: _addFocus,
-              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
-              decoration: const InputDecoration(
+              style: TextStyle(color: theme.textPrimary, fontSize: 12),
+              decoration: InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
                 hintText: 'New task...',
-                hintStyle: TextStyle(color: AppTheme.textSecondary),
+                hintStyle: TextStyle(color: theme.textSecondary),
               ),
               onSubmitted: (_) => _commitAdd(),
             ),
           ),
           GestureDetector(
             onTap: _cancelAdd,
-            child: const Icon(Icons.close, size: 14, color: AppTheme.textSecondary),
+            child: Icon(Icons.close, size: 14, color: theme.textSecondary),
           ),
         ],
       ),
@@ -205,6 +208,7 @@ class _TaskItem extends StatefulWidget {
   final VoidCallback onTitleTap;
   final void Function(String) onDescriptionChanged;
   final VoidCallback onDelete;
+  final AppTheme theme;
 
   const _TaskItem({
     required this.task,
@@ -213,6 +217,7 @@ class _TaskItem extends StatefulWidget {
     required this.onTitleTap,
     required this.onDescriptionChanged,
     required this.onDelete,
+    required this.theme,
   });
 
   @override
@@ -224,6 +229,7 @@ class _TaskItemState extends State<_TaskItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -232,7 +238,7 @@ class _TaskItemState extends State<_TaskItem> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            color: _hovered || widget.expanded ? AppTheme.surfaceLight : Colors.transparent,
+            color: _hovered || widget.expanded ? theme.surfaceLight : Colors.transparent,
             child: Row(
               children: [
                 GestureDetector(
@@ -243,8 +249,8 @@ class _TaskItemState extends State<_TaskItem> {
                         : Icons.check_box_outline_blank,
                     size: 16,
                     color: widget.task.done
-                        ? AppTheme.accentBlue
-                        : AppTheme.textSecondary,
+                        ? theme.accentBlue
+                        : theme.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -255,8 +261,8 @@ class _TaskItemState extends State<_TaskItem> {
                       widget.task.title,
                       style: TextStyle(
                         color: widget.task.done
-                            ? AppTheme.textSecondary
-                            : AppTheme.textPrimary,
+                            ? theme.textSecondary
+                            : theme.textPrimary,
                         fontSize: 12,
                         decoration: widget.task.done
                             ? TextDecoration.lineThrough
@@ -268,7 +274,7 @@ class _TaskItemState extends State<_TaskItem> {
                 if (_hovered)
                   GestureDetector(
                     onTap: widget.onDelete,
-                    child: const Icon(Icons.close, size: 14, color: AppTheme.textSecondary),
+                    child: Icon(Icons.close, size: 14, color: theme.textSecondary),
                   ),
               ],
             ),
@@ -276,18 +282,18 @@ class _TaskItemState extends State<_TaskItem> {
           // Expandable description
           if (widget.expanded)
             Container(
-              color: AppTheme.surfaceLight,
+              color: theme.surfaceLight,
               padding: const EdgeInsets.only(left: 36, right: 12, bottom: 8),
               child: TextField(
                 controller: TextEditingController(text: widget.task.description),
                 maxLines: 3,
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
-                decoration: const InputDecoration(
+                style: TextStyle(color: theme.textSecondary, fontSize: 11),
+                decoration: InputDecoration(
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   hintText: 'Add description...',
-                  hintStyle: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                  hintStyle: TextStyle(color: theme.textSecondary, fontSize: 11),
                 ),
                 onChanged: widget.onDescriptionChanged,
               ),
@@ -324,15 +330,16 @@ class _DashedBorderPainter extends CustomPainter {
 
 class _EmptyState extends StatelessWidget {
   final String message;
+  final AppTheme theme;
 
-  const _EmptyState({required this.message});
+  const _EmptyState({required this.message, required this.theme});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Text(
         message,
-        style: AppTheme.dimStyle,
+        style: theme.dimStyle,
       ),
     );
   }

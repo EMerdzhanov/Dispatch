@@ -104,6 +104,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
   Widget build(BuildContext context) {
     if (!widget.open) return const SizedBox.shrink();
 
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final settings = ref.watch(settingsProvider);
     if (!_initialized) _loadSettings(settings);
 
@@ -132,21 +133,21 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                 child: Material(
                   color: Colors.transparent,
                   child: Container(
-                    decoration: AppTheme.overlayDecoration,
+                    decoration: theme.overlayDecoration,
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                 children: [
                   // Header
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppTheme.border))),
+                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.border))),
                     child: Row(
                       children: [
-                        Text('Settings', style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w600)),
+                        Text('Settings', style: theme.titleStyle.copyWith(fontWeight: FontWeight.w600)),
                         const Spacer(),
                         GestureDetector(
                           onTap: widget.onClose,
-                          child: const Text('Close (Esc)', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                          child: Text('Close (Esc)', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
                         ),
                       ],
                     ),
@@ -159,29 +160,29 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // === Terminal Section ===
-                          _sectionTitle('Terminal'),
-                          _settingsRow('Font Family', _fontFamilyCtrl, wide: true),
-                          _settingsRow('Font Size', _fontSizeCtrl),
-                          _settingsRow('Line Height', _lineHeightCtrl),
-                          _settingsRow('Default Shell', _shellCtrl, wide: true),
+                          _sectionTitle(theme, 'Terminal'),
+                          _settingsRow(theme, 'Font Family', _fontFamilyCtrl, wide: true),
+                          _settingsRow(theme, 'Font Size', _fontSizeCtrl),
+                          _settingsRow(theme, 'Line Height', _lineHeightCtrl),
+                          _settingsRow(theme, 'Default Shell', _shellCtrl, wide: true),
                           const SizedBox(height: 8),
                           GestureDetector(
                             onTap: _restoreDefaults,
-                            child: const Text('Restore Defaults', style: TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+                            child: Text('Restore Defaults', style: TextStyle(color: theme.accentBlue, fontSize: 12)),
                           ),
 
                           const SizedBox(height: 24),
 
                           // === Notifications Section ===
-                          _sectionTitle('Notifications'),
-                          _toggleRow('Desktop Notifications', _notificationsEnabled, (v) => setState(() { _notificationsEnabled = v; _save(); })),
-                          _toggleRow('Sound Effects', _soundEnabled, (v) => setState(() { _soundEnabled = v; _save(); })),
+                          _sectionTitle(theme, 'Notifications'),
+                          _toggleRow(theme, 'Desktop Notifications', _notificationsEnabled, (v) => setState(() { _notificationsEnabled = v; _save(); })),
+                          _toggleRow(theme, 'Sound Effects', _soundEnabled, (v) => setState(() { _soundEnabled = v; _save(); })),
 
                           const SizedBox(height: 24),
 
                           // === Quick Launch Presets Section ===
-                          _sectionTitle('Quick Launch Presets'),
-                          ...List.generate(presets.length, (i) => _buildPresetRow(presets, i)),
+                          _sectionTitle(theme, 'Quick Launch Presets'),
+                          ...List.generate(presets.length, (i) => _buildPresetRow(theme, presets, i)),
                           const SizedBox(height: 8),
                           GestureDetector(
                             onTap: () {
@@ -196,34 +197,34 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: const Text('+ Add Preset', style: TextStyle(color: AppTheme.accentBlue, fontSize: 12)),
+                              child: Text('+ Add Preset', style: TextStyle(color: theme.accentBlue, fontSize: 12)),
                             ),
                           ),
 
                           // === Templates Section ===
                           if (templates.isNotEmpty) ...[
                             const SizedBox(height: 24),
-                            _sectionTitle('Saved Templates'),
+                            _sectionTitle(theme, 'Saved Templates'),
                             ...List.generate(templates.length, (i) {
                               final t = templates[i];
                               return Container(
                                 padding: const EdgeInsets.symmetric(vertical: 8),
                                 child: Row(
                                   children: [
-                                    Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.accentBlue)),
+                                    Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: theme.accentBlue)),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(t.name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
-                                          Text(t.cwd, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
+                                          Text(t.name, style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+                                          Text(t.cwd, style: TextStyle(color: theme.textSecondary, fontSize: 10)),
                                         ],
                                       ),
                                     ),
                                     GestureDetector(
                                       onTap: () => ref.read(templatesProvider.notifier).removeTemplate(i),
-                                      child: const Text('Remove', style: TextStyle(color: AppTheme.accentRed, fontSize: 11)),
+                                      child: Text('Remove', style: TextStyle(color: theme.accentRed, fontSize: 11)),
                                     ),
                                   ],
                                 ),
@@ -246,29 +247,29 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     );
   }
 
-  Widget _sectionTitle(String title) {
+  Widget _sectionTitle(AppTheme theme, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(title, style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w600)),
+      child: Text(title, style: theme.titleStyle.copyWith(fontWeight: FontWeight.w600)),
     );
   }
 
-  Widget _settingsRow(String label, TextEditingController ctrl, {bool wide = false}) {
+  Widget _settingsRow(AppTheme theme, String label, TextEditingController ctrl, {bool wide = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          SizedBox(width: 120, child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+          SizedBox(width: 120, child: Text(label, style: TextStyle(color: theme.textSecondary, fontSize: 12))),
           SizedBox(
             width: wide ? 220 : 80,
             child: TextField(
               controller: ctrl,
-              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+              style: TextStyle(color: theme.textPrimary, fontSize: 13),
               decoration: InputDecoration(
-                filled: true, fillColor: AppTheme.surfaceLight, isDense: true,
+                filled: true, fillColor: theme.surfaceLight, isDense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.border)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.border)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: theme.border)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: theme.border)),
               ),
               onChanged: (_) => _save(),
             ),
@@ -278,27 +279,27 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     );
   }
 
-  Widget _toggleRow(String label, bool value, void Function(bool) onChanged) {
+  Widget _toggleRow(AppTheme theme, String label, bool value, void Function(bool) onChanged) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          SizedBox(width: 180, child: Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13))),
+          SizedBox(width: 180, child: Text(label, style: TextStyle(color: theme.textPrimary, fontSize: 13))),
           GestureDetector(
             onTap: () => onChanged(!value),
             child: Container(
               width: 36, height: 20,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
-                color: value ? AppTheme.accentBlue : AppTheme.surfaceLight,
-                border: Border.all(color: value ? AppTheme.accentBlue : AppTheme.border),
+                color: value ? theme.accentBlue : theme.surfaceLight,
+                border: Border.all(color: value ? theme.accentBlue : theme.border),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 150),
                 alignment: value ? Alignment.centerRight : Alignment.centerLeft,
                 child: Container(
                   width: 16, height: 16, margin: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: value ? Colors.white : AppTheme.textSecondary),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: value ? Colors.white : theme.textSecondary),
                 ),
               ),
             ),
@@ -308,7 +309,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     );
   }
 
-  Widget _buildPresetRow(List<preset_model.Preset> presets, int i) {
+  Widget _buildPresetRow(AppTheme theme, List<preset_model.Preset> presets, int i) {
     final preset = presets[i];
     final isShell = preset.command == '\$SHELL';
     final isEditing = _editingIdx == i;
@@ -319,15 +320,15 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _settingsRow('Name', TextEditingController(text: _editName)..addListener(() {})),
+            _settingsRow(theme, 'Name', TextEditingController(text: _editName)..addListener(() {})),
             Row(
               children: [
-                const SizedBox(width: 120, child: Text('Name', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+                SizedBox(width: 120, child: Text('Name', style: TextStyle(color: theme.textSecondary, fontSize: 12))),
                 SizedBox(
                   width: 220,
                   child: TextField(
-                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-                    decoration: _inputDecor(),
+                    style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                    decoration: _inputDecor(theme),
                     controller: TextEditingController(text: _editName),
                     onChanged: (v) => _editName = v,
                     autofocus: true,
@@ -338,12 +339,12 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
             const SizedBox(height: 6),
             Row(
               children: [
-                const SizedBox(width: 120, child: Text('Command', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+                SizedBox(width: 120, child: Text('Command', style: TextStyle(color: theme.textSecondary, fontSize: 12))),
                 SizedBox(
                   width: 220,
                   child: TextField(
-                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-                    decoration: _inputDecor(hint: 'e.g. claude --resume'),
+                    style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                    decoration: _inputDecor(theme, hint: 'e.g. claude --resume'),
                     controller: TextEditingController(text: _editCommand),
                     onChanged: (v) => _editCommand = v,
                   ),
@@ -353,7 +354,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
             const SizedBox(height: 6),
             Row(
               children: [
-                const SizedBox(width: 120, child: Text('Color', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+                SizedBox(width: 120, child: Text('Color', style: TextStyle(color: theme.textSecondary, fontSize: 12))),
                 Wrap(
                   spacing: 4,
                   children: _presetColors.map((c) {
@@ -377,7 +378,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
               children: [
                 GestureDetector(
                   onTap: () => setState(() => _editingIdx = null),
-                  child: const Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4), child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
+                  child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontSize: 12))),
                 ),
                 GestureDetector(
                   onTap: () {
@@ -389,7 +390,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(color: AppTheme.accentBlue, borderRadius: BorderRadius.circular(4)),
+                    decoration: BoxDecoration(color: theme.accentBlue, borderRadius: BorderRadius.circular(4)),
                     child: const Text('Save', style: TextStyle(color: Colors.white, fontSize: 12)),
                   ),
                 ),
@@ -410,25 +411,25 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(preset.name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
-                Text(preset.command, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
+                Text(preset.name, style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+                Text(preset.command, style: TextStyle(color: theme.textSecondary, fontSize: 10)),
               ],
             ),
           ),
           if (isShell)
-            const Text('default', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9))
+            Text('default', style: TextStyle(color: theme.textSecondary, fontSize: 9))
           else
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
                   onTap: () => setState(() { _editingIdx = i; _editName = preset.name; _editCommand = preset.command; _editColor = preset.color; }),
-                  child: const Text('Edit', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                  child: Text('Edit', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
                   onTap: () => ref.read(presetsProvider.notifier).removePreset(i),
-                  child: const Text('Remove', style: TextStyle(color: AppTheme.accentRed, fontSize: 11)),
+                  child: Text('Remove', style: TextStyle(color: theme.accentRed, fontSize: 11)),
                 ),
               ],
             ),
@@ -437,11 +438,11 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     );
   }
 
-  InputDecoration _inputDecor({String? hint}) => InputDecoration(
-    hintText: hint, hintStyle: const TextStyle(color: AppTheme.textSecondary),
-    filled: true, fillColor: AppTheme.surfaceLight, isDense: true,
+  InputDecoration _inputDecor(AppTheme theme, {String? hint}) => InputDecoration(
+    hintText: hint, hintStyle: TextStyle(color: theme.textSecondary),
+    filled: true, fillColor: theme.surfaceLight, isDense: true,
     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.border)),
-    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppTheme.border)),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: theme.border)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: theme.border)),
   );
 }

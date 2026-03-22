@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import 'presets_provider.dart';
 
 class QuickLaunch extends ConsumerWidget {
@@ -16,6 +17,7 @@ class QuickLaunch extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final presets = ref.watch(presetsProvider).presets;
 
     return Padding(
@@ -24,9 +26,9 @@ class QuickLaunch extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: AppTheme.spacingXs),
-            child: Text('QUICK LAUNCH', style: AppTheme.labelStyle),
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
+            child: Text('QUICK LAUNCH', style: theme.labelStyle),
           ),
           ...presets.map((preset) {
             final dotColor = _parseColor(preset.color);
@@ -36,6 +38,7 @@ class QuickLaunch extends ConsumerWidget {
                 name: preset.name,
                 dotColor: dotColor,
                 onTap: () => onSpawn(preset.command, env: preset.env),
+                theme: theme,
               ),
             );
           }),
@@ -49,11 +52,13 @@ class _PresetButton extends StatefulWidget {
   final String name;
   final Color dotColor;
   final VoidCallback onTap;
+  final AppTheme theme;
 
   const _PresetButton({
     required this.name,
     required this.dotColor,
     required this.onTap,
+    required this.theme,
   });
 
   @override
@@ -65,6 +70,7 @@ class _PresetButtonState extends State<_PresetButton> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -74,7 +80,7 @@ class _PresetButtonState extends State<_PresetButton> {
           height: 26,
           padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
-            color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
+            color: _hovered ? theme.surfaceLight : Colors.transparent,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Row(
@@ -92,7 +98,7 @@ class _PresetButtonState extends State<_PresetButton> {
                 child: Text(
                   widget.name,
                   style: TextStyle(
-                    color: _hovered ? AppTheme.textPrimary : AppTheme.textSecondary,
+                    color: _hovered ? theme.textPrimary : theme.textSecondary,
                     fontSize: 12,
                   ),
                   overflow: TextOverflow.ellipsis,

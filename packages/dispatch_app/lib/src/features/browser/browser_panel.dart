@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import 'browser_console.dart';
 
 class BrowserPanel extends ConsumerStatefulWidget {
@@ -100,31 +101,33 @@ class _BrowserPanelState extends ConsumerState<BrowserPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
+
     return Column(
       children: [
         // URL bar with back/forward/reload
         Container(
           height: 32,
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
-          decoration: const BoxDecoration(
-            color: AppTheme.surface,
-            border: Border(bottom: BorderSide(color: AppTheme.border, width: 0.5)),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border(bottom: BorderSide(color: theme.border, width: 0.5)),
           ),
           child: Row(
             children: [
               GestureDetector(
                 onTap: () => _controller.goBack(),
-                child: const Text('\u25C0', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                child: Text('\u25C0', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
               ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _controller.goForward(),
-                child: const Text('\u25B6', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                child: Text('\u25B6', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
               ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _controller.reload(),
-                child: const Text('\u21BB', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                child: Text('\u21BB', style: TextStyle(color: theme.textSecondary, fontSize: 13)),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -132,22 +135,22 @@ class _BrowserPanelState extends ConsumerState<BrowserPanel> {
                   height: 22,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceLight,
+                    color: theme.surfaceLight,
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
                   alignment: Alignment.centerLeft,
                   child: Text(
                     _currentUrl,
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                    style: TextStyle(color: theme.textSecondary, fontSize: 11),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               if (_loading)
-                const SizedBox(
+                SizedBox(
                   width: 12, height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 1.5, color: AppTheme.accentBlue),
+                  child: CircularProgressIndicator(strokeWidth: 1.5, color: theme.accentBlue),
                 ),
             ],
           ),
@@ -162,6 +165,7 @@ class _BrowserPanelState extends ConsumerState<BrowserPanel> {
           onClear: () => setState(() => _consoleMessages.clear()),
           pipeToTerminal: _pipeToTerminal,
           onTogglePipe: () => setState(() => _pipeToTerminal = !_pipeToTerminal),
+          theme: theme,
         ),
       ],
     );
