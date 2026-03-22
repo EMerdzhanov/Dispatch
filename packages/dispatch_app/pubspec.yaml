@@ -27,6 +27,9 @@ dependencies:
   flutter_pty: ^0.4.2
   webview_flutter: ^4.13.1
   webview_flutter_wkwebview: ^3.24.1
+  shelf: ^1.4.0
+  shelf_router: ^1.1.0
+  json_rpc_2: ^3.0.0
 
 dev_dependencies:
   flutter_test:
