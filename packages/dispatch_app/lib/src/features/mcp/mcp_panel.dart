@@ -59,7 +59,9 @@ class _McpPanelState extends ConsumerState<McpPanel> {
         child: Center(
           child: GestureDetector(
             onTap: () {}, // prevent close on panel tap
-            child: Container(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
               width: 480,
               constraints: const BoxConstraints(maxHeight: 600),
               decoration: BoxDecoration(
@@ -239,6 +241,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                   ],
                 ),
               ),
+            ),
             ),
           ),
         ),
