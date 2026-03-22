@@ -20,6 +20,8 @@ class McpServerState {
   final bool tunnelStarting;
   final String? tunnelUrl;
   final bool cloudflaredAvailable;
+  final String? tunnelName;
+  final String? tunnelCustomUrl;
 
   const McpServerState({
     this.enabled = false,
@@ -34,7 +36,12 @@ class McpServerState {
     this.tunnelStarting = false,
     this.tunnelUrl,
     this.cloudflaredAvailable = false,
+    this.tunnelName,
+    this.tunnelCustomUrl,
   });
+
+  /// Whether a named tunnel is configured (persistent URL).
+  bool get hasNamedTunnel => tunnelName != null && tunnelName!.isNotEmpty;
 
   McpServerState copyWith({
     bool? enabled,
@@ -49,6 +56,8 @@ class McpServerState {
     bool? tunnelStarting,
     String? Function()? tunnelUrl,
     bool? cloudflaredAvailable,
+    String? Function()? tunnelName,
+    String? Function()? tunnelCustomUrl,
   }) {
     return McpServerState(
       enabled: enabled ?? this.enabled,
@@ -63,6 +72,8 @@ class McpServerState {
       tunnelStarting: tunnelStarting ?? this.tunnelStarting,
       tunnelUrl: tunnelUrl != null ? tunnelUrl() : this.tunnelUrl,
       cloudflaredAvailable: cloudflaredAvailable ?? this.cloudflaredAvailable,
+      tunnelName: tunnelName != null ? tunnelName() : this.tunnelName,
+      tunnelCustomUrl: tunnelCustomUrl != null ? tunnelCustomUrl() : this.tunnelCustomUrl,
     );
   }
 
@@ -113,6 +124,8 @@ class McpServerNotifier extends Notifier<McpServerState> {
     final authEnabled = await db.settingsDao.getValue('mcp_auth_enabled');
     final authToken = await db.settingsDao.getValue('mcp_auth_token');
     final bindAll = await db.settingsDao.getValue('mcp_bind_all');
+    final tunnelName = await db.settingsDao.getValue('mcp_tunnel_name');
+    final tunnelCustomUrl = await db.settingsDao.getValue('mcp_tunnel_custom_url');
 
     // Guard against disposal during async gap
     if (_disposed) return;
@@ -123,6 +136,8 @@ class McpServerNotifier extends Notifier<McpServerState> {
       authEnabled: authEnabled == 'true',
       authToken: () => authToken,
       bindAll: bindAll == 'true',
+      tunnelName: () => tunnelName,
+      tunnelCustomUrl: () => tunnelCustomUrl,
     );
 
     // Auto-start if enabled
@@ -140,6 +155,8 @@ class McpServerNotifier extends Notifier<McpServerState> {
       await db.settingsDao.setValue('mcp_auth_token', state.authToken!);
     }
     await db.settingsDao.setValue('mcp_bind_all', state.bindAll.toString());
+    await db.settingsDao.setValue('mcp_tunnel_name', state.tunnelName ?? '');
+    await db.settingsDao.setValue('mcp_tunnel_custom_url', state.tunnelCustomUrl ?? '');
   }
 
   Future<void> startServer() async {
@@ -238,29 +255,53 @@ class McpServerNotifier extends Notifier<McpServerState> {
   }
 
   /// Start a cloudflare tunnel to expose the MCP server publicly.
+  /// Uses named tunnel if configured, otherwise quick tunnel.
   Future<void> startTunnel() async {
     if (_tunnelProcess != null || !state.running) return;
 
     state = state.copyWith(tunnelStarting: true);
 
     try {
-      _tunnelProcess = await Process.start(
-        'cloudflared',
-        ['tunnel', '--url', 'http://localhost:${state.port}'],
-      );
+      final List<String> args;
+      if (state.hasNamedTunnel) {
+        // Named tunnel: persistent URL via cloudflared tunnel run
+        args = ['tunnel', 'run', '--url', 'http://localhost:${state.port}', state.tunnelName!];
+      } else {
+        // Quick tunnel: random URL
+        args = ['tunnel', '--url', 'http://localhost:${state.port}'];
+      }
 
-      // cloudflared outputs the URL to stderr
+      _tunnelProcess = await Process.start('cloudflared', args);
+
+      if (state.hasNamedTunnel && state.tunnelCustomUrl != null && state.tunnelCustomUrl!.isNotEmpty) {
+        // Named tunnel: URL is known immediately
+        state = state.copyWith(
+          tunnelRunning: true,
+          tunnelStarting: false,
+          tunnelUrl: () => state.tunnelCustomUrl,
+        );
+      }
+
+      // Parse stderr for quick tunnel URL or connection status
       final urlPattern = RegExp(r'https://[a-z0-9-]+\.trycloudflare\.com');
 
       _tunnelProcess!.stderr
           .transform(const SystemEncoding().decoder)
           .listen((data) {
-        final match = urlPattern.firstMatch(data);
-        if (match != null && !_disposed) {
+        if (!state.hasNamedTunnel) {
+          final match = urlPattern.firstMatch(data);
+          if (match != null && !_disposed) {
+            state = state.copyWith(
+              tunnelRunning: true,
+              tunnelStarting: false,
+              tunnelUrl: () => match.group(0),
+            );
+          }
+        } else if (data.contains('Registered tunnel connection') && !_disposed) {
+          // Named tunnel connected
           state = state.copyWith(
             tunnelRunning: true,
             tunnelStarting: false,
-            tunnelUrl: () => match.group(0),
           );
         }
       });
@@ -297,6 +338,15 @@ class McpServerNotifier extends Notifier<McpServerState> {
       tunnelStarting: false,
       tunnelUrl: () => null,
     );
+  }
+
+  /// Set named tunnel configuration for persistent URLs.
+  Future<void> setTunnelConfig({String? name, String? customUrl}) async {
+    state = state.copyWith(
+      tunnelName: () => (name != null && name.isEmpty) ? null : name,
+      tunnelCustomUrl: () => (customUrl != null && customUrl.isEmpty) ? null : customUrl,
+    );
+    await _saveSettings();
   }
 
   /// Refresh connection count and activity log from the server.
