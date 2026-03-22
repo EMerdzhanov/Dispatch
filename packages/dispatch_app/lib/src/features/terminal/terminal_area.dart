@@ -6,7 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../browser/browser_panel.dart';
 import '../browser/browser_provider.dart';
 import '../projects/projects_provider.dart';
-import '../terminal/split_container.dart';
+import '../../core/models/split_node.dart';
 import '../terminal/terminal_pane.dart';
 import '../terminal/terminal_provider.dart';
 
@@ -55,8 +55,7 @@ class TerminalArea extends ConsumerWidget {
           showBrowser: showBrowser,
         ),
         // Content: browser or terminals
-        // Keep ALL terminal panes alive — show/hide with Offstage.
-        // This preserves PTY sessions when switching between terminals.
+        // ALL terminal panes stay mounted via IndexedStack to preserve PTY sessions.
         Expanded(
           child: showBrowser
               ? BrowserPanel(
@@ -64,20 +63,34 @@ class TerminalArea extends ConsumerWidget {
                   url: browserTabs.firstWhere((t) => t.id == activeBrowserTabId).url,
                 )
               : activeGroup.splitLayout != null
-                  ? SplitContainer(node: activeGroup.splitLayout!)
-                  : Stack(
+                  ? _buildSplitView(activeGroup)
+                  : IndexedStack(
+                      index: activeGroup.terminalIds.indexOf(terminalId).clamp(0, activeGroup.terminalIds.length - 1),
                       children: activeGroup.terminalIds.map((id) {
-                        return Offstage(
-                          offstage: id != terminalId,
-                          child: TerminalPane(
-                            key: ValueKey(id),
-                            terminalId: id,
-                          ),
+                        return TerminalPane(
+                          key: ValueKey(id),
+                          terminalId: id,
                         );
                       }).toList(),
                     ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSplitView(ProjectGroup group) {
+    final layout = group.splitLayout!;
+    final direction = layout is SplitBranch ? layout.direction : SplitDirection.horizontal;
+    return Flex(
+      direction: direction == SplitDirection.horizontal ? Axis.horizontal : Axis.vertical,
+      children: group.terminalIds.map((id) {
+        return Expanded(
+          child: TerminalPane(
+            key: ValueKey(id),
+            terminalId: id,
+          ),
+        );
+      }).toList(),
     );
   }
 }
