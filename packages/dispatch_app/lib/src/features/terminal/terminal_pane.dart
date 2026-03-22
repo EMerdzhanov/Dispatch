@@ -13,6 +13,8 @@ import '../settings/settings_provider.dart';
 import '../browser/browser_provider.dart';
 import '../projects/projects_provider.dart';
 import 'terminal_provider.dart';
+import 'session_registry.dart';
+import 'terminal_monitor.dart';
 
 /// A single terminal pane using the xterm package for rendering
 /// and flutter_pty for native PTY management.
@@ -33,6 +35,7 @@ class TerminalPane extends ConsumerStatefulWidget {
 class _TerminalPaneState extends ConsumerState<TerminalPane> {
   late xterm.Terminal _terminal;
   Pty? _pty;
+  late TerminalMonitor _monitor;
 
   @override
   void initState() {
@@ -44,6 +47,15 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     _terminal.onResize = (w, h, pw, ph) {
       _pty?.resize(h, w);
     };
+
+    _monitor = TerminalMonitor(
+      onMetaUpdate: (terminalId, status) {
+        ref.read(sessionRegistryProvider.notifier).updateMeta(
+          terminalId,
+          activityStatus: status,
+        );
+      },
+    );
 
     _startPty();
   }
@@ -74,9 +86,20 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     // Register PTY globally
     TerminalPane.ptyRegistry[widget.terminalId] = _pty!;
 
+    ref.read(sessionRegistryProvider.notifier).register(
+      widget.terminalId,
+      pty: _pty,
+    );
+
     // Wire PTY output → terminal + URL detection
     _pty!.output.cast<List<int>>().transform(const Utf8Decoder()).listen((data) {
       _terminal.write(data);
+
+      // Feed output to SessionRegistry accumulator
+      ref.read(sessionRegistryProvider.notifier).appendOutput(widget.terminalId, data);
+
+      // Feed data to TerminalMonitor for idle/status detection
+      _monitor.onData(widget.terminalId, data);
 
       // Detect localhost URLs
       for (final match in urlPattern.allMatches(data)) {
@@ -265,6 +288,10 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
 
   @override
   void dispose() {
+    _monitor.cleanup(widget.terminalId);
+    try {
+      ref.read(sessionRegistryProvider.notifier).unregister(widget.terminalId);
+    } catch (_) {}
     TerminalPane.ptyRegistry.remove(widget.terminalId);
     TerminalPane.terminalRegistry.remove(widget.terminalId);
     _pty?.kill();

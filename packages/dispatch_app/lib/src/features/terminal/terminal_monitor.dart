@@ -8,8 +8,9 @@ class TerminalMonitor {
   final void Function(String terminalId, TerminalActivityStatus status)?
       onStatusChange;
   final void Function(String terminalId, String url)? onUrlDetected;
+  final void Function(String terminalId, String activityStatus)? onMetaUpdate;
 
-  TerminalMonitor({this.onStatusChange, this.onUrlDetected});
+  TerminalMonitor({this.onStatusChange, this.onUrlDetected, this.onMetaUpdate});
 
   /// Feed data from a terminal's PTY output.
   void onData(String terminalId, String data) {
@@ -66,6 +67,7 @@ class TerminalMonitor {
     if (monitor == null || monitor.lastStatus == status) return;
     monitor.lastStatus = status;
     onStatusChange?.call(terminalId, status);
+    onMetaUpdate?.call(terminalId, status.name);
   }
 
   /// Open a URL in the system browser.
