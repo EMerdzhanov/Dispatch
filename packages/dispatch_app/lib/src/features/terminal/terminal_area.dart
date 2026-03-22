@@ -10,6 +10,14 @@ import '../../core/models/split_node.dart';
 import '../terminal/terminal_pane.dart';
 import '../terminal/terminal_provider.dart';
 
+/// Global keys for terminal panes — preserves state when moving between
+/// IndexedStack (single view) and Flex (split view).
+final _terminalPaneKeys = <String, GlobalKey>{};
+
+GlobalKey _getTerminalKey(String id) {
+  return _terminalPaneKeys.putIfAbsent(id, () => GlobalKey());
+}
+
 /// The main content area that shows either terminals or browser panel.
 class TerminalArea extends ConsumerWidget {
   const TerminalArea({super.key});
@@ -68,7 +76,7 @@ class TerminalArea extends ConsumerWidget {
                       index: activeGroup.terminalIds.indexOf(terminalId).clamp(0, activeGroup.terminalIds.length - 1),
                       children: activeGroup.terminalIds.map((id) {
                         return TerminalPane(
-                          key: ValueKey(id),
+                          key: _getTerminalKey(id),
                           terminalId: id,
                         );
                       }).toList(),
@@ -81,16 +89,29 @@ class TerminalArea extends ConsumerWidget {
   Widget _buildSplitView(ProjectGroup group) {
     final layout = group.splitLayout!;
     final direction = layout is SplitBranch ? layout.direction : SplitDirection.horizontal;
+    final isHorizontal = direction == SplitDirection.horizontal;
+
+    final children = <Widget>[];
+    for (int i = 0; i < group.terminalIds.length; i++) {
+      if (i > 0) {
+        // Divider between panes
+        children.add(Container(
+          width: isHorizontal ? 1 : null,
+          height: isHorizontal ? null : 1,
+          color: AppTheme.border,
+        ));
+      }
+      children.add(Expanded(
+        child: TerminalPane(
+          key: _getTerminalKey(group.terminalIds[i]),
+          terminalId: group.terminalIds[i],
+        ),
+      ));
+    }
+
     return Flex(
-      direction: direction == SplitDirection.horizontal ? Axis.horizontal : Axis.vertical,
-      children: group.terminalIds.map((id) {
-        return Expanded(
-          child: TerminalPane(
-            key: ValueKey(id),
-            terminalId: id,
-          ),
-        );
-      }).toList(),
+      direction: isHorizontal ? Axis.horizontal : Axis.vertical,
+      children: children,
     );
   }
 }
