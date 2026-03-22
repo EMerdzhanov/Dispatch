@@ -38,6 +38,8 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
   late bool _notificationsEnabled;
   late bool _soundEnabled;
 
+  bool _themeExpanded = false;
+
   // Preset editing state
   int? _editingIdx;
   String _editName = '';
@@ -167,58 +169,84 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SizedBox(
-                                  width: 120,
-                                  child: Text('Theme', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: SizedBox(
+                                    width: 120,
+                                    child: Text('Theme', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                                  ),
                                 ),
                                 Expanded(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: theme.surfaceLight,
-                                      borderRadius: BorderRadius.circular(AppTheme.radius),
-                                      border: Border.all(color: theme.border, width: AppTheme.borderWidth),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: ColorTheme.builtIn.map((t) {
-                                        final isSelected = t.id == currentThemeId;
-                                        return GestureDetector(
-                                          onTap: () => ref.read(themeProvider.notifier).setTheme(t.id),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                                            decoration: BoxDecoration(
-                                              color: isSelected ? theme.accentBlue.withValues(alpha: 0.2) : Colors.transparent,
-                                              border: Border(
-                                                bottom: t.id != ColorTheme.builtIn.last.id
-                                                    ? BorderSide(color: theme.border, width: AppTheme.borderWidth)
-                                                    : BorderSide.none,
-                                              ),
-                                            ),
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _themeExpanded = !_themeExpanded),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: theme.surfaceLight,
+                                        borderRadius: BorderRadius.circular(AppTheme.radius),
+                                        border: Border.all(color: theme.border, width: AppTheme.borderWidth),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          // Always-visible selected theme row
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                             child: Row(
                                               children: [
                                                 Container(
-                                                  width: 10,
-                                                  height: 10,
+                                                  width: 10, height: 10,
                                                   margin: const EdgeInsets.only(right: 8),
                                                   decoration: BoxDecoration(
-                                                    color: t.uiAccent,
+                                                    color: ColorTheme.fromId(currentThemeId).uiAccent,
                                                     shape: BoxShape.circle,
                                                   ),
                                                 ),
-                                                Text(
-                                                  t.name,
-                                                  style: TextStyle(
-                                                    color: isSelected ? theme.textPrimary : theme.textSecondary,
-                                                    fontSize: 12,
-                                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                                Expanded(
+                                                  child: Text(
+                                                    ColorTheme.fromId(currentThemeId).name,
+                                                    style: TextStyle(color: theme.textPrimary, fontSize: 12),
                                                   ),
+                                                ),
+                                                Icon(
+                                                  _themeExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                                                  color: theme.textSecondary, size: 18,
                                                 ),
                                               ],
                                             ),
                                           ),
-                                        );
-                                      }).toList(),
+                                          // Expandable options
+                                          if (_themeExpanded)
+                                            ...ColorTheme.builtIn.where((t) => t.id != currentThemeId).map((t) {
+                                              return GestureDetector(
+                                                onTap: () {
+                                                  ref.read(themeProvider.notifier).setTheme(t.id);
+                                                  setState(() => _themeExpanded = false);
+                                                },
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                                  decoration: BoxDecoration(
+                                                    border: Border(top: BorderSide(color: theme.border, width: AppTheme.borderWidth)),
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      Container(
+                                                        width: 10, height: 10,
+                                                        margin: const EdgeInsets.only(right: 8),
+                                                        decoration: BoxDecoration(
+                                                          color: t.uiAccent,
+                                                          shape: BoxShape.circle,
+                                                        ),
+                                                      ),
+                                                      Text(t.name, style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            }),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
