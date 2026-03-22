@@ -21,6 +21,8 @@ import 'features/command_palette/command_palette.dart';
 import 'features/command_palette/quick_switcher.dart';
 import 'features/settings/settings_panel.dart';
 import 'features/shortcuts/shortcuts_panel.dart';
+import 'features/mcp/mcp_panel.dart';
+import 'features/mcp/mcp_provider.dart';
 import 'persistence/auto_save.dart';
 import 'core/models/terminal_entry.dart';
 import 'core/models/template.dart';
@@ -39,6 +41,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   bool _searchOpen = false;
   bool _settingsOpen = false;
   bool _shortcutsOpen = false;
+  bool _integrationsOpen = false;
   bool _saveTemplateOpen = false;
   bool _loaded = false;
   int _terminalCounter = 0;
@@ -50,6 +53,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await loadSavedState(ref);
       ref.read(autoSaveProvider);
+      ref.read(mcpServerProvider);
       setState(() => _loaded = true);
     });
   }
@@ -208,6 +212,8 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
                         setState(() => _settingsOpen = true),
                     onOpenShortcuts: () =>
                         setState(() => _shortcutsOpen = true),
+                    onOpenIntegrations: () =>
+                        setState(() => _integrationsOpen = true),
                   ),
                   // Main content
                   Expanded(
@@ -257,6 +263,11 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
               ShortcutsPanel(
                 open: true,
                 onClose: () => setState(() => _shortcutsOpen = false),
+              ),
+            if (_integrationsOpen)
+              McpPanel(
+                open: true,
+                onClose: () => setState(() => _integrationsOpen = false),
               ),
             if (_saveTemplateOpen)
               SaveTemplateDialog(

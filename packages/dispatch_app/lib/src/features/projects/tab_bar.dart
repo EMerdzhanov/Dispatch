@@ -5,12 +5,14 @@ import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_provider.dart';
+import '../mcp/mcp_provider.dart';
 
 class ProjectTabBar extends ConsumerWidget {
   final VoidCallback onOpenFolder;
   final VoidCallback onNewTab;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenShortcuts;
+  final VoidCallback onOpenIntegrations;
 
   const ProjectTabBar({
     super.key,
@@ -18,6 +20,7 @@ class ProjectTabBar extends ConsumerWidget {
     required this.onNewTab,
     required this.onOpenSettings,
     required this.onOpenShortcuts,
+    required this.onOpenIntegrations,
   });
 
   @override
@@ -151,12 +154,29 @@ class ProjectTabBar extends ConsumerWidget {
 
           const SizedBox(width: AppTheme.spacingXs),
 
-          // Integrations icon (placeholder)
-          _IconButton(
-            icon: Icons.extension_outlined,
-            tooltip: 'Integrations',
-            onTap: () {},
-            theme: theme,
+          // Integrations icon with status dot
+          Stack(
+            children: [
+              _IconButton(
+                icon: Icons.extension_outlined,
+                tooltip: 'Integrations',
+                onTap: onOpenIntegrations,
+                theme: theme,
+              ),
+              if (ref.watch(mcpServerProvider.select((s) => s.running)))
+                Positioned(
+                  right: 2,
+                  top: 2,
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: theme.accentGreen,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
           ),
 
           // Settings gear icon
