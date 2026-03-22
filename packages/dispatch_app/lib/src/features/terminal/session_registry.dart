@@ -60,16 +60,20 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
   void appendOutput(String terminalId, String data) {
     final record = state[terminalId];
     if (record == null) return;
-
-    final lines = data.split('\n');
-    for (final line in lines) {
-      record.outputBuffer.addLast(line);
-      while (record.outputBuffer.length > maxOutputLines) {
-        record.outputBuffer.removeFirst();
-      }
+    final newBuffer = Queue<String>.of(record.outputBuffer);
+    for (final line in data.split('\n')) {
+      newBuffer.addLast(line);
+      while (newBuffer.length > maxOutputLines) newBuffer.removeFirst();
     }
-    // Trigger state update for listeners
-    state = Map.of(state);
+    state = {
+      ...state,
+      terminalId: TerminalSessionRecord(
+        session: record.session,
+        pty: record.pty,
+        outputBuffer: newBuffer,
+        meta: record.meta,
+      ),
+    };
   }
 
   /// Read the last N lines from a terminal's output buffer.

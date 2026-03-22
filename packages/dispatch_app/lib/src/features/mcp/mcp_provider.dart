@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'mcp_server.dart';
@@ -57,24 +59,9 @@ class McpServerState {
     if (authEnabled && authToken != null) {
       config['headers'] = {'Authorization': 'Bearer $authToken'};
     }
-    return '{\n  "dispatch": ${_prettyJson(config)}\n}';
-  }
-
-  static String _prettyJson(Map<String, dynamic> json) {
-    final buffer = StringBuffer('{');
-    final entries = json.entries.toList();
-    for (var i = 0; i < entries.length; i++) {
-      final entry = entries[i];
-      final value = entry.value is String
-          ? '"${entry.value}"'
-          : entry.value is Map
-              ? _prettyJson(entry.value as Map<String, dynamic>)
-              : entry.value.toString();
-      buffer.write('\n    "${entry.key}": $value');
-      if (i < entries.length - 1) buffer.write(',');
-    }
-    buffer.write('\n  }');
-    return buffer.toString();
+    final encoder = const JsonEncoder.withIndent('  ');
+    final wrapper = {'dispatch': config};
+    return encoder.convert(wrapper);
   }
 }
 

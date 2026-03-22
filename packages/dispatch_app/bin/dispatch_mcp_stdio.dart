@@ -44,10 +44,15 @@ void main(List<String> args) async {
       final responseBody = await response.transform(const Utf8Decoder()).join();
       stdout.writeln(responseBody);
     } catch (e) {
+      // Try to extract id from the original request
+      dynamic requestId;
+      try {
+        requestId = (jsonDecode(line) as Map<String, dynamic>)['id'];
+      } catch (_) {}
       final errorResponse = jsonEncode({
         'jsonrpc': '2.0',
         'error': {'code': -32000, 'message': 'Bridge error: $e'},
-        'id': null,
+        'id': requestId,
       });
       stdout.writeln(errorResponse);
     }

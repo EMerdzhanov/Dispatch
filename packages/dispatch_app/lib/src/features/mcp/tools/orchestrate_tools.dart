@@ -165,6 +165,7 @@ Future<Map<String, dynamic>> _splitTerminal(Ref ref, Map<String, dynamic> params
             status: TerminalStatus.running,
           ),
         );
+    ref.read(terminalsProvider.notifier).setActiveTerminal(targetTerminalId);
   }
 
   // Build split layout

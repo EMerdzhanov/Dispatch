@@ -14,12 +14,13 @@ class McpNotificationManager {
   final McpServer server;
   Timer? _outputDebounce;
   Map<String, int> _lastOutputLengths = {};
+  final List<ProviderSubscription<dynamic>> _subscriptions = [];
 
   McpNotificationManager(this.ref, this.server);
 
   void startListening() {
     // Watch terminal state changes
-    ref.listen(terminalsProvider, (prev, next) {
+    _subscriptions.add(ref.listen(terminalsProvider, (prev, next) {
       if (prev == null) return;
 
       // Detect status changes
@@ -36,10 +37,10 @@ class McpNotificationManager {
           ));
         }
       }
-    });
+    }));
 
     // Watch project changes
-    ref.listen(projectsProvider, (prev, next) {
+    _subscriptions.add(ref.listen(projectsProvider, (prev, next) {
       if (prev == null) return;
       if (prev.groups.length != next.groups.length ||
           prev.activeGroupId != next.activeGroupId) {
@@ -51,10 +52,10 @@ class McpNotificationManager {
           },
         ));
       }
-    });
+    }));
 
     // Debounced terminal output notifications
-    ref.listen(sessionRegistryProvider, (prev, next) {
+    _subscriptions.add(ref.listen(sessionRegistryProvider, (prev, next) {
       _outputDebounce?.cancel();
       _outputDebounce = Timer(const Duration(milliseconds: 200), () {
         for (final entry in next.entries) {
@@ -72,10 +73,14 @@ class McpNotificationManager {
           _lastOutputLengths[entry.key] = currentLength;
         }
       });
-    });
+    }));
   }
 
   void stopListening() {
     _outputDebounce?.cancel();
+    for (final sub in _subscriptions) {
+      sub.close();
+    }
+    _subscriptions.clear();
   }
 }

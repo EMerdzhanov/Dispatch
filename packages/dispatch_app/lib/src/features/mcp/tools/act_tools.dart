@@ -106,6 +106,7 @@ Future<Map<String, dynamic>> _spawnTerminal(Ref ref, Map<String, dynamic> params
           label: label,
         ),
       );
+  ref.read(terminalsProvider.notifier).setActiveTerminal(terminalId);
 
   return {'terminalId': terminalId, 'projectId': groupId};
 }
