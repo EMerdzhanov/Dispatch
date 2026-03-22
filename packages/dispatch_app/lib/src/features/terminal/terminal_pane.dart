@@ -90,10 +90,15 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     // Register PTY globally
     TerminalPane.ptyRegistry[widget.terminalId] = _pty!;
 
-    ref.read(sessionRegistryProvider.notifier).register(
-      widget.terminalId,
-      pty: _pty,
-    );
+    // Defer Riverpod state change to avoid build-phase conflicts
+    Future.delayed(Duration.zero, () {
+      if (mounted) {
+        ref.read(sessionRegistryProvider.notifier).register(
+          widget.terminalId,
+          pty: _pty,
+        );
+      }
+    });
 
     // Wire PTY output → terminal + URL detection
     _pty!.output.cast<List<int>>().transform(const Utf8Decoder()).listen((data) {
@@ -115,10 +120,14 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
         final port = Uri.tryParse(url)?.port.toString() ?? '';
         if (port.isNotEmpty && !detectedPorts.contains(port)) {
           detectedPorts.add(port);
-          final groupId = ref.read(projectsProvider).activeGroupId;
-          if (groupId != null) {
-            ref.read(browserProvider.notifier).addTab(groupId, url);
-          }
+          Future.delayed(Duration.zero, () {
+            if (mounted) {
+              final groupId = ref.read(projectsProvider).activeGroupId;
+              if (groupId != null) {
+                ref.read(browserProvider.notifier).addTab(groupId, url);
+              }
+            }
+          });
         }
       }
     });
@@ -130,13 +139,15 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
 
     // Handle PTY exit
     _pty!.exitCode.then((code) {
-      if (mounted) {
-        ref.read(terminalsProvider.notifier).updateStatus(
-              widget.terminalId,
-              TerminalStatus.exited,
-              exitCode: code,
-            );
-      }
+      Future.delayed(Duration.zero, () {
+        if (mounted) {
+          ref.read(terminalsProvider.notifier).updateStatus(
+                widget.terminalId,
+                TerminalStatus.exited,
+                exitCode: code,
+              );
+        }
+      });
     });
 
     // If the command is not $SHELL, type it into the shell
