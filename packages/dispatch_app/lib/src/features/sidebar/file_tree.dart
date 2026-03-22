@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_pane.dart';
 import '../terminal/terminal_provider.dart';
@@ -107,10 +108,11 @@ class _FileTreeState extends ConsumerState<FileTree> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     // Reload when active group changes
     ref.listen(projectsProvider.select((s) => s.activeGroupId), (_, _) => _loadEntries());
-    if (_entries == null) return const Center(child: Text('Loading...', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
-    if (_entries!.isEmpty) return const Center(child: Text('No files', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)));
+    if (_entries == null) return Center(child: Text('Loading...', style: TextStyle(color: theme.textSecondary, fontSize: 11)));
+    if (_entries!.isEmpty) return Center(child: Text('No files', style: TextStyle(color: theme.textSecondary, fontSize: 11)));
 
     return Material(
       color: Colors.transparent,
@@ -121,7 +123,7 @@ class _FileTreeState extends ConsumerState<FileTree> {
           children: _entries!.map((entity) {
             final name = entity.path.split('/').last;
             final isDir = entity is Directory;
-            return _TreeNode(name: name, fullPath: entity.path, isDirectory: isDir, depth: 0, onFileClick: _onFileClick);
+            return _TreeNode(name: name, fullPath: entity.path, isDirectory: isDir, depth: 0, onFileClick: _onFileClick, theme: theme);
           }).toList(),
         ),
       ),
@@ -135,8 +137,9 @@ class _TreeNode extends StatefulWidget {
   final bool isDirectory;
   final int depth;
   final void Function(String) onFileClick;
+  final AppTheme theme;
 
-  const _TreeNode({required this.name, required this.fullPath, required this.isDirectory, required this.depth, required this.onFileClick});
+  const _TreeNode({required this.name, required this.fullPath, required this.isDirectory, required this.depth, required this.onFileClick, required this.theme});
 
   @override
   State<_TreeNode> createState() => _TreeNodeState();
@@ -148,6 +151,7 @@ class _TreeNodeState extends State<_TreeNode> {
   List<FileSystemEntity>? _children;
 
   Future<void> _showContextMenu(BuildContext context, Offset localPosition) async {
+    final theme = widget.theme;
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
     final globalPosition = renderBox.localToGlobal(localPosition);
@@ -158,20 +162,20 @@ class _TreeNodeState extends State<_TreeNode> {
         globalPosition.dx, globalPosition.dy,
         globalPosition.dx + 1, globalPosition.dy + 1,
       ),
-      color: AppTheme.surfaceLight,
+      color: theme.surfaceLight,
       items: [
         PopupMenuItem(
           value: 'copy_path',
-          child: Text('Copy Path', style: AppTheme.bodyStyle),
+          child: Text('Copy Path', style: theme.bodyStyle),
         ),
         PopupMenuItem(
           value: 'open_finder',
-          child: Text('Reveal in Finder', style: AppTheme.bodyStyle),
+          child: Text('Reveal in Finder', style: theme.bodyStyle),
         ),
         if (!widget.isDirectory)
           PopupMenuItem(
             value: 'insert_path',
-            child: Text('Insert Path in Terminal', style: AppTheme.bodyStyle),
+            child: Text('Insert Path in Terminal', style: theme.bodyStyle),
           ),
       ],
     );
@@ -214,6 +218,7 @@ class _TreeNodeState extends State<_TreeNode> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -228,11 +233,11 @@ class _TreeNodeState extends State<_TreeNode> {
             cursor: SystemMouseCursors.click,
             child: Container(
               padding: EdgeInsets.only(left: AppTheme.spacingSm + widget.depth * 14, top: 5, bottom: 5, right: AppTheme.spacingSm),
-              color: _hovered ? AppTheme.surfaceLight : Colors.transparent,
+              color: _hovered ? theme.surfaceLight : Colors.transparent,
               child: Row(
                 children: [
                   if (widget.isDirectory) ...[
-                    Text(_expanded ? '\u25BE' : '\u25B8', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 9)),
+                    Text(_expanded ? '\u25BE' : '\u25B8', style: TextStyle(color: theme.textSecondary, fontSize: 9)),
                     const SizedBox(width: 4),
                     Text(_expanded ? '\u{1F4C2}' : '\u{1F4C1}', style: const TextStyle(fontSize: 12)),
                   ] else ...[
@@ -251,7 +256,7 @@ class _TreeNodeState extends State<_TreeNode> {
                     child: Text(
                       widget.name,
                       style: TextStyle(
-                        color: _hovered ? AppTheme.textPrimary : (widget.isDirectory ? AppTheme.textPrimary : const Color(0xFFBBBBBB)),
+                        color: _hovered ? theme.textPrimary : (widget.isDirectory ? theme.textPrimary : const Color(0xFFBBBBBB)),
                         fontSize: 12,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -262,9 +267,9 @@ class _TreeNodeState extends State<_TreeNode> {
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () => widget.onFileClick(widget.fullPath),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Text('+', style: TextStyle(color: AppTheme.accentBlue, fontSize: 14, fontWeight: FontWeight.w600)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text('+', style: TextStyle(color: theme.accentBlue, fontSize: 14, fontWeight: FontWeight.w600)),
                       ),
                     ),
                 ],
@@ -275,7 +280,7 @@ class _TreeNodeState extends State<_TreeNode> {
         if (_expanded && _children != null && widget.depth < 15)
           ..._children!.map((child) {
             final name = child.path.split('/').last;
-            return _TreeNode(name: name, fullPath: child.path, isDirectory: child is Directory, depth: widget.depth + 1, onFileClick: widget.onFileClick);
+            return _TreeNode(name: name, fullPath: child.path, isDirectory: child is Directory, depth: widget.depth + 1, onFileClick: widget.onFileClick, theme: theme);
           }),
       ],
     );

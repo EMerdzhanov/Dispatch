@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/terminal_entry.dart';
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_provider.dart';
 
@@ -16,15 +17,15 @@ class TerminalList extends ConsumerStatefulWidget {
 class _TerminalListState extends ConsumerState<TerminalList> {
   String _filter = '';
 
-  Color _statusColor(TerminalStatus status, bool isActive) {
-    if (isActive) return AppTheme.accentBlue;
+  Color _statusColor(AppTheme theme, TerminalStatus status, bool isActive) {
+    if (isActive) return theme.accentBlue;
     switch (status) {
       case TerminalStatus.active:
-        return AppTheme.accentBlue;
+        return theme.accentBlue;
       case TerminalStatus.running:
-        return AppTheme.accentGreen;
+        return theme.accentGreen;
       case TerminalStatus.exited:
-        return AppTheme.accentRed;
+        return theme.accentRed;
     }
   }
 
@@ -37,6 +38,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final terminalsState = ref.watch(terminalsProvider);
     final projectsState = ref.watch(projectsProvider);
 
@@ -54,7 +56,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingSm),
           child: Text(
             'TERMINALS (${terminalIds.length})',
-            style: AppTheme.labelStyle,
+            style: theme.labelStyle,
           ),
         ),
         // Filter input
@@ -63,10 +65,10 @@ class _TerminalListState extends ConsumerState<TerminalList> {
           child: SizedBox(
             height: 22,
             child: TextField(
-              style: AppTheme.bodyStyle,
+              style: theme.bodyStyle,
               decoration: InputDecoration(
                 hintText: 'Filter terminals\u2026',
-                hintStyle: AppTheme.dimStyle,
+                hintStyle: theme.dimStyle,
                 filled: true,
                 fillColor: Colors.transparent,
                 isDense: true,
@@ -77,16 +79,16 @@ class _TerminalListState extends ConsumerState<TerminalList> {
             ),
           ),
         ),
-        const Divider(color: AppTheme.border, height: 1, thickness: AppTheme.borderWidth),
+        Divider(color: theme.border, height: 1, thickness: AppTheme.borderWidth),
         // Terminal list
         Expanded(
-          child: _buildTerminalList(terminalsState, terminalIds),
+          child: _buildTerminalList(theme, terminalsState, terminalIds),
         ),
       ],
     );
   }
 
-  Widget _buildTerminalList(TerminalsState terminalsState, List<String> terminalIds) {
+  Widget _buildTerminalList(AppTheme theme, TerminalsState terminalsState, List<String> terminalIds) {
     final filtered = _filter.isEmpty
         ? terminalIds
         : terminalIds.where((id) {
@@ -102,7 +104,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
     if (terminals.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd, vertical: AppTheme.spacingSm),
-        child: Text('No terminals', style: AppTheme.dimStyle),
+        child: Text('No terminals', style: theme.dimStyle),
       );
     }
 
@@ -111,7 +113,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
       child: Column(
         children: terminals.map((terminal) {
         final isActive = terminal.id == terminalsState.activeTerminalId;
-        final statusColor = _statusColor(terminal.status, isActive);
+        final statusColor = _statusColor(theme, terminal.status, isActive);
         final label = terminal.label ?? terminal.presetName ?? terminal.command.split(' ').first;
 
         return _TerminalListItem(
@@ -123,6 +125,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
           onTap: () => ref.read(terminalsProvider.notifier).setActiveTerminal(terminal.id),
           onRename: (newLabel) => ref.read(terminalsProvider.notifier).renameTerminal(terminal.id, newLabel),
           onKill: () => ref.read(terminalsProvider.notifier).removeTerminal(terminal.id),
+          theme: theme,
         );
       }).toList(),
       ),
@@ -139,6 +142,7 @@ class _TerminalListItem extends StatefulWidget {
   final VoidCallback onTap;
   final void Function(String) onRename;
   final VoidCallback onKill;
+  final AppTheme theme;
 
   const _TerminalListItem({
     required this.terminal,
@@ -149,6 +153,7 @@ class _TerminalListItem extends StatefulWidget {
     required this.onTap,
     required this.onRename,
     required this.onKill,
+    required this.theme,
   });
 
   @override
@@ -159,6 +164,7 @@ class _TerminalListItemState extends State<_TerminalListItem> {
   bool _hovered = false;
 
   void _showContextMenu(BuildContext context, Offset localPosition) async {
+    final theme = widget.theme;
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
     final globalPosition = renderBox.localToGlobal(localPosition);
@@ -171,17 +177,17 @@ class _TerminalListItemState extends State<_TerminalListItem> {
         globalPosition.dx + 1,
         globalPosition.dy + 1,
       ),
-      color: AppTheme.surfaceLight,
+      color: theme.surfaceLight,
       items: [
         PopupMenuItem(
           value: 'rename',
-          child: Text('Rename', style: AppTheme.bodyStyle),
+          child: Text('Rename', style: theme.bodyStyle),
         ),
         PopupMenuItem(
           value: 'kill',
           child: Text(
             'Kill',
-            style: AppTheme.bodyStyle.copyWith(color: AppTheme.accentRed),
+            style: theme.bodyStyle.copyWith(color: theme.accentRed),
           ),
         ),
       ],
@@ -195,22 +201,23 @@ class _TerminalListItemState extends State<_TerminalListItem> {
   }
 
   void _showRenameDialog(BuildContext context) {
+    final theme = widget.theme;
     final controller = TextEditingController(text: widget.label);
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surfaceLight,
-        title: Text('Rename Terminal', style: AppTheme.titleStyle),
+        backgroundColor: theme.surfaceLight,
+        title: Text('Rename Terminal', style: theme.titleStyle),
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(color: AppTheme.textPrimary),
-          decoration: const InputDecoration(
+          style: TextStyle(color: theme.textPrimary),
+          decoration: InputDecoration(
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppTheme.border),
+              borderSide: BorderSide(color: theme.border),
             ),
             focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppTheme.accentBlue),
+              borderSide: BorderSide(color: theme.accentBlue),
             ),
           ),
           onSubmitted: (value) {
@@ -223,7 +230,7 @@ class _TerminalListItemState extends State<_TerminalListItem> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel', style: AppTheme.dimStyle),
+            child: Text('Cancel', style: theme.dimStyle),
           ),
           TextButton(
             onPressed: () {
@@ -231,7 +238,7 @@ class _TerminalListItemState extends State<_TerminalListItem> {
               if (value.isNotEmpty) widget.onRename(value);
               Navigator.of(ctx).pop();
             },
-            child: Text('Rename', style: AppTheme.bodyStyle.copyWith(color: AppTheme.accentBlue)),
+            child: Text('Rename', style: theme.bodyStyle.copyWith(color: theme.accentBlue)),
           ),
         ],
       ),
@@ -240,6 +247,7 @@ class _TerminalListItemState extends State<_TerminalListItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     final statusDot = Container(
       width: 6,
       height: 6,
@@ -277,8 +285,8 @@ class _TerminalListItemState extends State<_TerminalListItem> {
                       widget.label,
                       style: TextStyle(
                         color: widget.isActive
-                            ? AppTheme.textPrimary
-                            : AppTheme.textPrimary.withValues(alpha: 0.85),
+                            ? theme.textPrimary
+                            : theme.textPrimary.withValues(alpha: 0.85),
                         fontSize: 12,
                         fontWeight: widget.isActive
                             ? FontWeight.w500
@@ -289,8 +297,8 @@ class _TerminalListItemState extends State<_TerminalListItem> {
                     ),
                     Text(
                       widget.cwdDisplay,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
+                      style: TextStyle(
+                        color: theme.textSecondary,
                         fontSize: 10,
                       ),
                       overflow: TextOverflow.ellipsis,

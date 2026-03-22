@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../terminal/terminal_provider.dart';
 import '../presets/quick_launch.dart';
 import 'terminal_list.dart';
@@ -14,6 +15,7 @@ class Sidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final zenMode = ref.watch(terminalsProvider.select((s) => s.zenMode));
 
     if (zenMode) return const SizedBox.shrink();
@@ -21,17 +23,17 @@ class Sidebar extends ConsumerWidget {
     return SizedBox(
       width: AppTheme.sidebarWidth,
       child: Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.surface,
+        decoration: BoxDecoration(
+          color: theme.surface,
           border: Border(
-            right: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
+            right: BorderSide(color: theme.border, width: AppTheme.borderWidth),
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             QuickLaunch(onSpawn: onSpawn),
-            const Divider(color: AppTheme.border, height: 1, thickness: AppTheme.borderWidth),
+            Divider(color: theme.border, height: 1, thickness: AppTheme.borderWidth),
             const Expanded(child: TerminalList()),
             const StatusBar(),
           ],

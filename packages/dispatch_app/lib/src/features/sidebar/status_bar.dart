@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_provider.dart';
 
@@ -15,6 +16,7 @@ class StatusBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final projectsState = ref.watch(projectsProvider);
     final terminalsState = ref.watch(terminalsProvider);
 
@@ -31,10 +33,10 @@ class StatusBar extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Color(0xFF0E0E22),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E0E22),
         border: Border(
-          top: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
+          top: BorderSide(color: theme.border, width: AppTheme.borderWidth),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs + 2),
@@ -45,13 +47,13 @@ class StatusBar extends ConsumerWidget {
           if (cwd != null)
             Text(
               _truncateCwdLeft(cwd),
-              style: AppTheme.dimStyle.copyWith(fontSize: 10),
+              style: theme.dimStyle.copyWith(fontSize: 10),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
           Text(
             '$terminalCount ${terminalCount == 1 ? 'terminal' : 'terminals'}',
-            style: AppTheme.dimStyle.copyWith(fontSize: 10),
+            style: theme.dimStyle.copyWith(fontSize: 10),
           ),
         ],
       ),
