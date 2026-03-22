@@ -3,14 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:dispatch_app/src/core/theme/app_theme.dart';
+import 'package:dispatch_app/src/core/theme/color_theme.dart';
 import 'package:dispatch_app/src/features/command_palette/command_palette.dart';
 import 'package:dispatch_app/src/features/command_palette/quick_switcher.dart';
 
 Widget _wrap(Widget child, {List<Override> overrides = const []}) {
+  final theme = AppTheme(ColorTheme.fromId('dispatch-dark'));
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(
-      theme: AppTheme.dark,
+      theme: theme.dark,
       home: Scaffold(body: child),
     ),
   );

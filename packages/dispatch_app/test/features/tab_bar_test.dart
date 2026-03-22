@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dispatch_app/src/core/theme/app_theme.dart';
+import 'package:dispatch_app/src/core/theme/color_theme.dart';
 import 'package:dispatch_app/src/features/projects/tab_bar.dart';
 import 'package:dispatch_app/src/features/projects/welcome_screen.dart';
 import 'package:dispatch_app/src/features/projects/projects_provider.dart';
 
 Widget _wrap(Widget child, {List<Override> overrides = const []}) {
+  final theme = AppTheme(ColorTheme.fromId('dispatch-dark'));
   return ProviderScope(
     overrides: overrides,
-    child: MaterialApp(theme: AppTheme.dark, home: Scaffold(body: child)),
+    child: MaterialApp(theme: theme.dark, home: Scaffold(body: child)),
   );
 }
 
@@ -20,6 +22,7 @@ void main() {
         _wrap(
           ProjectTabBar(
             onOpenFolder: () {},
+            onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
           ),
@@ -43,6 +46,7 @@ void main() {
         _wrap(
           ProjectTabBar(
             onOpenFolder: () {},
+            onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
           ),
@@ -68,6 +72,7 @@ void main() {
         _wrap(
           ProjectTabBar(
             onOpenFolder: () {},
+            onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
           ),
@@ -83,6 +88,7 @@ void main() {
         _wrap(
           ProjectTabBar(
             onOpenFolder: () => called = true,
+            onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
           ),
@@ -100,6 +106,7 @@ void main() {
         _wrap(
           ProjectTabBar(
             onOpenFolder: () {},
+            onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
           ),
