@@ -145,10 +145,11 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                     ],
                     const SizedBox(height: 16),
 
-                    // Connection Info
+                    // Connection URL + Public Access
                     if (mcpState.running) ...[
                       _sectionLabel('CONNECTION', theme),
                       const SizedBox(height: 8),
+                      // Show the active URL (tunnel or localhost) with copy
                       _copyRow('URL', mcpState.httpUrl, theme),
                       if (mcpState.authEnabled && mcpState.authToken != null) ...[
                         const SizedBox(height: 6),
@@ -173,40 +174,12 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                           child: Text('Regenerate token', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
                         ),
                       ],
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Public Access (Tunnel)
-                    if (mcpState.running) ...[
-                      _sectionLabel('PUBLIC ACCESS', theme),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
+                      // Public URL toggle
                       if (!mcpState.cloudflaredAvailable) ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'cloudflared not found. Required for public URLs.',
-                                style: TextStyle(color: theme.textSecondary, fontSize: 11),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: () {
-                            Clipboard.setData(const ClipboardData(text: 'brew install cloudflared'));
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: theme.border,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'Copy: brew install cloudflared',
-                              style: TextStyle(color: theme.textPrimary, fontSize: 11),
-                            ),
-                          ),
+                        Text(
+                          'Install cloudflared for public URLs: brew install cloudflared',
+                          style: TextStyle(color: theme.textSecondary, fontSize: 10),
                         ),
                         const SizedBox(height: 4),
                         GestureDetector(
@@ -261,24 +234,11 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                             padding: const EdgeInsets.only(top: 4),
                             child: Text('Starting tunnel...', style: TextStyle(color: theme.accentYellow, fontSize: 11)),
                           ),
-                        if (mcpState.tunnelRunning && mcpState.tunnelUrl != null) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  mcpState.tunnelUrl!,
-                                  style: TextStyle(color: theme.accentGreen, fontSize: 11, fontFamily: 'Menlo'),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              _copyButton(mcpState.tunnelUrl!, theme),
-                            ],
+                        if (mcpState.tunnelRunning && !mcpState.tunnelStarting)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text('Tunnel active', style: TextStyle(color: theme.textSecondary, fontSize: 10)),
                           ),
-                          const SizedBox(height: 2),
-                          Text('Tunnel active', style: TextStyle(color: theme.textSecondary, fontSize: 10)),
-                        ],
                       ],
                       const SizedBox(height: 16),
                     ],
