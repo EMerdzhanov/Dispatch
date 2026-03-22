@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../projects/projects_provider.dart';
@@ -146,8 +147,49 @@ class _TreeNodeState extends State<_TreeNode> {
   bool _hovered = false;
   List<FileSystemEntity>? _children;
 
+  Future<void> _showContextMenu(BuildContext context, Offset localPosition) async {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final globalPosition = renderBox.localToGlobal(localPosition);
+
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        globalPosition.dx, globalPosition.dy,
+        globalPosition.dx + 1, globalPosition.dy + 1,
+      ),
+      color: AppTheme.surfaceLight,
+      items: [
+        PopupMenuItem(
+          value: 'copy_path',
+          child: Text('Copy Path', style: AppTheme.bodyStyle),
+        ),
+        PopupMenuItem(
+          value: 'open_finder',
+          child: Text('Reveal in Finder', style: AppTheme.bodyStyle),
+        ),
+        if (!widget.isDirectory)
+          PopupMenuItem(
+            value: 'insert_path',
+            child: Text('Insert Path in Terminal', style: AppTheme.bodyStyle),
+          ),
+      ],
+    );
+
+    if (result == 'copy_path') {
+      Clipboard.setData(ClipboardData(text: widget.fullPath));
+    } else if (result == 'open_finder') {
+      if (widget.isDirectory) {
+        Process.run('open', [widget.fullPath]);
+      } else {
+        Process.run('open', ['-R', widget.fullPath]);
+      }
+    } else if (result == 'insert_path') {
+      widget.onFileClick(widget.fullPath);
+    }
+  }
+
   void _toggle() {
-    debugPrint('[TreeNode] _toggle called: ${widget.name} isDir=${widget.isDirectory} path=${widget.fullPath}');
     if (!widget.isDirectory) {
       widget.onFileClick(widget.fullPath);
       return;
@@ -179,6 +221,7 @@ class _TreeNodeState extends State<_TreeNode> {
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _toggle,
+          onSecondaryTapUp: (details) => _showContextMenu(context, details.localPosition),
           child: MouseRegion(
             onEnter: (_) => setState(() => _hovered = true),
             onExit: (_) => setState(() => _hovered = false),
