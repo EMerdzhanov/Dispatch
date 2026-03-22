@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xterm/xterm.dart' as xterm;
 import 'package:flutter_pty/flutter_pty.dart';
@@ -117,6 +118,31 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     }
   }
 
+  /// Let app shortcuts (Cmd+N, Cmd+K, etc.) pass through to the Shortcuts widget.
+  /// Return KeyEventResult.ignored so Flutter's shortcut system handles them.
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.skipRemainingHandlers;
+
+    final meta = HardwareKeyboard.instance.isMetaPressed;
+    final shift = HardwareKeyboard.instance.isShiftPressed;
+    final key = event.logicalKey;
+
+    if (meta) {
+      // Pass these combos through to the app's Shortcuts widget
+      if (key == LogicalKeyboardKey.keyN) return KeyEventResult.ignored; // New terminal
+      if (key == LogicalKeyboardKey.keyT) return KeyEventResult.ignored; // New tab
+      if (key == LogicalKeyboardKey.keyW) return KeyEventResult.ignored; // Close pane
+      if (key == LogicalKeyboardKey.keyK) return KeyEventResult.ignored; // Quick switcher
+      if (key == LogicalKeyboardKey.keyD) return KeyEventResult.ignored; // Split
+      if (shift && key == LogicalKeyboardKey.keyP) return KeyEventResult.ignored; // Command palette
+      if (shift && key == LogicalKeyboardKey.keyZ) return KeyEventResult.ignored; // Zen mode
+      if (shift && key == LogicalKeyboardKey.keyS) return KeyEventResult.ignored; // Save template
+    }
+
+    // Let xterm handle everything else
+    return KeyEventResult.skipRemainingHandlers;
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -178,6 +204,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
               xterm.TerminalView(
                 _terminal,
                 padding: const EdgeInsets.all(8),
+                onKeyEvent: _handleKeyEvent,
                 textStyle: xterm.TerminalStyle.fromTextStyle(
                   TextStyle(
                     fontSize: settings.fontSize,

@@ -10,7 +10,6 @@ class AppShortcuts {
   static const splitHorizontal = SingleActivator(LogicalKeyboardKey.keyD, meta: true);
   static const splitVertical = SingleActivator(LogicalKeyboardKey.keyD, meta: true, shift: true);
   static const zenMode = SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true);
-  static const openSettings = SingleActivator(LogicalKeyboardKey.comma, meta: true);
   static const saveTemplate = SingleActivator(LogicalKeyboardKey.keyS, meta: true, shift: true);
 
   static Map<ShortcutActivator, Intent> get bindings => {
@@ -22,7 +21,6 @@ class AppShortcuts {
     splitHorizontal: const SplitHorizontalIntent(),
     splitVertical: const SplitVerticalIntent(),
     zenMode: const ToggleZenModeIntent(),
-    openSettings: const OpenSettingsIntent(),
     saveTemplate: const SaveTemplateIntent(),
   };
 }
@@ -35,5 +33,4 @@ class OpenPaletteIntent extends Intent { const OpenPaletteIntent(); }
 class SplitHorizontalIntent extends Intent { const SplitHorizontalIntent(); }
 class SplitVerticalIntent extends Intent { const SplitVerticalIntent(); }
 class ToggleZenModeIntent extends Intent { const ToggleZenModeIntent(); }
-class OpenSettingsIntent extends Intent { const OpenSettingsIntent(); }
 class SaveTemplateIntent extends Intent { const SaveTemplateIntent(); }

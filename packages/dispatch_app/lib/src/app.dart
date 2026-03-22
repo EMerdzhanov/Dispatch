@@ -182,12 +182,6 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
                 return null;
               },
             ),
-            OpenSettingsIntent: CallbackAction<OpenSettingsIntent>(
-              onInvoke: (_) {
-                setState(() => _settingsOpen = true);
-                return null;
-              },
-            ),
             SaveTemplateIntent: CallbackAction<SaveTemplateIntent>(
               onInvoke: (_) {
                 setState(() => _saveTemplateOpen = true);
