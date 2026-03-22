@@ -2,12 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xterm/xterm.dart' as xterm;
 import 'package:flutter_pty/flutter_pty.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/shortcuts/shortcut_registry.dart';
 import '../../core/models/terminal_entry.dart';
 import '../settings/settings_provider.dart';
 import '../browser/browser_provider.dart';
@@ -118,38 +118,10 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     }
   }
 
-  /// Let app shortcuts (Cmd+N, Cmd+K, etc.) pass through to the Shortcuts widget.
-  /// Return KeyEventResult.ignored for shortcut combos so Flutter handles them.
-  /// Return KeyEventResult.ignored for everything else too — xterm handles input
-  /// through its own onOutput callback, not through the key event system.
-  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-      return KeyEventResult.ignored;
-    }
-
-    final meta = HardwareKeyboard.instance.isMetaPressed;
-    final shift = HardwareKeyboard.instance.isShiftPressed;
-    final key = event.logicalKey;
-
-    if (meta) {
-      // These combos should be handled by the app's Shortcuts widget, not xterm
-      if (key == LogicalKeyboardKey.keyN ||
-          key == LogicalKeyboardKey.keyT ||
-          key == LogicalKeyboardKey.keyW ||
-          key == LogicalKeyboardKey.keyK ||
-          key == LogicalKeyboardKey.keyD) {
-        return KeyEventResult.ignored;
-      }
-      if (shift && (key == LogicalKeyboardKey.keyP ||
-          key == LogicalKeyboardKey.keyZ ||
-          key == LogicalKeyboardKey.keyS ||
-          key == LogicalKeyboardKey.keyD)) {
-        return KeyEventResult.ignored;
-      }
-    }
-
-    // Let xterm handle all other keys normally
-    return KeyEventResult.ignored;
+  /// Build shortcuts map that tells xterm to pass these key combos
+  /// up to the Flutter Shortcuts widget instead of handling them.
+  Map<ShortcutActivator, Intent> _buildShortcuts() {
+    return AppShortcuts.bindings;
   }
 
   @override
@@ -213,7 +185,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
               xterm.TerminalView(
                 _terminal,
                 padding: const EdgeInsets.all(8),
-                onKeyEvent: _handleKeyEvent,
+                shortcuts: _buildShortcuts(),
                 textStyle: xterm.TerminalStyle.fromTextStyle(
                   TextStyle(
                     fontSize: settings.fontSize,
