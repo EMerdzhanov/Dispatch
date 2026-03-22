@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../mcp_tools.dart';
@@ -12,13 +11,9 @@ import '../../projects/projects_provider.dart';
 import '../../../core/models/terminal_entry.dart';
 
 /// Schedule a state modification outside Flutter's build phase.
-Future<void> _deferStateChange(void Function() fn) {
-  final completer = Completer<void>();
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    fn();
-    completer.complete();
-  });
-  return completer.future;
+Future<void> _deferStateChange(void Function() fn) async {
+  await Future.delayed(Duration.zero);
+  fn();
 }
 
 List<McpToolDefinition> actTools() => [
