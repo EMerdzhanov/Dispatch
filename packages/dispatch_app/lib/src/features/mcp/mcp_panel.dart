@@ -61,10 +61,12 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     // Only update controller if value actually changed (avoids overwriting mid-edit)
     final portStr = mcpState.port.toString();
     if (_portCtrl.text != portStr) _portCtrl.text = portStr;
-    final tn = mcpState.tunnelName ?? '';
-    if (_tunnelNameCtrl.text != tn) _tunnelNameCtrl.text = tn;
-    final tu = mcpState.tunnelCustomUrl ?? '';
-    if (_tunnelUrlCtrl.text != tu) _tunnelUrlCtrl.text = tu;
+    if (!_tunnelDirty) {
+      final tn = mcpState.tunnelName ?? '';
+      if (_tunnelNameCtrl.text != tn) _tunnelNameCtrl.text = tn;
+      final tu = mcpState.tunnelCustomUrl ?? '';
+      if (_tunnelUrlCtrl.text != tu) _tunnelUrlCtrl.text = tu;
+    }
 
     return GestureDetector(
       onTap: widget.onClose,
