@@ -234,11 +234,26 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                             padding: const EdgeInsets.only(top: 4),
                             child: Text('Starting tunnel...', style: TextStyle(color: theme.accentYellow, fontSize: 11)),
                           ),
-                        if (mcpState.tunnelRunning && !mcpState.tunnelStarting)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text('Tunnel active', style: TextStyle(color: theme.textSecondary, fontSize: 10)),
+                        if (mcpState.tunnelRunning && !mcpState.tunnelStarting) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: theme.background,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'To connect Claude.ai:\n'
+                              '1. Go to claude.ai \u2192 Settings \u2192 Connectors\n'
+                              '2. Add connector \u2192 paste the URL above\n'
+                              '3. Start a new chat to use Dispatch tools\n\n'
+                              'This URL is temporary and changes on restart.\n'
+                              'For a permanent URL, see Advanced below.',
+                              style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.5),
+                            ),
                           ),
+                        ],
                       ],
                       const SizedBox(height: 16),
                     ],
