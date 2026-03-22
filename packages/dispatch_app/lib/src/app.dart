@@ -264,9 +264,8 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
                 open: true,
                 onClose: () => setState(() => _shortcutsOpen = false),
               ),
-            if (_integrationsOpen)
-              McpPanel(
-                open: true,
+            McpPanel(
+                open: _integrationsOpen,
                 onClose: () => setState(() => _integrationsOpen = false),
               ),
             if (_saveTemplateOpen)
