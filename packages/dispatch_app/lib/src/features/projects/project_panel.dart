@@ -1,32 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../notes/notes_panel.dart';
 import '../tasks/tasks_panel.dart';
 import '../vault/vault_panel.dart';
 
 enum _ProjectTab { tasks, notes, vault }
 
-class ProjectPanel extends StatefulWidget {
+class ProjectPanel extends ConsumerStatefulWidget {
   const ProjectPanel({super.key});
 
   @override
-  State<ProjectPanel> createState() => _ProjectPanelState();
+  ConsumerState<ProjectPanel> createState() => _ProjectPanelState();
 }
 
-class _ProjectPanelState extends State<ProjectPanel> {
+class _ProjectPanelState extends ConsumerState<ProjectPanel> {
   _ProjectTab _activeTab = _ProjectTab.tasks;
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
+
     return Container(
-      color: AppTheme.surface,
+      color: theme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _TabBar(
             activeTab: _activeTab,
             onTabSelected: (tab) => setState(() => _activeTab = tab),
+            theme: theme,
           ),
           Expanded(child: _buildContent()),
         ],
@@ -49,8 +54,9 @@ class _ProjectPanelState extends State<ProjectPanel> {
 class _TabBar extends StatelessWidget {
   final _ProjectTab activeTab;
   final void Function(_ProjectTab) onTabSelected;
+  final AppTheme theme;
 
-  const _TabBar({required this.activeTab, required this.onTabSelected});
+  const _TabBar({required this.activeTab, required this.onTabSelected, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -59,9 +65,9 @@ class _TabBar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
-          color: AppTheme.tabTrack,
+          color: theme.tabTrack,
           borderRadius: BorderRadius.circular(7),
-          border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
+          border: Border.all(color: theme.tabTrackBorder, width: 1),
         ),
         child: Row(
           children: _ProjectTab.values.map((tab) {
@@ -76,6 +82,7 @@ class _TabBar extends StatelessWidget {
               label: '$icon $label',
               isActive: isActive,
               onTap: () => onTabSelected(tab),
+              theme: theme,
             );
           }).toList(),
         ),
@@ -88,11 +95,13 @@ class _TabButton extends StatefulWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+  final AppTheme theme;
 
   const _TabButton({
     required this.label,
     required this.isActive,
     required this.onTap,
+    required this.theme,
   });
 
   @override
@@ -104,6 +113,7 @@ class _TabButtonState extends State<_TabButton> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return Expanded(
       child: MouseRegion(
         onEnter: (_) => setState(() => _hovered = true),
@@ -116,7 +126,7 @@ class _TabButtonState extends State<_TabButton> {
             height: 24,
             padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
-              color: widget.isActive ? AppTheme.surfaceLight : Colors.transparent,
+              color: widget.isActive ? theme.surfaceLight : Colors.transparent,
               borderRadius: BorderRadius.circular(5),
               boxShadow: widget.isActive
                   ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
@@ -127,9 +137,9 @@ class _TabButtonState extends State<_TabButton> {
                 widget.label,
                 style: TextStyle(
                   color: widget.isActive
-                      ? AppTheme.textPrimary
+                      ? theme.textPrimary
                       : _hovered
-                          ? AppTheme.textPrimary
+                          ? theme.textPrimary
                           : const Color(0xFF666666),
                   fontSize: 10,
                   fontWeight: widget.isActive ? FontWeight.w500 : FontWeight.normal,

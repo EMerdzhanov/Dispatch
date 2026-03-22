@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../../core/models/preset.dart';
 import '../../core/models/template.dart';
 import '../presets/presets_provider.dart';
@@ -14,20 +15,21 @@ class WelcomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final presetsState = ref.watch(presetsProvider);
     final savedTemplates = presetsState.presets;
     final sessionTemplates = ref.watch(templatesProvider);
 
     return Container(
-      color: AppTheme.background,
+      color: theme.background,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Gradient title
             ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [AppTheme.accentBlue, Colors.white],
+              shaderCallback: (bounds) => LinearGradient(
+                colors: [theme.accentBlue, Colors.white],
               ).createShader(bounds),
               child: const Text(
                 'Welcome to Dispatch',
@@ -43,35 +45,36 @@ class WelcomeScreen extends ConsumerWidget {
             // Subtitle
             Text(
               'Open a project folder to get started',
-              style: AppTheme.titleStyle.copyWith(color: AppTheme.textSecondary),
+              style: theme.titleStyle.copyWith(color: theme.textSecondary),
             ),
             const SizedBox(height: 32),
             // Open Folder button with hover glow
-            _OpenFolderButton(onTap: onOpenFolder),
+            _OpenFolderButton(onTap: onOpenFolder, theme: theme),
             // Saved templates list
             if (savedTemplates.isNotEmpty) ...[
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 'SAVED TEMPLATES',
-                style: AppTheme.labelStyle,
+                style: theme.labelStyle,
               ),
               const SizedBox(height: AppTheme.spacingMd),
               ...savedTemplates.map(
-                (preset) => _TemplateRow(preset: preset, onOpenFolder: onOpenFolder),
+                (preset) => _TemplateRow(preset: preset, onOpenFolder: onOpenFolder, theme: theme),
               ),
             ],
             // Session templates (saved via Cmd+Shift+S)
             if (sessionTemplates.isNotEmpty) ...[
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 'SESSION TEMPLATES',
-                style: AppTheme.labelStyle,
+                style: theme.labelStyle,
               ),
               const SizedBox(height: AppTheme.spacingMd),
               ...sessionTemplates.map(
                 (template) => _SessionTemplateRow(
                   template: template,
                   onOpenFolder: onOpenFolder,
+                  theme: theme,
                 ),
               ),
             ],
@@ -84,8 +87,9 @@ class WelcomeScreen extends ConsumerWidget {
 
 class _OpenFolderButton extends StatefulWidget {
   final VoidCallback onTap;
+  final AppTheme theme;
 
-  const _OpenFolderButton({required this.onTap});
+  const _OpenFolderButton({required this.onTap, required this.theme});
 
   @override
   State<_OpenFolderButton> createState() => _OpenFolderButtonState();
@@ -96,6 +100,7 @@ class _OpenFolderButtonState extends State<_OpenFolderButton> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -103,10 +108,10 @@ class _OpenFolderButtonState extends State<_OpenFolderButton> {
         duration: AppTheme.hoverDuration,
         curve: AppTheme.animCurve,
         decoration: BoxDecoration(
-          color: AppTheme.accentBlue,
+          color: theme.accentBlue,
           borderRadius: BorderRadius.circular(AppTheme.radius),
           boxShadow: _hovered
-              ? [BoxShadow(color: AppTheme.accentBlue.withValues(alpha: 0.4), blurRadius: 16, spreadRadius: -4)]
+              ? [BoxShadow(color: theme.accentBlue.withValues(alpha: 0.4), blurRadius: 16, spreadRadius: -4)]
               : null,
         ),
         child: Material(
@@ -119,7 +124,7 @@ class _OpenFolderButtonState extends State<_OpenFolderButton> {
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               child: Text(
                 'Open Folder',
-                style: AppTheme.titleStyle.copyWith(color: Colors.white, fontWeight: FontWeight.w500),
+                style: theme.titleStyle.copyWith(color: Colors.white, fontWeight: FontWeight.w500),
               ),
             ),
           ),
@@ -132,8 +137,9 @@ class _OpenFolderButtonState extends State<_OpenFolderButton> {
 class _TemplateRow extends StatelessWidget {
   final Preset preset;
   final VoidCallback onOpenFolder;
+  final AppTheme theme;
 
-  const _TemplateRow({required this.preset, required this.onOpenFolder});
+  const _TemplateRow({required this.preset, required this.onOpenFolder, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -145,22 +151,22 @@ class _TemplateRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         margin: const EdgeInsets.only(bottom: AppTheme.spacingXs),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: theme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radius),
-          border: Border.all(color: AppTheme.border, width: AppTheme.borderWidth),
+          border: Border.all(color: theme.border, width: AppTheme.borderWidth),
         ),
         child: Row(
           children: [
-            const Icon(Icons.terminal, size: 14, color: AppTheme.textSecondary),
+            Icon(Icons.terminal, size: 14, color: theme.textSecondary),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 preset.name,
-                style: AppTheme.bodyStyle,
+                style: theme.bodyStyle,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.textSecondary),
+            Icon(Icons.arrow_forward_ios, size: 10, color: theme.textSecondary),
           ],
         ),
       ),
@@ -171,8 +177,9 @@ class _TemplateRow extends StatelessWidget {
 class _SessionTemplateRow extends StatelessWidget {
   final Template template;
   final VoidCallback onOpenFolder;
+  final AppTheme theme;
 
-  const _SessionTemplateRow({required this.template, required this.onOpenFolder});
+  const _SessionTemplateRow({required this.template, required this.onOpenFolder, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -184,13 +191,13 @@ class _SessionTemplateRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         margin: const EdgeInsets.only(bottom: AppTheme.spacingXs),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: theme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radius),
-          border: Border.all(color: AppTheme.border, width: AppTheme.borderWidth),
+          border: Border.all(color: theme.border, width: AppTheme.borderWidth),
         ),
         child: Row(
           children: [
-            const Icon(Icons.save_outlined, size: 14, color: AppTheme.textSecondary),
+            Icon(Icons.save_outlined, size: 14, color: theme.textSecondary),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -198,18 +205,18 @@ class _SessionTemplateRow extends StatelessWidget {
                 children: [
                   Text(
                     template.name,
-                    style: AppTheme.bodyStyle,
+                    style: theme.bodyStyle,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     template.cwd,
-                    style: AppTheme.dimStyle.copyWith(fontSize: 10),
+                    style: theme.dimStyle.copyWith(fontSize: 10),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.textSecondary),
+            Icon(Icons.arrow_forward_ios, size: 10, color: theme.textSecondary),
           ],
         ),
       ),

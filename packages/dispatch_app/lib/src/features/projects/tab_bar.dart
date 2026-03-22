@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_provider.dart';
 
@@ -21,6 +22,7 @@ class ProjectTabBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final projectsState = ref.watch(projectsProvider);
     final terminalsState = ref.watch(terminalsProvider);
     final groups = projectsState.groups;
@@ -29,7 +31,7 @@ class ProjectTabBar extends ConsumerWidget {
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: 4),
-      color: AppTheme.surface,
+      color: theme.surface,
       child: Row(
         children: [
           // Scrollable, drag-to-reorder tab list
@@ -37,9 +39,9 @@ class ProjectTabBar extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: AppTheme.tabTrack,
+                color: theme.tabTrack,
                 borderRadius: BorderRadius.circular(7),
-                border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
+                border: Border.all(color: theme.tabTrackBorder, width: 1),
               ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -69,6 +71,7 @@ class ProjectTabBar extends ConsumerWidget {
                               label: group.label,
                               terminalCount: terminalCount,
                               isActive: true,
+                              theme: theme,
                             ),
                           ),
                         ),
@@ -78,6 +81,7 @@ class ProjectTabBar extends ConsumerWidget {
                             label: group.label,
                             terminalCount: terminalCount,
                             isActive: isActive,
+                            theme: theme,
                           ),
                         ),
                         child: GestureDetector(
@@ -97,14 +101,14 @@ class ProjectTabBar extends ConsumerWidget {
                           },
                           onSecondaryTapDown: (details) {
                             _showContextMenu(
-                                context, ref, group.id, details.globalPosition);
+                                context, ref, theme, group.id, details.globalPosition);
                           },
                           child: Container(
                             decoration: isDropTarget
-                                ? const BoxDecoration(
+                                ? BoxDecoration(
                                     border: Border(
                                       left: BorderSide(
-                                          color: AppTheme.accentBlue, width: 2),
+                                          color: theme.accentBlue, width: 2),
                                     ),
                                   )
                                 : null,
@@ -112,6 +116,7 @@ class ProjectTabBar extends ConsumerWidget {
                               label: group.label,
                               terminalCount: terminalCount,
                               isActive: isActive,
+                              theme: theme,
                             ),
                           ),
                         ),
@@ -141,6 +146,7 @@ class ProjectTabBar extends ConsumerWidget {
             icon: Icons.add,
             tooltip: 'Insert file path',
             onTap: onOpenFolder,
+            theme: theme,
           ),
 
           const SizedBox(width: AppTheme.spacingXs),
@@ -150,6 +156,7 @@ class ProjectTabBar extends ConsumerWidget {
             icon: Icons.extension_outlined,
             tooltip: 'Integrations',
             onTap: () {},
+            theme: theme,
           ),
 
           // Settings gear icon
@@ -158,6 +165,7 @@ class ProjectTabBar extends ConsumerWidget {
             icon: Icons.settings_outlined,
             tooltip: 'Settings',
             onTap: onOpenSettings,
+            theme: theme,
           ),
 
           // Shortcuts "?" icon
@@ -166,6 +174,7 @@ class ProjectTabBar extends ConsumerWidget {
             icon: Icons.help_outline,
             tooltip: 'Keyboard Shortcuts',
             onTap: onOpenShortcuts,
+            theme: theme,
           ),
 
           const SizedBox(width: AppTheme.spacingXs),
@@ -177,6 +186,7 @@ class ProjectTabBar extends ConsumerWidget {
   Future<void> _showContextMenu(
     BuildContext context,
     WidgetRef ref,
+    AppTheme theme,
     String groupId,
     Offset position,
   ) async {
@@ -188,13 +198,13 @@ class ProjectTabBar extends ConsumerWidget {
         position.dx + 1,
         position.dy + 1,
       ),
-      color: AppTheme.surfaceLight,
+      color: theme.surfaceLight,
       items: [
         PopupMenuItem<String>(
           value: 'close',
           child: Text(
             'Close Tab',
-            style: AppTheme.bodyStyle,
+            style: theme.bodyStyle,
           ),
         ),
       ],
@@ -219,11 +229,13 @@ class _ProjectTab extends StatefulWidget {
   final String label;
   final int terminalCount;
   final bool isActive;
+  final AppTheme theme;
 
   const _ProjectTab({
     required this.label,
     required this.terminalCount,
     required this.isActive,
+    required this.theme,
   });
 
   @override
@@ -235,6 +247,7 @@ class _ProjectTabState extends State<_ProjectTab> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -246,7 +259,7 @@ class _ProjectTabState extends State<_ProjectTab> {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: widget.isActive
-              ? AppTheme.surfaceLight
+              ? theme.surfaceLight
               : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           boxShadow: widget.isActive
@@ -260,9 +273,9 @@ class _ProjectTabState extends State<_ProjectTab> {
               Icons.folder_outlined,
               size: 14,
               color: widget.isActive
-                  ? AppTheme.textPrimary
+                  ? theme.textPrimary
                   : _hovered
-                      ? AppTheme.textPrimary
+                      ? theme.textPrimary
                       : const Color(0xFF666666),
             ),
             const SizedBox(width: AppTheme.spacingXs + 2),
@@ -272,9 +285,9 @@ class _ProjectTabState extends State<_ProjectTab> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: widget.isActive
-                      ? AppTheme.textPrimary
+                      ? theme.textPrimary
                       : _hovered
-                          ? AppTheme.textPrimary
+                          ? theme.textPrimary
                           : const Color(0xFF666666),
                   fontSize: 12,
                   fontWeight: widget.isActive ? FontWeight.w500 : FontWeight.normal,
@@ -283,7 +296,7 @@ class _ProjectTabState extends State<_ProjectTab> {
             ),
             if (widget.terminalCount > 0) ...[
               const SizedBox(width: AppTheme.spacingXs + 2),
-              _TerminalCountBadge(count: widget.terminalCount),
+              _TerminalCountBadge(count: widget.terminalCount, theme: theme),
             ],
           ],
         ),
@@ -294,8 +307,9 @@ class _ProjectTabState extends State<_ProjectTab> {
 
 class _TerminalCountBadge extends StatelessWidget {
   final int count;
+  final AppTheme theme;
 
-  const _TerminalCountBadge({required this.count});
+  const _TerminalCountBadge({required this.count, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -303,14 +317,14 @@ class _TerminalCountBadge extends StatelessWidget {
       height: 16,
       padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
-        color: AppTheme.border,
+        color: theme.border,
         borderRadius: BorderRadius.circular(12),
       ),
       alignment: Alignment.center,
       child: Text(
         '$count',
-        style: const TextStyle(
-          color: AppTheme.textSecondary,
+        style: TextStyle(
+          color: theme.textSecondary,
           fontSize: 9,
           fontWeight: FontWeight.w500,
         ),
@@ -323,12 +337,14 @@ class _IconButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
+  final AppTheme theme;
 
   const _IconButton({
     super.key,
     required this.icon,
     required this.tooltip,
     required this.onTap,
+    required this.theme,
   });
 
   @override
@@ -340,7 +356,7 @@ class _IconButton extends StatelessWidget {
         message: tooltip,
         child: GestureDetector(
           onTap: onTap,
-          child: Icon(icon, size: 16, color: AppTheme.textSecondary),
+          child: Icon(icon, size: 16, color: theme.textSecondary),
         ),
       ),
     );
