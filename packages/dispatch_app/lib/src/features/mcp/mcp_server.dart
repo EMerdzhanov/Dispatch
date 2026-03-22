@@ -102,6 +102,25 @@ class McpServer {
     };
   }
 
+  /// Format a JSON-RPC response as either JSON or SSE based on Accept header.
+  shelf.Response _respond(shelf.Request request, McpResponse response) {
+    final accept = request.headers['accept'] ?? '';
+    final jsonStr = response.toJsonString();
+
+    if (accept.contains('text/event-stream')) {
+      // SSE format: event + data lines
+      final sseBody = 'event: message\ndata: $jsonStr\n\n';
+      return shelf.Response.ok(sseBody, headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        'connection': 'keep-alive',
+      });
+    }
+
+    return shelf.Response.ok(jsonStr,
+        headers: {'content-type': 'application/json'});
+  }
+
   Future<shelf.Response> _handleRpc(shelf.Request request) async {
     final body = await request.readAsString();
     Map<String, dynamic> json;
@@ -115,14 +134,14 @@ class McpServer {
 
     final mcpRequest = McpRequest.fromJson(json);
 
-    // Handle JSON-RPC notifications (no id) — return 204 No Content
+    // Handle JSON-RPC notifications (no id) — return 202 Accepted
     if (mcpRequest.id == null) {
-      return shelf.Response(204);
+      return shelf.Response(202);
     }
 
     // Handle MCP protocol methods
     if (mcpRequest.method == 'initialize') {
-      final response = McpResponse.success(mcpRequest.id, {
+      return _respond(request, McpResponse.success(mcpRequest.id, {
         'protocolVersion': '2024-11-05',
         'capabilities': {
           'tools': {'listChanged': false},
@@ -131,17 +150,13 @@ class McpServer {
           'name': 'dispatch',
           'version': '0.1.0',
         },
-      });
-      return shelf.Response.ok(response.toJsonString(),
-          headers: {'content-type': 'application/json'});
+      }));
     }
 
     if (mcpRequest.method == 'tools/list') {
-      final response = McpResponse.success(mcpRequest.id, {
+      return _respond(request, McpResponse.success(mcpRequest.id, {
         'tools': _registry.toJsonList(),
-      });
-      return shelf.Response.ok(response.toJsonString(),
-          headers: {'content-type': 'application/json'});
+      }));
     }
 
     if (mcpRequest.method == 'tools/call') {
@@ -149,11 +164,8 @@ class McpServer {
       final toolParams =
           (mcpRequest.params['arguments'] as Map<String, dynamic>?) ?? {};
       if (toolName == null) {
-        return shelf.Response.ok(
-          McpResponse.invalidParams(mcpRequest.id, 'Missing tool name')
-              .toJsonString(),
-          headers: {'content-type': 'application/json'},
-        );
+        return _respond(request,
+          McpResponse.invalidParams(mcpRequest.id, 'Missing tool name'));
       }
 
       final toolRequest =
@@ -186,16 +198,12 @@ class McpServer {
         });
       }
 
-      return shelf.Response.ok(mcpResponse.toJsonString(),
-          headers: {'content-type': 'application/json'});
+      return _respond(request, mcpResponse);
     }
 
     // Unknown method
-    return shelf.Response.ok(
-      McpResponse.methodNotFound(mcpRequest.id, mcpRequest.method)
-          .toJsonString(),
-      headers: {'content-type': 'application/json'},
-    );
+    return _respond(request,
+      McpResponse.methodNotFound(mcpRequest.id, mcpRequest.method));
   }
 
   Future<shelf.Response> _handleSse(shelf.Request request) async {
