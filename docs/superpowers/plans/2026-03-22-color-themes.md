@@ -893,11 +893,11 @@ Add a theme dropdown row at the top of the Terminal Settings section (before the
 
 ```dart
 Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+  padding: const EdgeInsets.only(bottom: 10),
   child: Row(
     children: [
       SizedBox(
-        width: 110,
+        width: 120,
         child: Text('Theme', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
       ),
       Expanded(
