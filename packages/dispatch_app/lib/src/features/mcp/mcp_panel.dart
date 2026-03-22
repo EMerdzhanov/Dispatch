@@ -26,7 +26,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
   bool _tokenVisible = false;
   bool _advancedOpen = false;
   Timer? _refreshTimer;
-  Timer? _tunnelSaveDebounce;
+  bool _tunnelDirty = false;
 
   @override
   void initState() {
@@ -47,7 +47,6 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     _portCtrl.dispose();
     _tunnelNameCtrl.dispose();
     _tunnelUrlCtrl.dispose();
-    _tunnelSaveDebounce?.cancel();
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -360,7 +359,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
                           ),
-                          onChanged: (_) => _debounceTunnelSave(),
+                          onChanged: (_) => setState(() => _tunnelDirty = true),
                         ),
                       )),
                       const SizedBox(height: 6),
@@ -378,9 +377,29 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
                           ),
-                          onChanged: (_) => _debounceTunnelSave(),
+                          onChanged: (_) => setState(() => _tunnelDirty = true),
                         ),
                       )),
+                      if (_tunnelDirty) ...[
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () {
+                            ref.read(mcpServerProvider.notifier).setTunnelConfig(
+                              name: _tunnelNameCtrl.text,
+                              customUrl: _tunnelUrlCtrl.text,
+                            );
+                            setState(() => _tunnelDirty = false);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: theme.accentGreen,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text('Save', style: TextStyle(color: theme.background, fontSize: 11, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
                     ],
 
                     // Activity Log
@@ -413,16 +432,6 @@ class _McpPanelState extends ConsumerState<McpPanel> {
         ),
       ),
     );
-  }
-
-  void _debounceTunnelSave() {
-    _tunnelSaveDebounce?.cancel();
-    _tunnelSaveDebounce = Timer(const Duration(milliseconds: 800), () {
-      ref.read(mcpServerProvider.notifier).setTunnelConfig(
-        name: _tunnelNameCtrl.text,
-        customUrl: _tunnelUrlCtrl.text,
-      );
-    });
   }
 
   Widget _sectionLabel(String text, AppTheme theme) {
