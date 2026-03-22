@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../mcp_tools.dart';
@@ -8,6 +10,16 @@ import '../../terminal/terminal_provider.dart';
 import '../../terminal/session_registry.dart';
 import '../../../core/models/terminal_entry.dart';
 import '../../../core/models/split_node.dart';
+
+/// Schedule a state modification outside Flutter's build phase.
+Future<void> _deferStateChange(void Function() fn) {
+  final completer = Completer<void>();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    fn();
+    completer.complete();
+  });
+  return completer.future;
+}
 
 List<McpToolDefinition> orchestrateTools() => [
       McpToolDefinition(
@@ -84,13 +96,15 @@ Future<Map<String, dynamic>> _createProject(Ref ref, Map<String, dynamic> params
     throw ArgumentError('label and cwd are required');
   }
 
-  // Use addGroup which accepts a custom label (unlike findOrCreateGroup which
-  // auto-generates from path). Read the groups before/after to find the new ID.
-  final before = ref.read(projectsProvider).groups.map((g) => g.id).toSet();
-  ref.read(projectsProvider.notifier).addGroup(cwd, label);
-  final after = ref.read(projectsProvider).groups;
-  final newGroup = after.where((g) => !before.contains(g.id)).firstOrNull;
-  return {'projectId': newGroup?.id ?? ''};
+  String? newId;
+  await _deferStateChange(() {
+    final before = ref.read(projectsProvider).groups.map((g) => g.id).toSet();
+    ref.read(projectsProvider.notifier).addGroup(cwd, label);
+    final after = ref.read(projectsProvider).groups;
+    final newGroup = after.where((g) => !before.contains(g.id)).firstOrNull;
+    newId = newGroup?.id;
+  });
+  return {'projectId': newId ?? ''};
 }
 
 Future<Map<String, dynamic>> _closeProject(Ref ref, Map<String, dynamic> params) async {
@@ -102,12 +116,17 @@ Future<Map<String, dynamic>> _closeProject(Ref ref, Map<String, dynamic> params)
   if (group == null) return {'success': false, 'error': 'Project not found'};
 
   // Kill all terminals in the group
-  for (final terminalId in [...group.terminalIds]) {
+  final terminalIds = [...group.terminalIds];
+  for (final terminalId in terminalIds) {
     final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
     pty?.kill();
-    ref.read(terminalsProvider.notifier).removeTerminal(terminalId);
   }
-  ref.read(projectsProvider.notifier).removeGroup(projectId);
+  await _deferStateChange(() {
+    for (final terminalId in terminalIds) {
+      ref.read(terminalsProvider.notifier).removeTerminal(terminalId);
+    }
+    ref.read(projectsProvider.notifier).removeGroup(projectId);
+  });
   return {'success': true};
 }
 
@@ -115,7 +134,9 @@ Future<Map<String, dynamic>> _setActiveProject(Ref ref, Map<String, dynamic> par
   final projectId = params['projectId'] as String?;
   if (projectId == null) throw ArgumentError('projectId is required');
 
-  ref.read(projectsProvider.notifier).setActiveGroup(projectId);
+  await _deferStateChange(() {
+    ref.read(projectsProvider.notifier).setActiveGroup(projectId);
+  });
   return {'success': true};
 }
 
@@ -123,7 +144,9 @@ Future<Map<String, dynamic>> _setActiveTerminal(Ref ref, Map<String, dynamic> pa
   final terminalId = params['terminalId'] as String?;
   if (terminalId == null) throw ArgumentError('terminalId is required');
 
-  ref.read(terminalsProvider.notifier).setActiveTerminal(terminalId);
+  await _deferStateChange(() {
+    ref.read(terminalsProvider.notifier).setActiveTerminal(terminalId);
+  });
   return {'success': true};
 }
 
@@ -156,28 +179,31 @@ Future<Map<String, dynamic>> _splitTerminal(Ref ref, Map<String, dynamic> params
     final groupId = ref.read(projectsProvider).activeGroupId;
     if (groupId == null) throw StateError('No active project group');
 
-    ref.read(terminalsProvider.notifier).addTerminal(
-          groupId,
-          TerminalEntry(
-            id: targetTerminalId,
-            command: command,
-            cwd: cwd,
-            status: TerminalStatus.running,
-          ),
-        );
-    ref.read(terminalsProvider.notifier).setActiveTerminal(targetTerminalId);
+    await _deferStateChange(() {
+      ref.read(terminalsProvider.notifier).addTerminal(
+            groupId,
+            TerminalEntry(
+              id: targetTerminalId,
+              command: command,
+              cwd: cwd,
+              status: TerminalStatus.running,
+            ),
+          );
+      ref.read(terminalsProvider.notifier).setActiveTerminal(targetTerminalId);
+    });
   }
 
   // Build split layout
-  final projectsState = ref.read(projectsProvider);
-  final group = projectsState.groups
-      .where((g) => g.id == projectsState.activeGroupId)
-      .firstOrNull;
-  if (group == null) throw StateError('No active project group');
+  await _deferStateChange(() {
+    final projectsState = ref.read(projectsProvider);
+    final group = projectsState.groups
+        .where((g) => g.id == projectsState.activeGroupId)
+        .firstOrNull;
+    if (group == null) return;
 
-  // Create a simple equal split with all terminals in the group
-  final layout = SplitNode.buildEqualSplit(group.terminalIds, direction);
-  ref.read(projectsProvider.notifier).setGroupSplitLayout(group.id, layout);
+    final layout = SplitNode.buildEqualSplit(group.terminalIds, direction);
+    ref.read(projectsProvider.notifier).setGroupSplitLayout(group.id, layout);
+  });
 
   return {'terminalId': targetTerminalId};
 }

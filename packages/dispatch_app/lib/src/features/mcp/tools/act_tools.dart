@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../mcp_tools.dart';
@@ -8,6 +10,16 @@ import '../../terminal/terminal_provider.dart';
 import '../../terminal/session_registry.dart';
 import '../../projects/projects_provider.dart';
 import '../../../core/models/terminal_entry.dart';
+
+/// Schedule a state modification outside Flutter's build phase.
+Future<void> _deferStateChange(void Function() fn) {
+  final completer = Completer<void>();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    fn();
+    completer.complete();
+  });
+  return completer.future;
+}
 
 List<McpToolDefinition> actTools() => [
       McpToolDefinition(
@@ -96,17 +108,19 @@ Future<Map<String, dynamic>> _spawnTerminal(Ref ref, Map<String, dynamic> params
 
   final terminalId = 'term-${DateTime.now().millisecondsSinceEpoch}-mcp';
 
-  ref.read(terminalsProvider.notifier).addTerminal(
-        groupId,
-        TerminalEntry(
-          id: terminalId,
-          command: command,
-          cwd: cwd,
-          status: TerminalStatus.running,
-          label: label,
-        ),
-      );
-  ref.read(terminalsProvider.notifier).setActiveTerminal(terminalId);
+  await _deferStateChange(() {
+    ref.read(terminalsProvider.notifier).addTerminal(
+          groupId,
+          TerminalEntry(
+            id: terminalId,
+            command: command,
+            cwd: cwd,
+            status: TerminalStatus.running,
+            label: label,
+          ),
+        );
+    ref.read(terminalsProvider.notifier).setActiveTerminal(terminalId);
+  });
 
   return {'terminalId': terminalId, 'projectId': groupId};
 }
