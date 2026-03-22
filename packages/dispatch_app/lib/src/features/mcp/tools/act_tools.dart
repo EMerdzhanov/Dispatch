@@ -79,7 +79,14 @@ Future<Map<String, dynamic>> _runCommand(Ref ref, Map<String, dynamic> params) a
     throw ArgumentError('terminalId and command are required');
   }
 
-  final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
+  // Retry up to 3 seconds waiting for PTY to become available
+  // (needed when run_command follows spawn_terminal immediately)
+  Pty? pty;
+  for (var i = 0; i < 6; i++) {
+    pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
+    if (pty != null) break;
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
   if (pty == null) return {'success': false, 'error': 'Terminal PTY not found'};
 
   pty.write(const Utf8Encoder().convert('$command\n'));
@@ -138,7 +145,13 @@ Future<Map<String, dynamic>> _writeToTerminal(Ref ref, Map<String, dynamic> para
     throw ArgumentError('terminalId and input are required');
   }
 
-  final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
+  // Retry up to 3 seconds waiting for PTY to become available
+  Pty? pty;
+  for (var i = 0; i < 6; i++) {
+    pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
+    if (pty != null) break;
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
   if (pty == null) return {'success': false, 'error': 'Terminal PTY not found'};
 
   pty.write(const Utf8Encoder().convert(input));
