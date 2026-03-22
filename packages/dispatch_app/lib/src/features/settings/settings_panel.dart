@@ -173,22 +173,35 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                                   child: Text('Theme', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
                                 ),
                                 Expanded(
-                                  child: DropdownButton<String>(
-                                    value: currentThemeId,
-                                    dropdownColor: theme.surface,
-                                    style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                                    underline: const SizedBox.shrink(),
-                                    isExpanded: true,
-                                    isDense: true,
-                                    items: ColorTheme.builtIn.map((t) => DropdownMenuItem(
-                                      value: t.id,
-                                      child: Text(t.name),
-                                    )).toList(),
-                                    onChanged: (id) {
-                                      if (id != null) {
-                                        ref.read(themeProvider.notifier).setTheme(id);
-                                      }
+                                  child: PopupMenuButton<String>(
+                                    initialValue: currentThemeId,
+                                    color: theme.surface,
+                                    onSelected: (id) {
+                                      ref.read(themeProvider.notifier).setTheme(id);
                                     },
+                                    itemBuilder: (_) => ColorTheme.builtIn.map((t) => PopupMenuItem(
+                                      value: t.id,
+                                      child: Text(t.name, style: TextStyle(color: theme.textPrimary, fontSize: 12)),
+                                    )).toList(),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: theme.surfaceLight,
+                                        borderRadius: BorderRadius.circular(AppTheme.radius),
+                                        border: Border.all(color: theme.border, width: AppTheme.borderWidth),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              ColorTheme.fromId(currentThemeId).name,
+                                              style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                                            ),
+                                          ),
+                                          Icon(Icons.arrow_drop_down, color: theme.textSecondary, size: 18),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
