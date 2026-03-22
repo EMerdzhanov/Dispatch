@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/color_theme.dart';
+
 class AppSettings {
   final String shell;
   final String fontFamily;
@@ -73,3 +75,20 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
 final settingsProvider =
     NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+
+class ThemeNotifier extends Notifier<String> {
+  @override
+  String build() => 'dispatch-dark';
+
+  void setTheme(String id) {
+    state = id;
+  }
+}
+
+final themeProvider =
+    NotifierProvider<ThemeNotifier, String>(ThemeNotifier.new);
+
+final activeThemeProvider = Provider<ColorTheme>((ref) {
+  final id = ref.watch(themeProvider);
+  return ColorTheme.fromId(id);
+});

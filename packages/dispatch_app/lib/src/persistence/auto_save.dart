@@ -42,6 +42,7 @@ class AutoSaveNotifier extends Notifier<void> {
     ref.listen(projectsProvider, (_, _) => _scheduleSave());
     ref.listen(presetsProvider, (_, _) => _scheduleSave());
     ref.listen(settingsProvider, (_, _) => _scheduleSave());
+    ref.listen(themeProvider, (_, _) => _scheduleSave());
   }
 
   void _scheduleSave() {
@@ -71,6 +72,8 @@ class AutoSaveNotifier extends Notifier<void> {
         .setValue('soundEnabled', settings.soundEnabled.toString());
     await db.settingsDao
         .setValue('screenshotFolder', settings.screenshotFolder);
+    final themeId = ref.read(themeProvider);
+    await db.settingsDao.setValue('theme', themeId);
   }
 
   Future<void> _savePresets(AppDatabase db) async {
@@ -146,6 +149,7 @@ Future<void> _loadSettings(AppDatabase db, WidgetRef ref) async {
       await db.settingsDao.getValue('notificationsEnabled');
   final soundEnabled = await db.settingsDao.getValue('soundEnabled');
   final screenshotFolder = await db.settingsDao.getValue('screenshotFolder');
+  final theme = await db.settingsDao.getValue('theme');
 
   // Only hydrate if at least one setting was previously saved.
   if (shell == null &&
@@ -167,6 +171,9 @@ Future<void> _loadSettings(AppDatabase db, WidgetRef ref) async {
         soundEnabled: soundEnabled != null ? soundEnabled == 'true' : null,
         screenshotFolder: screenshotFolder,
       );
+  if (theme != null) {
+    ref.read(themeProvider.notifier).setTheme(theme);
+  }
 }
 
 Future<void> _loadPresets(AppDatabase db, WidgetRef ref) async {
