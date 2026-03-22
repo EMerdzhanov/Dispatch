@@ -419,10 +419,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
   }
 
   Widget _copyButton(String text, AppTheme theme) {
-    return GestureDetector(
-      onTap: () => Clipboard.setData(ClipboardData(text: text)),
-      child: Icon(Icons.copy, size: 12, color: theme.textSecondary),
-    );
+    return _CopyButton(text: text, theme: theme);
   }
 
   Widget _settingRow(String label, AppTheme theme, {required Widget child}) {
@@ -476,6 +473,41 @@ class _McpPanelState extends ConsumerState<McpPanel> {
             child: Text(warning, style: TextStyle(color: theme.accentYellow, fontSize: 10)),
           ),
       ],
+    );
+  }
+}
+
+class _CopyButton extends StatefulWidget {
+  final String text;
+  final AppTheme theme;
+
+  const _CopyButton({required this.text, required this.theme});
+
+  @override
+  State<_CopyButton> createState() => _CopyButtonState();
+}
+
+class _CopyButtonState extends State<_CopyButton> {
+  bool _copied = false;
+
+  void _handleCopy() {
+    Clipboard.setData(ClipboardData(text: widget.text));
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleCopy,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: _copied
+            ? Icon(Icons.check, size: 12, color: widget.theme.accentGreen, key: const ValueKey('check'))
+            : Icon(Icons.copy, size: 12, color: widget.theme.textSecondary, key: const ValueKey('copy')),
+      ),
     );
   }
 }
