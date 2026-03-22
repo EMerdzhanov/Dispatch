@@ -15,6 +15,7 @@ import 'features/terminal/terminal_provider.dart';
 import 'features/terminal/terminal_area.dart';
 import 'features/terminal/terminal_pane.dart';
 import 'features/sidebar/sidebar.dart';
+import 'features/sidebar/right_panel.dart';
 import 'features/command_palette/command_palette.dart';
 import 'features/command_palette/quick_switcher.dart';
 import 'features/settings/settings_panel.dart';
@@ -220,6 +221,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
                                     _handleSpawn(cmd, env: env),
                               ),
                               const Expanded(child: TerminalArea()),
+                              const RightPanel(),
                             ],
                           )
                         : WelcomeScreen(onOpenFolder: _handleOpenFolder),

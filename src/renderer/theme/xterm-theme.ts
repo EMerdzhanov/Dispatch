@@ -5,7 +5,7 @@ export const xtermTheme: ITheme = {
   foreground: '#cccccc',
   cursor: '#cccccc',
   cursorAccent: '#0a0a1a',
-  selectionBackground: '#16213e',
+  selectionBackground: '#3a6fd666',
   selectionForeground: '#eeeeee',
   black: '#0a0a1a',
   red: '#e94560',

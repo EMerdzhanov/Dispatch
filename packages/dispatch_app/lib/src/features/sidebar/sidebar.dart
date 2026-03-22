@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../terminal/terminal_provider.dart';
 import '../presets/quick_launch.dart';
-import '../projects/project_panel.dart';
 import 'terminal_list.dart';
 import 'status_bar.dart';
 
@@ -25,31 +24,16 @@ class Sidebar extends ConsumerWidget {
         decoration: const BoxDecoration(
           color: AppTheme.surface,
           border: Border(
-            left: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
+            right: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth),
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Top section: Quick Launch + Terminal List (~60%)
-            Expanded(
-              flex: 6,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  QuickLaunch(onSpawn: onSpawn),
-                  const Divider(color: AppTheme.border, height: 1, thickness: AppTheme.borderWidth),
-                  const Expanded(child: TerminalList()),
-                  const StatusBar(),
-                ],
-              ),
-            ),
+            QuickLaunch(onSpawn: onSpawn),
             const Divider(color: AppTheme.border, height: 1, thickness: AppTheme.borderWidth),
-            // Bottom section: Tasks / Notes / Vault (~40%)
-            const Expanded(
-              flex: 4,
-              child: ProjectPanel(),
-            ),
+            const Expanded(child: TerminalList()),
+            const StatusBar(),
           ],
         ),
       ),

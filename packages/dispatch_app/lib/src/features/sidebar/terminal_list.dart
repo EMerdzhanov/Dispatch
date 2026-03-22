@@ -5,7 +5,6 @@ import '../../core/models/terminal_entry.dart';
 import '../../core/theme/app_theme.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_provider.dart';
-import 'file_tree.dart';
 
 class TerminalList extends ConsumerStatefulWidget {
   const TerminalList({super.key});
@@ -15,7 +14,6 @@ class TerminalList extends ConsumerStatefulWidget {
 }
 
 class _TerminalListState extends ConsumerState<TerminalList> {
-  String _tab = 'terminals'; // 'terminals' | 'files'
   String _filter = '';
 
   Color _statusColor(TerminalStatus status, bool isActive) {
@@ -51,66 +49,38 @@ class _TerminalListState extends ConsumerState<TerminalList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // TERMINALS / FILES tab header
+        // TERMINALS header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingSm),
+          child: Text(
+            'TERMINALS (${terminalIds.length})',
+            style: AppTheme.labelStyle,
+          ),
+        ),
+        // Filter input
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
-          child: Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: AppTheme.tabTrack,
-              borderRadius: BorderRadius.circular(7),
-              border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
-            ),
-            child: Row(
-              children: [
-                _TabButton(
-                  label: 'TERMINALS (${terminalIds.length})',
-                  active: _tab == 'terminals',
-                  onTap: () => setState(() => _tab = 'terminals'),
-                ),
-                _TabButton(
-                  label: 'FILES',
-                  active: _tab == 'files',
-                  onTap: () => setState(() => _tab = 'files'),
-                ),
-              ],
+          child: SizedBox(
+            height: 22,
+            child: TextField(
+              style: AppTheme.bodyStyle,
+              decoration: InputDecoration(
+                hintText: 'Filter terminals\u2026',
+                hintStyle: AppTheme.dimStyle,
+                filled: true,
+                fillColor: Colors.transparent,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXs, vertical: AppTheme.spacingXs),
+                border: InputBorder.none,
+              ),
+              onChanged: (v) => setState(() => _filter = v),
             ),
           ),
         ),
-        // Filter input (terminals tab only)
-        if (_tab == 'terminals')
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
-            child: Row(
-              children: [
-                const Text('\u25CF ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 8)),
-                Expanded(
-                  child: SizedBox(
-                    height: 22,
-                    child: TextField(
-                      style: AppTheme.bodyStyle,
-                      decoration: InputDecoration(
-                        hintText: 'Filter terminals\u2026',
-                        hintStyle: AppTheme.dimStyle,
-                        filled: true,
-                        fillColor: Colors.transparent,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXs, vertical: AppTheme.spacingXs),
-                        border: InputBorder.none,
-                      ),
-                      onChanged: (v) => setState(() => _filter = v),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         const Divider(color: AppTheme.border, height: 1, thickness: AppTheme.borderWidth),
-        // Content
+        // Terminal list
         Expanded(
-          child: _tab == 'files'
-              ? const FileTree()
-              : _buildTerminalList(terminalsState, terminalIds),
+          child: _buildTerminalList(terminalsState, terminalIds),
         ),
       ],
     );
@@ -155,47 +125,6 @@ class _TerminalListState extends ConsumerState<TerminalList> {
           onKill: () => ref.read(terminalsProvider.notifier).removeTerminal(terminal.id),
         );
       }).toList(),
-      ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  const _TabButton({required this.label, required this.active, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: AppTheme.hoverDuration,
-          height: 24,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: active ? AppTheme.surfaceLight : Colors.transparent,
-            borderRadius: BorderRadius.circular(5),
-            boxShadow: active
-                ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
-                : null,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: active ? AppTheme.textPrimary : const Color(0xFF666666),
-              fontSize: 10,
-              fontWeight: active ? FontWeight.w500 : FontWeight.normal,
-              letterSpacing: 0.5,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
       ),
     );
   }
