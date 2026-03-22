@@ -6,6 +6,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'core/theme/app_theme.dart';
+import 'features/settings/settings_provider.dart';
 import 'core/shortcuts/shortcut_registry.dart';
 import 'core/models/split_node.dart';
 import 'features/projects/projects_provider.dart';
@@ -114,9 +115,10 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   @override
   Widget build(BuildContext context) {
     if (!_loaded) {
+      final loadingTheme = AppTheme(ref.watch(activeThemeProvider));
       return MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.dark,
+        theme: loadingTheme.dark,
         home: const Scaffold(
           body: Center(child: CircularProgressIndicator()),
         ),
@@ -125,11 +127,13 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
 
     final projectsState = ref.watch(projectsProvider);
     final hasGroups = projectsState.groups.isNotEmpty;
+    final colorTheme = ref.watch(activeThemeProvider);
+    final theme = AppTheme(colorTheme);
 
     return MaterialApp(
       title: 'Dispatch',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: theme.dark,
       home: Shortcuts(
         shortcuts: AppShortcuts.bindings,
         child: Actions(
@@ -195,7 +199,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
               body: Column(
                 children: [
                   // Title bar drag region
-                  const _TitleBar(),
+                  _TitleBar(),
                   // Tab bar
                   ProjectTabBar(
                     onOpenFolder: _handlePickFile,
@@ -314,30 +318,31 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   }
 }
 
-class _TitleBar extends StatelessWidget {
+class _TitleBar extends ConsumerWidget {
   const _TitleBar();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     return GestureDetector(
       onPanStart: (_) => windowManager.startDragging(),
       child: Container(
         height: 38,
-        color: AppTheme.background,
+        color: theme.background,
         padding: const EdgeInsets.symmetric(horizontal: 80),
         child: Row(
           children: [
             Text(
               '\u2318K Search  \u2318N New',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+              style: TextStyle(color: theme.textSecondary, fontSize: 11),
             ),
             const Spacer(),
             Text(
               'Dispatch',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              style: TextStyle(color: theme.textSecondary, fontSize: 13),
             ),
             const Spacer(),
-            const SizedBox(width: 120), // balance
+            const SizedBox(width: 120),
           ],
         ),
       ),
