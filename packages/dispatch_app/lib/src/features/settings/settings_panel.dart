@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/color_theme.dart';
 import '../../core/models/preset.dart' as preset_model;
 import '../presets/presets_provider.dart';
 import '../terminal/templates_provider.dart';
@@ -92,6 +93,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
       lineHeight: d.lineHeight, notificationsEnabled: d.notificationsEnabled,
       soundEnabled: d.soundEnabled,
     );
+    ref.read(themeProvider.notifier).setTheme('dispatch-dark');
   }
 
   @override
@@ -105,6 +107,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     if (!widget.open) return const SizedBox.shrink();
 
     final theme = AppTheme(ref.watch(activeThemeProvider));
+    final currentThemeId = ref.watch(themeProvider);
     final settings = ref.watch(settingsProvider);
     if (!_initialized) _loadSettings(settings);
 
@@ -161,6 +164,36 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                         children: [
                           // === Terminal Section ===
                           _sectionTitle(theme, 'Terminal'),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 120,
+                                  child: Text('Theme', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                                ),
+                                Expanded(
+                                  child: DropdownButton<String>(
+                                    value: currentThemeId,
+                                    dropdownColor: theme.surface,
+                                    style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                                    underline: const SizedBox.shrink(),
+                                    isExpanded: true,
+                                    isDense: true,
+                                    items: ColorTheme.builtIn.map((t) => DropdownMenuItem(
+                                      value: t.id,
+                                      child: Text(t.name),
+                                    )).toList(),
+                                    onChanged: (id) {
+                                      if (id != null) {
+                                        ref.read(themeProvider.notifier).setTheme(id);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           _settingsRow(theme, 'Font Family', _fontFamilyCtrl, wide: true),
                           _settingsRow(theme, 'Font Size', _fontSizeCtrl),
                           _settingsRow(theme, 'Line Height', _lineHeightCtrl),
