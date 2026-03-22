@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,6 +16,10 @@ class McpServerState {
   final bool bindAll;
   final int connectionCount;
   final List<McpActivityEntry> activityLog;
+  final bool tunnelRunning;
+  final bool tunnelStarting;
+  final String? tunnelUrl;
+  final bool cloudflaredAvailable;
 
   const McpServerState({
     this.enabled = false,
@@ -25,6 +30,10 @@ class McpServerState {
     this.bindAll = false,
     this.connectionCount = 0,
     this.activityLog = const [],
+    this.tunnelRunning = false,
+    this.tunnelStarting = false,
+    this.tunnelUrl,
+    this.cloudflaredAvailable = false,
   });
 
   McpServerState copyWith({
@@ -36,6 +45,10 @@ class McpServerState {
     bool? bindAll,
     int? connectionCount,
     List<McpActivityEntry>? activityLog,
+    bool? tunnelRunning,
+    bool? tunnelStarting,
+    String? Function()? tunnelUrl,
+    bool? cloudflaredAvailable,
   }) {
     return McpServerState(
       enabled: enabled ?? this.enabled,
@@ -46,10 +59,18 @@ class McpServerState {
       bindAll: bindAll ?? this.bindAll,
       connectionCount: connectionCount ?? this.connectionCount,
       activityLog: activityLog ?? this.activityLog,
+      tunnelRunning: tunnelRunning ?? this.tunnelRunning,
+      tunnelStarting: tunnelStarting ?? this.tunnelStarting,
+      tunnelUrl: tunnelUrl != null ? tunnelUrl() : this.tunnelUrl,
+      cloudflaredAvailable: cloudflaredAvailable ?? this.cloudflaredAvailable,
     );
   }
 
-  String get httpUrl => 'http://localhost:$port/mcp';
+  /// Returns tunnel URL when tunnel is active, localhost otherwise.
+  String get httpUrl {
+    if (tunnelRunning && tunnelUrl != null) return '${tunnelUrl!}/mcp';
+    return 'http://localhost:$port/mcp';
+  }
 
   String claudeCodeConfig() {
     final config = <String, dynamic>{
@@ -68,6 +89,7 @@ class McpServerState {
 class McpServerNotifier extends Notifier<McpServerState> {
   McpServer? _server;
   McpNotificationManager? _notificationManager;
+  Process? _tunnelProcess;
   bool _disposed = false;
 
   @override
@@ -75,6 +97,8 @@ class McpServerNotifier extends Notifier<McpServerState> {
     _disposed = false;
     ref.onDispose(() {
       _disposed = true;
+      _tunnelProcess?.kill();
+      _tunnelProcess = null;
       stopServer();
     });
     // Load settings from database at startup
@@ -138,6 +162,10 @@ class McpServerNotifier extends Notifier<McpServerState> {
   }
 
   Future<void> stopServer() async {
+    // Stop tunnel first if running
+    if (state.tunnelRunning) {
+      await stopTunnel();
+    }
     _notificationManager?.stopListening();
     _notificationManager = null;
     await _server?.stop();
@@ -197,6 +225,78 @@ class McpServerNotifier extends Notifier<McpServerState> {
       await startServer();
     }
     await _saveSettings();
+  }
+
+  /// Check if cloudflared is available on the system.
+  Future<void> checkCloudflared() async {
+    try {
+      final result = await Process.run('which', ['cloudflared']);
+      state = state.copyWith(cloudflaredAvailable: result.exitCode == 0);
+    } catch (_) {
+      state = state.copyWith(cloudflaredAvailable: false);
+    }
+  }
+
+  /// Start a cloudflare tunnel to expose the MCP server publicly.
+  Future<void> startTunnel() async {
+    if (_tunnelProcess != null || !state.running) return;
+
+    state = state.copyWith(tunnelStarting: true);
+
+    try {
+      _tunnelProcess = await Process.start(
+        'cloudflared',
+        ['tunnel', '--url', 'http://localhost:${state.port}'],
+      );
+
+      // cloudflared outputs the URL to stderr
+      final urlPattern = RegExp(r'https://[a-z0-9-]+\.trycloudflare\.com');
+
+      _tunnelProcess!.stderr
+          .transform(const SystemEncoding().decoder)
+          .listen((data) {
+        final match = urlPattern.firstMatch(data);
+        if (match != null && !_disposed) {
+          state = state.copyWith(
+            tunnelRunning: true,
+            tunnelStarting: false,
+            tunnelUrl: () => match.group(0),
+          );
+        }
+      });
+
+      // Handle tunnel process exit
+      _tunnelProcess!.exitCode.then((_) {
+        if (!_disposed) {
+          _tunnelProcess = null;
+          state = state.copyWith(
+            tunnelRunning: false,
+            tunnelStarting: false,
+            tunnelUrl: () => null,
+          );
+        }
+      });
+
+      // Timeout: if no URL after 15 seconds, give up
+      Future.delayed(const Duration(seconds: 15), () {
+        if (!_disposed && state.tunnelStarting) {
+          stopTunnel();
+        }
+      });
+    } catch (_) {
+      state = state.copyWith(tunnelStarting: false);
+    }
+  }
+
+  /// Stop the cloudflare tunnel.
+  Future<void> stopTunnel() async {
+    _tunnelProcess?.kill();
+    _tunnelProcess = null;
+    state = state.copyWith(
+      tunnelRunning: false,
+      tunnelStarting: false,
+      tunnelUrl: () => null,
+    );
   }
 
   /// Refresh connection count and activity log from the server.

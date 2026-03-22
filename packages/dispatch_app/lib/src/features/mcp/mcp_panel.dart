@@ -28,6 +28,8 @@ class _McpPanelState extends ConsumerState<McpPanel> {
   void initState() {
     super.initState();
     _portCtrl = TextEditingController();
+    // Check cloudflared availability on open
+    ref.read(mcpServerProvider.notifier).checkCloudflared();
     // Refresh connection count periodically
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       ref.read(mcpServerProvider.notifier).refreshStatus();
@@ -183,6 +185,113 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Public Access (Tunnel)
+                    if (mcpState.running) ...[
+                      _sectionLabel('PUBLIC ACCESS', theme),
+                      const SizedBox(height: 8),
+                      if (!mcpState.cloudflaredAvailable) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'cloudflared not found. Required for public URLs.',
+                                style: TextStyle(color: theme.textSecondary, fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(const ClipboardData(text: 'brew install cloudflared'));
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: theme.border,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Copy: brew install cloudflared',
+                              style: TextStyle(color: theme.textPrimary, fontSize: 11),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () => ref.read(mcpServerProvider.notifier).checkCloudflared(),
+                          child: Text('Re-check', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
+                        ),
+                      ] else ...[
+                        Row(
+                          children: [
+                            Text('Public URL', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: () {
+                                if (mcpState.tunnelRunning) {
+                                  ref.read(mcpServerProvider.notifier).stopTunnel();
+                                } else if (!mcpState.tunnelStarting) {
+                                  ref.read(mcpServerProvider.notifier).startTunnel();
+                                }
+                              },
+                              child: Container(
+                                width: 36,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: mcpState.tunnelRunning
+                                      ? theme.accentGreen
+                                      : mcpState.tunnelStarting
+                                          ? theme.accentYellow
+                                          : theme.border,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: AnimatedAlign(
+                                  duration: const Duration(milliseconds: 150),
+                                  alignment: (mcpState.tunnelRunning || mcpState.tunnelStarting)
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: Container(
+                                    width: 16,
+                                    height: 16,
+                                    margin: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: theme.textPrimary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (mcpState.tunnelStarting)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text('Starting tunnel...', style: TextStyle(color: theme.accentYellow, fontSize: 11)),
+                          ),
+                        if (mcpState.tunnelRunning && mcpState.tunnelUrl != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  mcpState.tunnelUrl!,
+                                  style: TextStyle(color: theme.accentGreen, fontSize: 11, fontFamily: 'Menlo'),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              _copyButton(mcpState.tunnelUrl!, theme),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text('Tunnel active', style: TextStyle(color: theme.textSecondary, fontSize: 10)),
+                        ],
+                      ],
                       const SizedBox(height: 16),
                     ],
 
