@@ -50,7 +50,7 @@ class _SaveTemplateDialogState extends ConsumerState<SaveTemplateDialog> {
   Widget build(BuildContext context) {
     if (!widget.open) return const SizedBox.shrink();
 
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
 
     return Stack(
       children: [

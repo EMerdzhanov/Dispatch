@@ -41,7 +41,7 @@ class ShortcutsPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (!open) return const SizedBox.shrink();
 
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
 
     return KeyboardListener(
       focusNode: FocusNode(),

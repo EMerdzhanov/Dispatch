@@ -108,7 +108,7 @@ class _FileTreeState extends ConsumerState<FileTree> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     // Reload when active group changes
     ref.listen(projectsProvider.select((s) => s.activeGroupId), (_, _) => _loadEntries());
     if (_entries == null) return Center(child: Text('Loading...', style: TextStyle(color: theme.textSecondary, fontSize: 11)));

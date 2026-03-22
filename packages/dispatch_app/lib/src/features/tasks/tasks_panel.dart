@@ -103,7 +103,7 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     // Watch for project changes and reload tasks
     final projects = ref.watch(projectsProvider);
     final group = projects.groups

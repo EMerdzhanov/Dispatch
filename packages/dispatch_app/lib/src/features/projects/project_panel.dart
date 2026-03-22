@@ -21,7 +21,7 @@ class _ProjectPanelState extends ConsumerState<ProjectPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
 
     return Container(
       color: theme.surface,

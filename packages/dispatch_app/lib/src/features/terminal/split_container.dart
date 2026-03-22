@@ -27,7 +27,7 @@ class SplitContainer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
 
     if (node is SplitLeaf) {
       final leaf = node as SplitLeaf;

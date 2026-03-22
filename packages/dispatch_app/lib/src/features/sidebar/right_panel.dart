@@ -20,7 +20,7 @@ class _RightPanelState extends ConsumerState<RightPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
 
     if (_collapsed) {
       return GestureDetector(

@@ -101,7 +101,7 @@ class _BrowserPanelState extends ConsumerState<BrowserPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
 
     return Column(
       children: [

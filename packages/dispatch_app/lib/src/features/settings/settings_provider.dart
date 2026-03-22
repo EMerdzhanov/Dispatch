@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/theme/color_theme.dart';
 
 class AppSettings {
@@ -91,4 +92,8 @@ final themeProvider =
 final activeThemeProvider = Provider<ColorTheme>((ref) {
   final id = ref.watch(themeProvider);
   return ColorTheme.fromId(id);
+});
+
+final appThemeProvider = Provider<AppTheme>((ref) {
+  return AppTheme(ref.watch(activeThemeProvider));
 });

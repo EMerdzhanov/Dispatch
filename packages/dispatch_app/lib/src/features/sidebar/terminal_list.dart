@@ -38,7 +38,7 @@ class _TerminalListState extends ConsumerState<TerminalList> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     final terminalsState = ref.watch(terminalsProvider);
     final projectsState = ref.watch(projectsProvider);
 

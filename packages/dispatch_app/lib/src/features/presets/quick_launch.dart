@@ -17,7 +17,7 @@ class QuickLaunch extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     final presets = ref.watch(presetsProvider).presets;
 
     return Padding(

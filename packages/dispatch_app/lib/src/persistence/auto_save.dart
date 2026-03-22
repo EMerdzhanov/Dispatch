@@ -151,7 +151,12 @@ Future<void> _loadSettings(AppDatabase db, WidgetRef ref) async {
   final screenshotFolder = await db.settingsDao.getValue('screenshotFolder');
   final theme = await db.settingsDao.getValue('theme');
 
-  // Only hydrate if at least one setting was previously saved.
+  // Hydrate theme independently — it should load even if no other settings exist.
+  if (theme != null) {
+    ref.read(themeProvider.notifier).setTheme(theme);
+  }
+
+  // Only hydrate remaining settings if at least one was previously saved.
   if (shell == null &&
       fontFamily == null &&
       fontSize == null &&
@@ -171,9 +176,6 @@ Future<void> _loadSettings(AppDatabase db, WidgetRef ref) async {
         soundEnabled: soundEnabled != null ? soundEnabled == 'true' : null,
         screenshotFolder: screenshotFolder,
       );
-  if (theme != null) {
-    ref.read(themeProvider.notifier).setTheme(theme);
-  }
 }
 
 Future<void> _loadPresets(AppDatabase db, WidgetRef ref) async {

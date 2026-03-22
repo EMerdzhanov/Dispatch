@@ -96,6 +96,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
       soundEnabled: d.soundEnabled,
     );
     ref.read(themeProvider.notifier).setTheme('dispatch-dark');
+    _themeExpanded = false;
   }
 
   @override
@@ -108,7 +109,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
   Widget build(BuildContext context) {
     if (!widget.open) return const SizedBox.shrink();
 
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     final currentThemeId = ref.watch(themeProvider);
     final settings = ref.watch(settingsProvider);
     if (!_initialized) _loadSettings(settings);

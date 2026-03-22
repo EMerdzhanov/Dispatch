@@ -104,7 +104,7 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
   Widget build(BuildContext context) {
     if (!widget.open) return const SizedBox.shrink();
 
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     final presets = ref.watch(presetsProvider).presets;
 
     return AnimatedBuilder(

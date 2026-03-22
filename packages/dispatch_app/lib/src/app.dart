@@ -119,7 +119,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
   @override
   Widget build(BuildContext context) {
     if (!_loaded) {
-      final loadingTheme = AppTheme(ref.watch(activeThemeProvider));
+      final loadingTheme = ref.watch(appThemeProvider);
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: loadingTheme.dark,
@@ -334,7 +334,7 @@ class _TitleBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     return GestureDetector(
       onPanStart: (_) => windowManager.startDragging(),
       child: Container(

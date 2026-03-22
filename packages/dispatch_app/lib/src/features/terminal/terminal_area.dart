@@ -25,7 +25,7 @@ class TerminalArea extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     final terminalsState = ref.watch(terminalsProvider);
     final projectsState = ref.watch(projectsProvider);
     final browserState = ref.watch(browserProvider);
@@ -136,7 +136,7 @@ class _SubTabBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     final terminalsState = ref.watch(terminalsProvider);
     final hasBrowserTabs = browserTabs.isNotEmpty;
 

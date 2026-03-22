@@ -127,7 +127,7 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
   Widget build(BuildContext context) {
     if (!widget.open) return const SizedBox.shrink();
 
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
 
     // Watch for state changes
     ref.watch(projectsProvider);

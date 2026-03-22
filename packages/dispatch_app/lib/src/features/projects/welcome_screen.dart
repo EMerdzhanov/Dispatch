@@ -15,7 +15,7 @@ class WelcomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     final presetsState = ref.watch(presetsProvider);
     final savedTemplates = presetsState.presets;
     final sessionTemplates = ref.watch(templatesProvider);

@@ -25,7 +25,7 @@ class ProjectTabBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = AppTheme(ref.watch(activeThemeProvider));
+    final theme = ref.watch(appThemeProvider);
     final projectsState = ref.watch(projectsProvider);
     final terminalsState = ref.watch(terminalsProvider);
     final groups = projectsState.groups;

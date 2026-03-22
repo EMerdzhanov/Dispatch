@@ -151,7 +151,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final colorTheme = ref.watch(activeThemeProvider);
-    final theme = AppTheme(colorTheme);
+    final theme = ref.watch(appThemeProvider);
     final entry = ref.watch(terminalsProvider.select(
         (s) => s.terminals[widget.terminalId]));
 
