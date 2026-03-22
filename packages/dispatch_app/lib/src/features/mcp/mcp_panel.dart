@@ -21,13 +21,18 @@ class McpPanel extends ConsumerStatefulWidget {
 
 class _McpPanelState extends ConsumerState<McpPanel> {
   late TextEditingController _portCtrl;
+  late TextEditingController _tunnelNameCtrl;
+  late TextEditingController _tunnelUrlCtrl;
   bool _tokenVisible = false;
+  bool _advancedOpen = false;
   Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _portCtrl = TextEditingController();
+    _tunnelNameCtrl = TextEditingController();
+    _tunnelUrlCtrl = TextEditingController();
     // Check cloudflared availability on open
     ref.read(mcpServerProvider.notifier).checkCloudflared();
     // Refresh connection count periodically
@@ -39,6 +44,8 @@ class _McpPanelState extends ConsumerState<McpPanel> {
   @override
   void dispose() {
     _portCtrl.dispose();
+    _tunnelNameCtrl.dispose();
+    _tunnelUrlCtrl.dispose();
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -53,6 +60,10 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     // Only update controller if value actually changed (avoids overwriting mid-edit)
     final portStr = mcpState.port.toString();
     if (_portCtrl.text != portStr) _portCtrl.text = portStr;
+    final tn = mcpState.tunnelName ?? '';
+    if (_tunnelNameCtrl.text != tn) _tunnelNameCtrl.text = tn;
+    final tu = mcpState.tunnelCustomUrl ?? '';
+    if (_tunnelUrlCtrl.text != tu) _tunnelUrlCtrl.text = tu;
 
     return GestureDetector(
       onTap: widget.onClose,
@@ -298,6 +309,99 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                     const SizedBox(height: 6),
                     _toggleRow('Token auth', mcpState.authEnabled, theme,
                         onChanged: (v) => ref.read(mcpServerProvider.notifier).setAuthEnabled(v)),
+
+                    // Advanced section (collapsible)
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () => setState(() => _advancedOpen = !_advancedOpen),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _advancedOpen ? Icons.expand_less : Icons.expand_more,
+                            size: 14,
+                            color: theme.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text('Advanced', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                        ],
+                      ),
+                    ),
+                    if (_advancedOpen) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'By default, the Public URL changes each time Dispatch restarts. '
+                        'To get a permanent URL, set up a named Cloudflare Tunnel:',
+                        style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.background,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'cloudflared tunnel login\n'
+                          'cloudflared tunnel create dispatch\n'
+                          'cloudflared tunnel route dns dispatch \\\n'
+                          '  dispatch.yourdomain.com',
+                          style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.5),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Then enter the tunnel name and your custom URL below. '
+                        'The Public URL toggle will use your permanent URL instead.',
+                        style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
+                      ),
+                      const SizedBox(height: 8),
+                      _settingRow('Tunnel name', theme, child: SizedBox(
+                        width: 140,
+                        height: 28,
+                        child: TextField(
+                          controller: _tunnelNameCtrl,
+                          style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: 'e.g. dispatch',
+                            hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 12),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                          ),
+                          onSubmitted: (value) {
+                            ref.read(mcpServerProvider.notifier).setTunnelConfig(
+                              name: value,
+                              customUrl: _tunnelUrlCtrl.text,
+                            );
+                          },
+                        ),
+                      )),
+                      const SizedBox(height: 6),
+                      _settingRow('Tunnel URL', theme, child: SizedBox(
+                        width: 220,
+                        height: 28,
+                        child: TextField(
+                          controller: _tunnelUrlCtrl,
+                          style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: 'https://dispatch.yourdomain.com',
+                            hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                          ),
+                          onSubmitted: (value) {
+                            ref.read(mcpServerProvider.notifier).setTunnelConfig(
+                              name: _tunnelNameCtrl.text,
+                              customUrl: value,
+                            );
+                          },
+                        ),
+                      )),
+                    ],
 
                     // Activity Log
                     if (mcpState.running && mcpState.activityLog.isNotEmpty) ...[
