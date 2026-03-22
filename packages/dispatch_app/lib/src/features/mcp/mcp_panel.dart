@@ -366,8 +366,15 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     return Row(
       children: [
         Text(label, style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-        const Spacer(),
-        Text(value, style: TextStyle(color: theme.textPrimary, fontSize: 11, fontFamily: 'Menlo')),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(color: theme.textPrimary, fontSize: 11, fontFamily: 'Menlo'),
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+          ),
+        ),
         const SizedBox(width: 6),
         _copyButton(value, theme),
       ],
