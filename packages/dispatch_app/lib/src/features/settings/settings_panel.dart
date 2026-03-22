@@ -173,34 +173,52 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                                   child: Text('Theme', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
                                 ),
                                 Expanded(
-                                  child: PopupMenuButton<String>(
-                                    initialValue: currentThemeId,
-                                    color: theme.surface,
-                                    onSelected: (id) {
-                                      ref.read(themeProvider.notifier).setTheme(id);
-                                    },
-                                    itemBuilder: (_) => ColorTheme.builtIn.map((t) => PopupMenuItem(
-                                      value: t.id,
-                                      child: Text(t.name, style: TextStyle(color: theme.textPrimary, fontSize: 12)),
-                                    )).toList(),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: theme.surfaceLight,
-                                        borderRadius: BorderRadius.circular(AppTheme.radius),
-                                        border: Border.all(color: theme.border, width: AppTheme.borderWidth),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              ColorTheme.fromId(currentThemeId).name,
-                                              style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: theme.surfaceLight,
+                                      borderRadius: BorderRadius.circular(AppTheme.radius),
+                                      border: Border.all(color: theme.border, width: AppTheme.borderWidth),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: ColorTheme.builtIn.map((t) {
+                                        final isSelected = t.id == currentThemeId;
+                                        return GestureDetector(
+                                          onTap: () => ref.read(themeProvider.notifier).setTheme(t.id),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                            decoration: BoxDecoration(
+                                              color: isSelected ? theme.accentBlue.withValues(alpha: 0.2) : Colors.transparent,
+                                              border: Border(
+                                                bottom: t.id != ColorTheme.builtIn.last.id
+                                                    ? BorderSide(color: theme.border, width: AppTheme.borderWidth)
+                                                    : BorderSide.none,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  width: 10,
+                                                  height: 10,
+                                                  margin: const EdgeInsets.only(right: 8),
+                                                  decoration: BoxDecoration(
+                                                    color: t.uiAccent,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  t.name,
+                                                  style: TextStyle(
+                                                    color: isSelected ? theme.textPrimary : theme.textSecondary,
+                                                    fontSize: 12,
+                                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          Icon(Icons.arrow_drop_down, color: theme.textSecondary, size: 18),
-                                        ],
-                                      ),
+                                        );
+                                      }).toList(),
                                     ),
                                   ),
                                 ),
