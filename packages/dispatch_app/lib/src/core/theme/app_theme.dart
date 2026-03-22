@@ -1,30 +1,35 @@
 import 'package:flutter/material.dart';
 
+import 'color_theme.dart';
+
 class AppTheme {
-  static const background = Color(0xFF0A0A1A);
-  static const surface = Color(0xFF12122A);
-  static const surfaceLight = Color(0xFF1A1A3A);
-  static const border = Color(0xFF2A2A4A);
-  static const textPrimary = Color(0xFFCCCCCC);
-  static const textSecondary = Color(0xFF888888);
-  static const accentBlue = Color(0xFF3A6FD6);
-  static const accentRed = Color(0xFFE94560);
-  static const accentGreen = Color(0xFF00CD00);
-  static const accentYellow = Color(0xFFF5A623);
+  final ColorTheme colors;
 
-  static const tabTrack = Color(0xFF060612);
-  static const tabTrackBorder = Color(0xFF1A1A2A);
+  const AppTheme(this.colors);
 
+  // Color accessors — map old static names to ColorTheme fields
+  Color get background => colors.uiBackground;
+  Color get surface => colors.uiSurface;
+  Color get surfaceLight => colors.uiSurfaceLight;
+  Color get border => colors.uiBorder;
+  Color get textPrimary => colors.uiTextPrimary;
+  Color get textSecondary => colors.uiTextSecondary;
+  Color get accentBlue => colors.uiAccent;
+  Color get accentRed => colors.uiAccentRed;
+  Color get accentGreen => colors.uiAccentGreen;
+  Color get accentYellow => colors.uiAccentYellow;
+  Color get tabTrack => colors.uiTabTrack;
+  Color get tabTrackBorder => colors.uiTabTrackBorder;
+
+  // Non-color constants remain static
   static const fontStack = 'JetBrains Mono, Fira Code, SF Mono, Menlo, Monaco, Courier New, monospace';
 
-  // Animation durations & curves
   static const hoverDuration = Duration(milliseconds: 120);
   static const animDuration = Duration(milliseconds: 200);
   static const animFastDuration = Duration(milliseconds: 150);
   static const animCurve = Curves.easeOut;
   static const animCurveIn = Curves.easeIn;
 
-  // Spacing constants
   static const double spacingXs = 4;
   static const double spacingSm = 8;
   static const double spacingMd = 12;
@@ -36,34 +41,33 @@ class AppTheme {
   static const double sidebarWidth = 180;
   static const double borderWidth = 0.5;
 
-  // Text style presets
-  static const labelStyle = TextStyle(
+  // Text style presets — now instance getters since they use colors
+  TextStyle get labelStyle => TextStyle(
     color: textSecondary,
     fontSize: 10,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.8,
   );
 
-  static const bodyStyle = TextStyle(
+  TextStyle get bodyStyle => TextStyle(
     color: textPrimary,
     fontSize: 12,
     fontWeight: FontWeight.w400,
   );
 
-  static const titleStyle = TextStyle(
+  TextStyle get titleStyle => TextStyle(
     color: textPrimary,
     fontSize: 14,
     fontWeight: FontWeight.w500,
   );
 
-  static const dimStyle = TextStyle(
+  TextStyle get dimStyle => TextStyle(
     color: textSecondary,
     fontSize: 12,
     fontWeight: FontWeight.w400,
   );
 
-  // Overlay decoration helper
-  static BoxDecoration get overlayDecoration => BoxDecoration(
+  BoxDecoration get overlayDecoration => BoxDecoration(
     color: surface,
     borderRadius: BorderRadius.circular(radius),
     border: Border.all(color: border, width: borderWidth),
@@ -72,22 +76,22 @@ class AppTheme {
     ],
   );
 
-  static ThemeData get dark => ThemeData(
+  ThemeData get dark => ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: background,
-    colorScheme: const ColorScheme.dark(
+    colorScheme: ColorScheme.dark(
       surface: surface,
       primary: accentBlue,
       error: accentRed,
     ),
     fontFamily: fontStack,
-    textTheme: const TextTheme(
+    textTheme: TextTheme(
       bodyMedium: TextStyle(color: textPrimary, fontSize: 12, fontWeight: FontWeight.w400),
       bodySmall: TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w400),
       titleSmall: TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
     ),
     dividerColor: border,
-    iconTheme: const IconThemeData(color: textSecondary, size: 16),
+    iconTheme: IconThemeData(color: textSecondary, size: 16),
     scrollbarTheme: ScrollbarThemeData(
       thickness: WidgetStateProperty.all(4),
       radius: const Radius.circular(2),
