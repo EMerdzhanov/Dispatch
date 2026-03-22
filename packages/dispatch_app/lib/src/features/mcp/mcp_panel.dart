@@ -304,30 +304,43 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                     if (_advancedOpen) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'By default, the Public URL changes each time Dispatch restarts. '
-                        'To get a permanent URL, set up a named Cloudflare Tunnel:',
+                        'Get a permanent URL that never changes, even after '
+                        'restarting Dispatch. Requires a Cloudflare account '
+                        'with a domain (e.g. yourdomain.com).',
                         style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Run these commands once in your terminal:',
+                        style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 6),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: theme.background,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text(
-                          'cloudflared tunnel login\n'
-                          'cloudflared tunnel create dispatch\n'
-                          'cloudflared tunnel route dns dispatch \\\n'
-                          '  dispatch.yourdomain.com',
-                          style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.5),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('# Step 1: Log in to Cloudflare', style: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
+                            Text('cloudflared tunnel login', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
+                            const SizedBox(height: 4),
+                            Text('# Step 2: Create a named tunnel', style: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
+                            Text('cloudflared tunnel create dispatch', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
+                            const SizedBox(height: 4),
+                            Text('# Step 3: Point your subdomain to it', style: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
+                            Text('cloudflared tunnel route dns dispatch \\', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
+                            Text('  dispatch.yourdomain.com', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Then enter the tunnel name and your custom URL below. '
-                        'The Public URL toggle will use your permanent URL instead.',
+                        'Then fill in the fields below. The Public URL toggle '
+                        'will use your permanent URL instead of a random one.',
                         style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
                       ),
                       const SizedBox(height: 8),
