@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 import 'mcp_provider.dart';
-import 'mcp_server.dart';
 
 class McpPanel extends ConsumerStatefulWidget {
   final bool open;
@@ -26,7 +25,6 @@ class _McpPanelState extends ConsumerState<McpPanel> {
   bool _tokenVisible = false;
   bool _advancedOpen = false;
   Timer? _refreshTimer;
-  bool _tunnelDirty = false;
 
   @override
   void initState() {
@@ -61,12 +59,24 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     // Only update controller if value actually changed (avoids overwriting mid-edit)
     final portStr = mcpState.port.toString();
     if (_portCtrl.text != portStr) _portCtrl.text = portStr;
-    if (!_tunnelDirty) {
-      final tn = mcpState.tunnelName ?? '';
-      if (_tunnelNameCtrl.text != tn) _tunnelNameCtrl.text = tn;
-      final tu = mcpState.tunnelCustomUrl ?? '';
-      if (_tunnelUrlCtrl.text != tu) _tunnelUrlCtrl.text = tu;
-    }
+    // Derive dirty state by comparing controllers to saved provider values.
+    final tunnelDirty =
+        _tunnelNameCtrl.text != (mcpState.tunnelName ?? '') ||
+        _tunnelUrlCtrl.text != (mcpState.tunnelCustomUrl ?? '');
+    // Sync tunnel controllers from provider only when user hasn't edited them.
+    // Compare against prev values inside callback to avoid stale closure.
+    ref.listen(
+      mcpServerProvider.select((s) => (s.tunnelName, s.tunnelCustomUrl)),
+      (prev, next) {
+        final prevName = prev?.$1 ?? '';
+        final prevUrl = prev?.$2 ?? '';
+        if (_tunnelNameCtrl.text != prevName || _tunnelUrlCtrl.text != prevUrl) return;
+        final tn = next.$1 ?? '';
+        if (_tunnelNameCtrl.text != tn) _tunnelNameCtrl.text = tn;
+        final tu = next.$2 ?? '';
+        if (_tunnelUrlCtrl.text != tu) _tunnelUrlCtrl.text = tu;
+      },
+    );
 
     return GestureDetector(
       onTap: widget.onClose,
@@ -79,7 +89,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
               color: Colors.transparent,
               child: Container(
               width: 480,
-              constraints: const BoxConstraints(maxHeight: 600),
+              constraints: const BoxConstraints(maxHeight: 700),
               decoration: BoxDecoration(
                 color: theme.surface,
                 borderRadius: BorderRadius.circular(12),
@@ -361,7 +371,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
                           ),
-                          onChanged: (_) => setState(() => _tunnelDirty = true),
+                          onChanged: (_) => setState(() {}),
                         ),
                       )),
                       const SizedBox(height: 6),
@@ -379,27 +389,47 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
                           ),
-                          onChanged: (_) => setState(() => _tunnelDirty = true),
+                          onChanged: (_) => setState(() {}),
                         ),
                       )),
-                      if (_tunnelDirty) ...[
+                      if (tunnelDirty) ...[
                         const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: () {
-                            ref.read(mcpServerProvider.notifier).setTunnelConfig(
-                              name: _tunnelNameCtrl.text,
-                              customUrl: _tunnelUrlCtrl.text,
-                            );
-                            setState(() => _tunnelDirty = false);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: theme.accentGreen,
-                              borderRadius: BorderRadius.circular(4),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                ref.read(mcpServerProvider.notifier).setTunnelConfig(
+                                  name: _tunnelNameCtrl.text,
+                                  customUrl: _tunnelUrlCtrl.text,
+                                );
+                                setState(() {});
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: theme.accentGreen,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text('Save', style: TextStyle(color: theme.background, fontSize: 11, fontWeight: FontWeight.w600)),
+                              ),
                             ),
-                            child: Text('Save', style: TextStyle(color: theme.background, fontSize: 11, fontWeight: FontWeight.w600)),
-                          ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                _tunnelNameCtrl.text = mcpState.tunnelName ?? '';
+                                _tunnelUrlCtrl.text = mcpState.tunnelCustomUrl ?? '';
+                                setState(() {});
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: theme.border),
+                                ),
+                                child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ],

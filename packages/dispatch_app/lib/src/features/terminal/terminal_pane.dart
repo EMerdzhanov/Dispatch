@@ -160,10 +160,13 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     }
   }
 
-  /// Build shortcuts map that tells xterm to pass these key combos
-  /// up to the Flutter Shortcuts widget instead of handling them.
+  /// Build shortcuts map: default terminal shortcuts (copy/paste/select-all)
+  /// plus app shortcuts that xterm should pass up to the Flutter Shortcuts widget.
   Map<ShortcutActivator, Intent> _buildShortcuts() {
-    return AppShortcuts.bindings;
+    return {
+      ...xterm.defaultTerminalShortcuts,
+      ...AppShortcuts.bindings,
+    };
   }
 
   @override
