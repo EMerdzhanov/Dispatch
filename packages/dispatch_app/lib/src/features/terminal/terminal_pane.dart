@@ -119,28 +119,37 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
   }
 
   /// Let app shortcuts (Cmd+N, Cmd+K, etc.) pass through to the Shortcuts widget.
-  /// Return KeyEventResult.ignored so Flutter's shortcut system handles them.
+  /// Return KeyEventResult.ignored for shortcut combos so Flutter handles them.
+  /// Return KeyEventResult.ignored for everything else too — xterm handles input
+  /// through its own onOutput callback, not through the key event system.
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.skipRemainingHandlers;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
 
     final meta = HardwareKeyboard.instance.isMetaPressed;
     final shift = HardwareKeyboard.instance.isShiftPressed;
     final key = event.logicalKey;
 
     if (meta) {
-      // Pass these combos through to the app's Shortcuts widget
-      if (key == LogicalKeyboardKey.keyN) return KeyEventResult.ignored; // New terminal
-      if (key == LogicalKeyboardKey.keyT) return KeyEventResult.ignored; // New tab
-      if (key == LogicalKeyboardKey.keyW) return KeyEventResult.ignored; // Close pane
-      if (key == LogicalKeyboardKey.keyK) return KeyEventResult.ignored; // Quick switcher
-      if (key == LogicalKeyboardKey.keyD) return KeyEventResult.ignored; // Split
-      if (shift && key == LogicalKeyboardKey.keyP) return KeyEventResult.ignored; // Command palette
-      if (shift && key == LogicalKeyboardKey.keyZ) return KeyEventResult.ignored; // Zen mode
-      if (shift && key == LogicalKeyboardKey.keyS) return KeyEventResult.ignored; // Save template
+      // These combos should be handled by the app's Shortcuts widget, not xterm
+      if (key == LogicalKeyboardKey.keyN ||
+          key == LogicalKeyboardKey.keyT ||
+          key == LogicalKeyboardKey.keyW ||
+          key == LogicalKeyboardKey.keyK ||
+          key == LogicalKeyboardKey.keyD) {
+        return KeyEventResult.ignored;
+      }
+      if (shift && (key == LogicalKeyboardKey.keyP ||
+          key == LogicalKeyboardKey.keyZ ||
+          key == LogicalKeyboardKey.keyS ||
+          key == LogicalKeyboardKey.keyD)) {
+        return KeyEventResult.ignored;
+      }
     }
 
-    // Let xterm handle everything else
-    return KeyEventResult.skipRemainingHandlers;
+    // Let xterm handle all other keys normally
+    return KeyEventResult.ignored;
   }
 
   @override
