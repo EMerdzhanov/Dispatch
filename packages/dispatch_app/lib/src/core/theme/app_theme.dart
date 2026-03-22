@@ -33,7 +33,7 @@ class AppTheme {
   static const double radius = 6;
   static const double tabBarHeight = 32;
   static const double terminalHeaderHeight = 24;
-  static const double sidebarWidth = 240;
+  static const double sidebarWidth = 180;
   static const double borderWidth = 0.5;
 
   // Text style presets
