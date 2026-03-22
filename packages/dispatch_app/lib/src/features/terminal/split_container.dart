@@ -5,6 +5,7 @@ import 'package:dispatch_app/src/core/models/split_node.dart';
 import 'package:dispatch_app/src/features/terminal/terminal_pane.dart';
 import 'package:dispatch_app/src/features/projects/projects_provider.dart';
 import 'package:dispatch_app/src/core/theme/app_theme.dart';
+import 'package:dispatch_app/src/features/settings/settings_provider.dart';
 
 // ---------------------------------------------------------------------------
 // SplitContainer
@@ -26,6 +27,8 @@ class SplitContainer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
+
     if (node is SplitLeaf) {
       final leaf = node as SplitLeaf;
       return TerminalPane(
@@ -46,6 +49,7 @@ class SplitContainer extends ConsumerWidget {
         ),
         _DragDivider(
           direction: branch.direction,
+          theme: theme,
           onDrag: (delta) {
             final newRatio = (branch.ratio + delta).clamp(0.15, 0.85);
             final projectsState = ref.read(projectsProvider);
@@ -84,12 +88,14 @@ class SplitContainer extends ConsumerWidget {
 /// Uses a resize cursor and highlights in [AppTheme.accentBlue] while active.
 class _DragDivider extends StatefulWidget {
   final SplitDirection direction;
+  final AppTheme theme;
 
   /// Called with the drag delta expressed as a fraction of the parent size.
   final void Function(double delta) onDrag;
 
   const _DragDivider({
     required this.direction,
+    required this.theme,
     required this.onDrag,
   });
 
@@ -104,6 +110,7 @@ class _DragDividerState extends State<_DragDivider> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     final thickness = 4.0;
 
     final divider = MouseRegion(
@@ -148,7 +155,7 @@ class _DragDividerState extends State<_DragDivider> {
           duration: AppTheme.hoverDuration,
           width: _isHorizontal ? thickness : double.infinity,
           height: _isHorizontal ? double.infinity : thickness,
-          color: _dragging ? AppTheme.accentBlue : AppTheme.border,
+          color: _dragging ? theme.accentBlue : theme.border,
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/project_group.dart';
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../browser/browser_panel.dart';
 import '../browser/browser_provider.dart';
 import '../projects/projects_provider.dart';
@@ -24,6 +25,7 @@ class TerminalArea extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final terminalsState = ref.watch(terminalsProvider);
     final projectsState = ref.watch(projectsProvider);
     final browserState = ref.watch(browserProvider);
@@ -33,10 +35,10 @@ class TerminalArea extends ConsumerWidget {
         .firstOrNull;
 
     if (activeGroup == null || activeGroup.terminalIds.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No terminals. Use presets or Cmd+N to create one.',
-          style: TextStyle(color: AppTheme.textSecondary),
+          style: TextStyle(color: theme.textSecondary),
         ),
       );
     }
@@ -71,7 +73,7 @@ class TerminalArea extends ConsumerWidget {
                   url: browserTabs.firstWhere((t) => t.id == activeBrowserTabId).url,
                 )
               : activeGroup.splitLayout != null
-                  ? _buildSplitView(activeGroup)
+                  ? _buildSplitView(theme, activeGroup)
                   : IndexedStack(
                       index: activeGroup.terminalIds.indexOf(terminalId).clamp(0, activeGroup.terminalIds.length - 1),
                       children: activeGroup.terminalIds.map((id) {
@@ -86,7 +88,7 @@ class TerminalArea extends ConsumerWidget {
     );
   }
 
-  Widget _buildSplitView(ProjectGroup group) {
+  Widget _buildSplitView(AppTheme theme, ProjectGroup group) {
     final layout = group.splitLayout!;
     final direction = layout is SplitBranch ? layout.direction : SplitDirection.horizontal;
     final isHorizontal = direction == SplitDirection.horizontal;
@@ -98,7 +100,7 @@ class TerminalArea extends ConsumerWidget {
         children.add(Container(
           width: isHorizontal ? 1 : null,
           height: isHorizontal ? null : 1,
-          color: AppTheme.border,
+          color: theme.border,
         ));
       }
       children.add(Expanded(
@@ -134,6 +136,7 @@ class _SubTabBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final terminalsState = ref.watch(terminalsProvider);
     final hasBrowserTabs = browserTabs.isNotEmpty;
 
@@ -147,9 +150,9 @@ class _SubTabBar extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: AppTheme.tabTrack,
+          color: theme.tabTrack,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppTheme.tabTrackBorder, width: 1),
+          border: Border.all(color: theme.tabTrackBorder, width: 1),
         ),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -162,6 +165,7 @@ class _SubTabBar extends ConsumerWidget {
                   label: 'Terminals',
                   isActive: !showBrowser,
                   onTap: () => ref.read(browserProvider.notifier).setActiveTab(null),
+                  theme: theme,
                 ),
               // Individual terminal tabs (when no browser tabs, show terminal names)
               if (!hasBrowserTabs)
@@ -178,6 +182,7 @@ class _SubTabBar extends ConsumerWidget {
                       ref.read(browserProvider.notifier).setActiveTab(null);
                       ref.read(terminalsProvider.notifier).setActiveTerminal(id);
                     },
+                    theme: theme,
                   );
                 }),
               // Browser tabs
@@ -189,6 +194,7 @@ class _SubTabBar extends ConsumerWidget {
                   onTap: () => ref.read(browserProvider.notifier).setActiveTab(tab.id),
                   onClose: () => ref.read(browserProvider.notifier).removeTab(
                         group.id, tab.id),
+                  theme: theme,
                 );
               }),
             ],
@@ -204,12 +210,14 @@ class _SubTab extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
   final VoidCallback? onClose;
+  final AppTheme theme;
 
   const _SubTab({
     required this.label,
     required this.isActive,
     required this.onTap,
     this.onClose,
+    required this.theme,
   });
 
   @override
@@ -220,7 +228,7 @@ class _SubTab extends StatelessWidget {
         duration: AppTheme.animFastDuration,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.surfaceLight : Colors.transparent,
+          color: isActive ? theme.surfaceLight : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           boxShadow: isActive
               ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
@@ -233,7 +241,7 @@ class _SubTab extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 11,
-                color: isActive ? AppTheme.textPrimary : const Color(0xFF666666),
+                color: isActive ? theme.textPrimary : const Color(0xFF666666),
                 fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
@@ -241,8 +249,8 @@ class _SubTab extends StatelessWidget {
               const SizedBox(width: 6),
               GestureDetector(
                 onTap: onClose,
-                child: const Text('\u2715',
-                    style: TextStyle(fontSize: 9, color: AppTheme.textSecondary)),
+                child: Text('\u2715',
+                    style: TextStyle(fontSize: 9, color: theme.textSecondary)),
               ),
             ],
           ],

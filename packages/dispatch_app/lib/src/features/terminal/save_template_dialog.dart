@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 
 class SaveTemplateDialog extends ConsumerStatefulWidget {
   final bool open;
@@ -49,6 +50,8 @@ class _SaveTemplateDialogState extends ConsumerState<SaveTemplateDialog> {
   Widget build(BuildContext context) {
     if (!widget.open) return const SizedBox.shrink();
 
+    final theme = AppTheme(ref.watch(activeThemeProvider));
+
     return Stack(
       children: [
         GestureDetector(
@@ -71,25 +74,25 @@ class _SaveTemplateDialogState extends ConsumerState<SaveTemplateDialog> {
                 child: Container(
                   width: 400,
                   padding: const EdgeInsets.all(AppTheme.spacingXl),
-                  decoration: AppTheme.overlayDecoration,
+                  decoration: theme.overlayDecoration,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Save Template',
-                        style: AppTheme.titleStyle.copyWith(fontWeight: FontWeight.w600),
+                        style: theme.titleStyle.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: AppTheme.spacingLg),
                       TextField(
                         controller: _controller,
                         autofocus: true,
-                        style: AppTheme.bodyStyle,
+                        style: theme.bodyStyle,
                         decoration: InputDecoration(
                           hintText: 'Template name',
-                          hintStyle: AppTheme.dimStyle,
+                          hintStyle: theme.dimStyle,
                           filled: true,
-                          fillColor: AppTheme.surfaceLight,
+                          fillColor: theme.surfaceLight,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(AppTheme.radius),
                             borderSide: BorderSide.none,
@@ -109,7 +112,7 @@ class _SaveTemplateDialogState extends ConsumerState<SaveTemplateDialog> {
                           ElevatedButton(
                             onPressed: () => widget.onSave(_controller.text),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.accentBlue,
+                              backgroundColor: theme.accentBlue,
                             ),
                             child: const Text('Save'),
                           ),
