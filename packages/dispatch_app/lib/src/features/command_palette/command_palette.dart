@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/preset.dart';
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../presets/presets_provider.dart';
 
 /// Scores how well [query] matches [target].
@@ -81,7 +82,7 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
     return scored.map((e) => e.preset).toList();
   }
 
-  Color _dotColor(String hex) {
+  Color _dotColor(AppTheme theme, String hex) {
     try {
       final clean = hex.replaceAll('#', '');
       final value = int.parse(
@@ -90,7 +91,7 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
       );
       return Color(value);
     } catch (_) {
-      return AppTheme.textSecondary;
+      return theme.textSecondary;
     }
   }
 
@@ -103,6 +104,7 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
   Widget build(BuildContext context) {
     if (!widget.open) return const SizedBox.shrink();
 
+    final theme = AppTheme(ref.watch(activeThemeProvider));
     final presets = ref.watch(presetsProvider).presets;
 
     return AnimatedBuilder(
@@ -166,7 +168,7 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
                       child: Material(
                         color: Colors.transparent,
                         child: Container(
-                          decoration: AppTheme.overlayDecoration,
+                          decoration: theme.overlayDecoration,
                           clipBehavior: Clip.antiAlias,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -182,10 +184,10 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
                                   controller: _controller,
                                   focusNode: _focusNode,
                                   autofocus: true,
-                                  style: AppTheme.titleStyle,
+                                  style: theme.titleStyle,
                                   decoration: InputDecoration(
                                     hintText: 'Search presets and actions...',
-                                    hintStyle: AppTheme.titleStyle.copyWith(color: AppTheme.textSecondary),
+                                    hintStyle: theme.titleStyle.copyWith(color: theme.textSecondary),
                                     border: InputBorder.none,
                                     isDense: true,
                                     contentPadding: EdgeInsets.zero,
@@ -203,9 +205,9 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
                                 ),
                               ),
                               if (filtered.isNotEmpty) ...[
-                                const Divider(
+                                Divider(
                                   height: 1,
-                                  color: AppTheme.border,
+                                  color: theme.border,
                                   thickness: AppTheme.borderWidth,
                                 ),
                                 Flexible(
@@ -218,9 +220,10 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
                                       final isSelected = index == clampedIndex;
                                       return _PresetResultItem(
                                         preset: preset,
-                                        dotColor: _dotColor(preset.color),
+                                        dotColor: _dotColor(theme, preset.color),
                                         isSelected: isSelected,
                                         onTap: () => _spawn(preset),
+                                        theme: theme,
                                       );
                                     },
                                   ),
@@ -247,12 +250,14 @@ class _PresetResultItem extends StatefulWidget {
   final Color dotColor;
   final bool isSelected;
   final VoidCallback onTap;
+  final AppTheme theme;
 
   const _PresetResultItem({
     required this.preset,
     required this.dotColor,
     required this.isSelected,
     required this.onTap,
+    required this.theme,
   });
 
   @override
@@ -264,9 +269,10 @@ class _PresetResultItemState extends State<_PresetResultItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     final bg = (widget.isSelected || _hovered)
-        ? AppTheme.surfaceLight
-        : AppTheme.surface;
+        ? theme.surfaceLight
+        : theme.surface;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -293,11 +299,11 @@ class _PresetResultItemState extends State<_PresetResultItem> {
                   children: [
                     Text(
                       widget.preset.name,
-                      style: AppTheme.bodyStyle,
+                      style: theme.bodyStyle,
                     ),
                     Text(
                       widget.preset.command,
-                      style: AppTheme.dimStyle.copyWith(fontSize: 10),
+                      style: theme.dimStyle.copyWith(fontSize: 10),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],

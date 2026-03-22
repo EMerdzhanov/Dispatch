@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/terminal_entry.dart';
 import '../../core/theme/app_theme.dart';
+import '../settings/settings_provider.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_provider.dart';
 import 'command_palette.dart' show fuzzyScore;
@@ -111,20 +112,22 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
     widget.onClose();
   }
 
-  Color _statusColor(TerminalStatus status) {
+  Color _statusColor(AppTheme theme, TerminalStatus status) {
     switch (status) {
       case TerminalStatus.running:
-        return AppTheme.accentGreen;
+        return theme.accentGreen;
       case TerminalStatus.exited:
-        return AppTheme.accentRed;
+        return theme.accentRed;
       case TerminalStatus.active:
-        return AppTheme.accentBlue;
+        return theme.accentBlue;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (!widget.open) return const SizedBox.shrink();
+
+    final theme = AppTheme(ref.watch(activeThemeProvider));
 
     // Watch for state changes
     ref.watch(projectsProvider);
@@ -191,7 +194,7 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
                       child: Material(
                         color: Colors.transparent,
                         child: Container(
-                          decoration: AppTheme.overlayDecoration,
+                          decoration: theme.overlayDecoration,
                           clipBehavior: Clip.antiAlias,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -207,10 +210,10 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
                                   controller: _controller,
                                   focusNode: _focusNode,
                                   autofocus: true,
-                                  style: AppTheme.titleStyle,
+                                  style: theme.titleStyle,
                                   decoration: InputDecoration(
                                     hintText: 'Switch to terminal...',
-                                    hintStyle: AppTheme.titleStyle.copyWith(color: AppTheme.textSecondary),
+                                    hintStyle: theme.titleStyle.copyWith(color: theme.textSecondary),
                                     border: InputBorder.none,
                                     isDense: true,
                                     contentPadding: EdgeInsets.zero,
@@ -228,7 +231,7 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
                                 ),
                               ),
                               if (filtered.isNotEmpty) ...[
-                                const Divider(height: 1, color: AppTheme.border, thickness: AppTheme.borderWidth),
+                                Divider(height: 1, color: theme.border, thickness: AppTheme.borderWidth),
                                 Flexible(
                                   child: ListView.builder(
                                     shrinkWrap: true,
@@ -240,9 +243,10 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
                                       return _TerminalResultItem(
                                         result: r,
                                         statusColor:
-                                            _statusColor(r.terminal.status),
+                                            _statusColor(theme, r.terminal.status),
                                         isSelected: isSelected,
                                         onTap: () => _switchTo(r),
+                                        theme: theme,
                                       );
                                     },
                                   ),
@@ -253,7 +257,7 @@ class _QuickSwitcherState extends ConsumerState<QuickSwitcher> {
                                   padding: const EdgeInsets.all(AppTheme.spacingLg),
                                   child: Text(
                                     'No terminals found',
-                                    style: AppTheme.dimStyle,
+                                    style: theme.dimStyle,
                                   ),
                                 ),
                             ],
@@ -277,12 +281,14 @@ class _TerminalResultItem extends StatefulWidget {
   final Color statusColor;
   final bool isSelected;
   final VoidCallback onTap;
+  final AppTheme theme;
 
   const _TerminalResultItem({
     required this.result,
     required this.statusColor,
     required this.isSelected,
     required this.onTap,
+    required this.theme,
   });
 
   @override
@@ -294,9 +300,10 @@ class _TerminalResultItemState extends State<_TerminalResultItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
     final bg = (widget.isSelected || _hovered)
-        ? AppTheme.surfaceLight
-        : AppTheme.surface;
+        ? theme.surfaceLight
+        : theme.surface;
     final terminal = widget.result.terminal;
     final label = terminal.label ?? terminal.command;
 
@@ -325,23 +332,23 @@ class _TerminalResultItemState extends State<_TerminalResultItem> {
                   children: [
                     Text(
                       label,
-                      style: AppTheme.bodyStyle,
+                      style: theme.bodyStyle,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Row(
                       children: [
                         Text(
                           widget.result.groupLabel,
-                          style: AppTheme.dimStyle.copyWith(color: AppTheme.accentBlue, fontSize: 10),
+                          style: theme.dimStyle.copyWith(color: theme.accentBlue, fontSize: 10),
                         ),
                         Text(
                           '  \u2022  ',
-                          style: AppTheme.dimStyle.copyWith(fontSize: 10),
+                          style: theme.dimStyle.copyWith(fontSize: 10),
                         ),
                         Expanded(
                           child: Text(
                             terminal.cwd,
-                            style: AppTheme.dimStyle.copyWith(fontSize: 10),
+                            style: theme.dimStyle.copyWith(fontSize: 10),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
