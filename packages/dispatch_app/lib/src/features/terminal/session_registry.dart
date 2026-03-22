@@ -19,13 +19,13 @@ class TerminalSessionMeta {
 
 /// All data associated with a terminal session.
 class TerminalSessionRecord {
-  final PtySession session;
+  final PtySession? session;
   final Pty? pty;
   final Queue<String> outputBuffer;
   final TerminalSessionMeta meta;
 
   TerminalSessionRecord({
-    required this.session,
+    this.session,
     this.pty,
     Queue<String>? outputBuffer,
     this.meta = const TerminalSessionMeta(),
@@ -40,7 +40,7 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
   @override
   Map<String, TerminalSessionRecord> build() => {};
 
-  void register(String terminalId, PtySession session, {Pty? pty}) {
+  void register(String terminalId, {PtySession? session, Pty? pty}) {
     state = {
       ...state,
       terminalId: TerminalSessionRecord(session: session, pty: pty),
