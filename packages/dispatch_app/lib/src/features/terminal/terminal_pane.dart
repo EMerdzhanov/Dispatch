@@ -50,10 +50,14 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
 
     _monitor = TerminalMonitor(
       onMetaUpdate: (terminalId, status) {
-        ref.read(sessionRegistryProvider.notifier).updateMeta(
-          terminalId,
-          activityStatus: status,
-        );
+        Future.delayed(Duration.zero, () {
+          if (mounted) {
+            ref.read(sessionRegistryProvider.notifier).updateMeta(
+              terminalId,
+              activityStatus: status,
+            );
+          }
+        });
       },
     );
 
@@ -95,8 +99,12 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     _pty!.output.cast<List<int>>().transform(const Utf8Decoder()).listen((data) {
       _terminal.write(data);
 
-      // Feed output to SessionRegistry accumulator
-      ref.read(sessionRegistryProvider.notifier).appendOutput(widget.terminalId, data);
+      // Feed output to SessionRegistry accumulator (deferred to avoid build conflicts)
+      Future.delayed(Duration.zero, () {
+        if (mounted) {
+          ref.read(sessionRegistryProvider.notifier).appendOutput(widget.terminalId, data);
+        }
+      });
 
       // Feed data to TerminalMonitor for idle/status detection
       _monitor.onData(widget.terminalId, data);
