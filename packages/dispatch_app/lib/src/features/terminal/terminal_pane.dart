@@ -127,6 +127,8 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    final colorTheme = ref.watch(activeThemeProvider);
+    final theme = AppTheme(colorTheme);
     final entry = ref.watch(terminalsProvider.select(
         (s) => s.terminals[widget.terminalId]));
 
@@ -139,9 +141,9 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
         Container(
           height: AppTheme.terminalHeaderHeight,
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
-          decoration: const BoxDecoration(
-            color: AppTheme.surface,
-            border: Border(bottom: BorderSide(color: AppTheme.border, width: AppTheme.borderWidth)),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border(bottom: BorderSide(color: theme.border, width: AppTheme.borderWidth)),
           ),
           child: Row(
             children: [
@@ -151,18 +153,18 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isExited
-                      ? AppTheme.accentRed
+                      ? theme.accentRed
                       : (entry?.command.startsWith('claude') == true
-                          ? AppTheme.accentBlue
-                          : AppTheme.accentGreen),
+                          ? theme.accentBlue
+                          : theme.accentGreen),
                 ),
               ),
               const SizedBox(width: AppTheme.spacingSm),
               Expanded(
                 child: Text(
                   _headerLabel(entry),
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
+                  style: TextStyle(
+                    color: theme.textSecondary,
                     fontSize: 10,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -171,7 +173,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
               Text(
                 'Split \u2318D  Close \u2318W',
                 style: TextStyle(
-                  color: AppTheme.textSecondary.withValues(alpha: 0.5),
+                  color: theme.textSecondary.withValues(alpha: 0.5),
                   fontSize: 10,
                 ),
               ),
@@ -196,30 +198,30 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                   ),
                   drawBoldTextInBrightColors: true,
                 ),
-                theme: const xterm.TerminalTheme(
-                  cursor: Color(0xFFCCCCCC),
-                  selection: Color(0x603A6FD6),
-                  foreground: Color(0xFFCCCCCC),
-                  background: Color(0xFF0A0A1A),
-                  black: Color(0xFF0A0A1A),
-                  red: Color(0xFFE94560),
-                  green: Color(0xFF4CAF50),
-                  yellow: Color(0xFFF5A623),
-                  blue: Color(0xFF53A8FF),
-                  magenta: Color(0xFFC678DD),
-                  cyan: Color(0xFF56B6C2),
-                  white: Color(0xFFCCCCCC),
-                  brightBlack: Color(0xFF555555),
-                  brightRed: Color(0xFFFF6B81),
-                  brightGreen: Color(0xFF69F0AE),
-                  brightYellow: Color(0xFFFFD740),
-                  brightBlue: Color(0xFF82B1FF),
-                  brightMagenta: Color(0xFFE1ACFF),
-                  brightCyan: Color(0xFF84FFFF),
-                  brightWhite: Color(0xFFFFFFFF),
-                  searchHitBackground: Color(0xFF444444),
-                  searchHitBackgroundCurrent: Color(0xFFFFFF00),
-                  searchHitForeground: Color(0xFF000000),
+                theme: xterm.TerminalTheme(
+                  cursor: colorTheme.cursor,
+                  selection: colorTheme.selection,
+                  foreground: colorTheme.foreground,
+                  background: colorTheme.background,
+                  black: colorTheme.black,
+                  red: colorTheme.red,
+                  green: colorTheme.green,
+                  yellow: colorTheme.yellow,
+                  blue: colorTheme.blue,
+                  magenta: colorTheme.magenta,
+                  cyan: colorTheme.cyan,
+                  white: colorTheme.white,
+                  brightBlack: colorTheme.brightBlack,
+                  brightRed: colorTheme.brightRed,
+                  brightGreen: colorTheme.brightGreen,
+                  brightYellow: colorTheme.brightYellow,
+                  brightBlue: colorTheme.brightBlue,
+                  brightMagenta: colorTheme.brightMagenta,
+                  brightCyan: colorTheme.brightCyan,
+                  brightWhite: colorTheme.brightWhite,
+                  searchHitBackground: colorTheme.searchHitBackground,
+                  searchHitBackgroundCurrent: colorTheme.searchHitBackgroundCurrent,
+                  searchHitForeground: colorTheme.searchHitForeground,
                 ),
                 autofocus: true,
                 hardwareKeyboardOnly: true,
@@ -233,12 +235,12 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                       children: [
                         Text(
                           'Process exited with code ${entry?.exitCode ?? "unknown"}',
-                          style: const TextStyle(color: AppTheme.textPrimary),
+                          style: TextStyle(color: theme.textPrimary),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Right-click terminal in sidebar to close',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                          style: TextStyle(color: theme.textSecondary, fontSize: 12),
                         ),
                       ],
                     ),
