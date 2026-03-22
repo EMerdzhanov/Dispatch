@@ -21,8 +21,6 @@ class McpPanel extends ConsumerStatefulWidget {
 
 class _McpPanelState extends ConsumerState<McpPanel> {
   late TextEditingController _portCtrl;
-  late TextEditingController _tunnelNameCtrl;
-  late TextEditingController _tunnelUrlCtrl;
   bool _tokenVisible = false;
   Timer? _refreshTimer;
 
@@ -30,8 +28,6 @@ class _McpPanelState extends ConsumerState<McpPanel> {
   void initState() {
     super.initState();
     _portCtrl = TextEditingController();
-    _tunnelNameCtrl = TextEditingController();
-    _tunnelUrlCtrl = TextEditingController();
     // Check cloudflared availability on open
     ref.read(mcpServerProvider.notifier).checkCloudflared();
     // Refresh connection count periodically
@@ -43,8 +39,6 @@ class _McpPanelState extends ConsumerState<McpPanel> {
   @override
   void dispose() {
     _portCtrl.dispose();
-    _tunnelNameCtrl.dispose();
-    _tunnelUrlCtrl.dispose();
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -59,10 +53,6 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     // Only update controller if value actually changed (avoids overwriting mid-edit)
     final portStr = mcpState.port.toString();
     if (_portCtrl.text != portStr) _portCtrl.text = portStr;
-    final tunnelName = mcpState.tunnelName ?? '';
-    if (_tunnelNameCtrl.text != tunnelName) _tunnelNameCtrl.text = tunnelName;
-    final tunnelUrl = mcpState.tunnelCustomUrl ?? '';
-    if (_tunnelUrlCtrl.text != tunnelUrl) _tunnelUrlCtrl.text = tunnelUrl;
 
     return GestureDetector(
       onTap: widget.onClose,
@@ -172,29 +162,6 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                           child: Text('Regenerate token', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
                         ),
                       ],
-                      const SizedBox(height: 10),
-                      _sectionLabel('CLAUDE CODE CONFIG', theme),
-                      const SizedBox(height: 6),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: theme.background,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                mcpState.claudeCodeConfig(),
-                                style: TextStyle(color: theme.textSecondary, fontSize: 11, fontFamily: 'Menlo'),
-                              ),
-                            ),
-                            _copyButton(mcpState.claudeCodeConfig(), theme),
-                          ],
-                        ),
-                      ),
                       const SizedBox(height: 16),
                     ],
 
@@ -331,63 +298,6 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                     const SizedBox(height: 6),
                     _toggleRow('Token auth', mcpState.authEnabled, theme,
                         onChanged: (v) => ref.read(mcpServerProvider.notifier).setAuthEnabled(v)),
-                    const SizedBox(height: 6),
-                    _toggleRow('Network access', mcpState.bindAll, theme,
-                        onChanged: (v) => ref.read(mcpServerProvider.notifier).setBindAll(v),
-                        warning: 'Exposes server to local network'),
-                    const SizedBox(height: 12),
-                    _sectionLabel('NAMED TUNNEL (optional)', theme),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Set a tunnel name for a persistent URL that survives restarts.',
-                      style: TextStyle(color: theme.textSecondary, fontSize: 10),
-                    ),
-                    const SizedBox(height: 6),
-                    _settingRow('Tunnel name', theme, child: SizedBox(
-                      width: 140,
-                      height: 28,
-                      child: TextField(
-                        controller: _tunnelNameCtrl,
-                        style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          hintText: 'e.g. dispatch',
-                          hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 12),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                        ),
-                        onSubmitted: (value) {
-                          ref.read(mcpServerProvider.notifier).setTunnelConfig(
-                            name: value,
-                            customUrl: _tunnelUrlCtrl.text,
-                          );
-                        },
-                      ),
-                    )),
-                    const SizedBox(height: 6),
-                    _settingRow('Tunnel URL', theme, child: SizedBox(
-                      width: 220,
-                      height: 28,
-                      child: TextField(
-                        controller: _tunnelUrlCtrl,
-                        style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          hintText: 'e.g. https://dispatch.yourdomain.com',
-                          hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                        ),
-                        onSubmitted: (value) {
-                          ref.read(mcpServerProvider.notifier).setTunnelConfig(
-                            name: _tunnelNameCtrl.text,
-                            customUrl: value,
-                          );
-                        },
-                      ),
-                    )),
 
                     // Activity Log
                     if (mcpState.running && mcpState.activityLog.isNotEmpty) ...[
