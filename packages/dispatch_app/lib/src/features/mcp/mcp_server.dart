@@ -169,7 +169,24 @@ class McpServer {
       ));
       if (activityLog.length > 100) activityLog.removeLast();
 
-      return shelf.Response.ok(response.toJsonString(),
+      // Wrap tool result in MCP content format
+      McpResponse mcpResponse;
+      if (response.error != null) {
+        mcpResponse = McpResponse.success(mcpRequest.id, {
+          'content': [
+            {'type': 'text', 'text': response.error!.message},
+          ],
+          'isError': true,
+        });
+      } else {
+        mcpResponse = McpResponse.success(mcpRequest.id, {
+          'content': [
+            {'type': 'text', 'text': jsonEncode(response.result)},
+          ],
+        });
+      }
+
+      return shelf.Response.ok(mcpResponse.toJsonString(),
           headers: {'content-type': 'application/json'});
     }
 
