@@ -135,9 +135,9 @@ In short: Claude orchestrates using the existing tools. The hardcoded skills are
 
 **`DelegateSkill`** — Takes a sub-task (from PlanSkill or directly), loads project context, checks `agents.json` for file ownership conflicts, composes a briefed prompt (objective/scope/constraints/context/success-signal), sends via `run_command`. Registers the agent in `agents.json`.
 
-**`MonitorSkill`** — Event-driven primary, poll fallback. The existing `SessionRegistry.appendOutput()` is extended with an optional callback that MonitorSkill registers per-terminal. When output arrives, MonitorSkill classifies it (done, question, stuck, error, conflict) and updates heartbeat timestamps in `agents.json`. A 30s poll timer runs as fallback for missed events. MonitorSkill runs within the orchestrator's Dart code as an async background task — it does NOT trigger new Claude API calls. Instead, it updates `agents.json` state which Claude reads on its next tool call. For critical events (error, conflict), MonitorSkill emits an `AlfaChatEvent` so the UI shows an alert and the orchestrator can inject a system message on the next turn.
+**`MonitorSkill`** — Event-driven primary, poll fallback. The existing `SessionRegistry.appendOutput()` is extended with an optional callback that MonitorSkill registers per-terminal. When output arrives, MonitorSkill classifies it (done, question, stuck, error, conflict) and updates heartbeat timestamps in `agents.json`. A 30s poll timer runs as fallback for missed events. MonitorSkill runs within the orchestrator's Dart code as an async background task — it does NOT trigger new Claude API calls. Instead, it updates `agents.json` state which Claude reads on its next tool call. For critical events (error, conflict), MonitorSkill emits an `AlfaChatEvent` so the UI shows an alert and the orchestrator can inject a system message on the next turn. MonitorSkill debounces AlfaChatEvent emissions — same terminal, same error classification, max one alert per 60 seconds.
 
-**`CoordinateSkill`** — File ownership with TTLs. Every claim gets a timestamp. Claims expire after 300s without heartbeat renewal. Stale claims auto-release. Before delegation, checks for active claims. Operations: `claim_files`, `release_files`, `who_owns_file`, `cleanup_stale`.
+**`CoordinateSkill`** — File ownership with TTLs. Every claim gets a timestamp. Claims expire after 300s without heartbeat renewal. Stale claims auto-release. Before delegation, checks for active claims. Operations: `claim_files`, `release_files`, `who_owns_file`, `cleanup_stale`. Cross-plan conflicts are treated identically to within-plan conflicts — second claim is rejected, Alfa surfaces the conflict to the human and asks which plan takes priority.
 
 **`SynthesizeSkill`** — Structured evaluation against four dimensions:
 1. **Task spec** — original plan step (from `agents.json` `plan_step_id` → `active_plan.steps`)
@@ -184,7 +184,7 @@ outputs:
 - `description` — what it does (included in system prompt for Claude to select)
 - `triggers` — comma-separated keywords, included in the system prompt as hints for Claude (not used for programmatic matching — Claude decides)
 - `outputs` — what the playbook produces (type + format), used by SynthesizeSkill
-- `draft` — (optional) `true` for auto-created playbooks pending human review
+- `draft` — (optional) `true` for auto-created playbooks pending human review. When a draft playbook is triggered, Alfa prepends: `[DRAFT PLAYBOOK — not yet reviewed] Proceeding with {name}...` before executing
 
 ### Skill Selection
 
@@ -213,7 +213,7 @@ No autonomous writing. Every change goes through the human. Alfa always proposes
 | `update_agents` | Read/write `agents.json` — register agent, update status/heartbeat, claim/release files, cleanup stale, read/write active plan |
 | `append_log` | Append entry to `log.md` with timestamp. Prunes oldest entries when file exceeds 500 entries |
 | `read_memory` | Read `memory.md` |
-| `update_memory` | Overwrite `memory.md` entirely. Claude manages the full content — reads first, modifies, writes back. Same pattern as `update_project_knowledge` in v1 |
+| `update_memory` | Overwrite `memory.md` entirely. Claude manages the full content — reads first, modifies, writes back. If `memory.md` exceeds 1500 tokens, Alfa proposes a summarization pass to the human before writing new content |
 | `read_project` | Read `projects/{slugified-path}.md`. Path is slugified from CWD (e.g., `/Users/me/app` → `users-me-app.md`) to avoid collisions |
 | `update_project` | Overwrite `projects/{slugified-path}.md`. Claude manages full content |
 
