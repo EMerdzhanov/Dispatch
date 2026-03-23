@@ -112,8 +112,8 @@ class _RightPanelState extends ConsumerState<RightPanel> {
             child: switch (_tab) {
               'files' => const FileTree(),
               'project' => const ProjectPanel(),
-              'alfa' => const AlfaPanel(),
-              _ => const AlfaPanel(),
+              'alfa' => const _OverlayWrapper(child: AlfaPanel()),
+              _ => const _OverlayWrapper(child: AlfaPanel()),
             },
           ),
         ],
@@ -157,6 +157,23 @@ class _PanelTab extends StatelessWidget {
             maxLines: 1,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Provides an Overlay ancestor for widgets that contain TextField.
+class _OverlayWrapper extends StatelessWidget {
+  final Widget child;
+  const _OverlayWrapper({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: Overlay(
+        initialEntries: [
+          OverlayEntry(builder: (_) => child),
+        ],
       ),
     );
   }
