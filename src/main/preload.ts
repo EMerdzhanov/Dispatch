@@ -37,7 +37,9 @@ contextBridge.exposeInMainWorld('dispatch', {
   },
   monitor: {
     onStatus: (cb: (id: string, status: string) => void) => {
-      ipcRenderer.on('monitor:status', (_event: any, id: string, status: string) => cb(id, status));
+      const handler = (_event: any, id: string, status: string) => cb(id, status);
+      ipcRenderer.on('monitor:status', handler);
+      return () => ipcRenderer.removeListener('monitor:status', handler);
     },
   },
   templates: {
@@ -63,7 +65,9 @@ contextBridge.exposeInMainWorld('dispatch', {
   },
   browser: {
     onDetected: (cb: (terminalId: string, url: string) => void) => {
-      ipcRenderer.on('browser:detected', (_event: any, terminalId: string, url: string) => cb(terminalId, url));
+      const handler = (_event: any, terminalId: string, url: string) => cb(terminalId, url);
+      ipcRenderer.on('browser:detected', handler);
+      return () => ipcRenderer.removeListener('browser:detected', handler);
     },
     clearPort: (port: string) => ipcRenderer.invoke('browser:clearPort', port),
   },

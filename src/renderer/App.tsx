@@ -247,20 +247,15 @@ export function App() {
     })?.catch(() => {});
   }, []);
 
-  const monitorRef = React.useRef(false);
   useEffect(() => {
-    if (monitorRef.current) return;
-    monitorRef.current = true;
-    (window as any).dispatch?.monitor?.onStatus((id: string, status: string) => {
+    const cleanup = (window as any).dispatch?.monitor?.onStatus((id: string, status: string) => {
       useStore.getState().setTerminalStatus(id, status as any);
     });
+    return () => cleanup?.();
   }, []);
 
-  const browserDetectRef = React.useRef(false);
   useEffect(() => {
-    if (browserDetectRef.current) return;
-    browserDetectRef.current = true;
-    (window as any).dispatch?.browser?.onDetected((terminalId: string, url: string) => {
+    const cleanup = (window as any).dispatch?.browser?.onDetected((terminalId: string, url: string) => {
       const state = useStore.getState();
       const group = state.groups.find((g) => g.terminalIds.includes(terminalId));
       if (!group) return;
@@ -279,6 +274,7 @@ export function App() {
       const tab = { id: crypto.randomUUID(), url, title: host };
       state.addBrowserTab(group.id, tab);
     });
+    return () => cleanup?.();
   }, []);
 
   // Load project data when active group changes
