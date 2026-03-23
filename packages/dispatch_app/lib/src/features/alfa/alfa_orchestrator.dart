@@ -11,6 +11,7 @@ import 'agents_state.dart';
 import 'playbook_loader.dart';
 import 'monitor_skill.dart';
 import 'default_identity.dart';
+import 'migration.dart';
 import 'tools/terminal_tools.dart';
 import 'tools/project_tools.dart';
 import 'tools/knowledge_tools.dart';
@@ -73,6 +74,7 @@ class AlfaOrchestrator {
 
     // Startup sequence
     await ensureAlfaDirs();
+    await migrateFromV1(ref);
 
     // Create default identity.md if missing
     final identityFile = File('${alfaDir()}/identity.md');
