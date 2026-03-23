@@ -281,19 +281,34 @@ class _TerminalListItemState extends State<_TerminalListItem> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      widget.label,
-                      style: TextStyle(
-                        color: widget.isActive
-                            ? theme.textPrimary
-                            : theme.textPrimary.withValues(alpha: 0.85),
-                        fontSize: 12,
-                        fontWeight: widget.isActive
-                            ? FontWeight.w500
-                            : FontWeight.normal,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.label,
+                            style: TextStyle(
+                              color: widget.isActive
+                                  ? theme.textPrimary
+                                  : theme.textPrimary.withValues(alpha: 0.85),
+                              fontSize: 12,
+                              fontWeight: widget.isActive
+                                  ? FontWeight.w500
+                                  : FontWeight.normal,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        if (widget.terminal.id.endsWith('-alfa'))
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: const Text('A', style: TextStyle(fontSize: 9, color: Colors.blue)),
+                          ),
+                      ],
                     ),
                     Text(
                       widget.cwdDisplay,

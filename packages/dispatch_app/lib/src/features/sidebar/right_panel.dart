@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 import '../projects/project_panel.dart';
+import '../alfa/alfa_panel.dart';
 import 'file_tree.dart';
 
 /// Collapsible right panel containing File Tree and Tasks/Notes/Vault.
@@ -16,7 +17,7 @@ class RightPanel extends ConsumerStatefulWidget {
 
 class _RightPanelState extends ConsumerState<RightPanel> {
   bool _collapsed = false;
-  String _tab = 'files'; // 'files' | 'project'
+  String _tab = 'alfa'; // 'files' | 'project' | 'alfa'
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +70,12 @@ class _RightPanelState extends ConsumerState<RightPanel> {
                     child: Row(
                       children: [
                         _PanelTab(
+                          label: 'ALFA',
+                          active: _tab == 'alfa',
+                          onTap: () => setState(() => _tab = 'alfa'),
+                          theme: theme,
+                        ),
+                        _PanelTab(
                           label: 'FILES',
                           active: _tab == 'files',
                           onTap: () => setState(() => _tab = 'files'),
@@ -102,9 +109,12 @@ class _RightPanelState extends ConsumerState<RightPanel> {
           Divider(color: theme.border, height: 1, thickness: AppTheme.borderWidth),
           // Content
           Expanded(
-            child: _tab == 'files'
-                ? const FileTree()
-                : const ProjectPanel(),
+            child: switch (_tab) {
+              'files' => const FileTree(),
+              'project' => const ProjectPanel(),
+              'alfa' => const AlfaPanel(),
+              _ => const AlfaPanel(),
+            },
           ),
         ],
       ),

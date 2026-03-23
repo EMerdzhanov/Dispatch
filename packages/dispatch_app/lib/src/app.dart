@@ -23,6 +23,7 @@ import 'features/settings/settings_panel.dart';
 import 'features/shortcuts/shortcuts_panel.dart';
 import 'features/mcp/mcp_panel.dart';
 import 'features/mcp/mcp_provider.dart';
+import 'features/alfa/alfa_provider.dart';
 import 'persistence/auto_save.dart';
 import 'core/models/terminal_entry.dart';
 import 'core/models/template.dart';
@@ -54,6 +55,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
       await loadSavedState(ref);
       ref.read(autoSaveProvider);
       ref.read(mcpServerProvider);
+      ref.read(alfaProvider.notifier).initialize();
       setState(() => _loaded = true);
     });
   }

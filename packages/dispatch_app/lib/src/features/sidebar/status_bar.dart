@@ -5,6 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_provider.dart';
+import '../alfa/alfa_provider.dart';
+import '../alfa/alfa_types.dart';
 
 class StatusBar extends ConsumerWidget {
   const StatusBar({super.key});
@@ -19,6 +21,7 @@ class StatusBar extends ConsumerWidget {
     final theme = ref.watch(appThemeProvider);
     final projectsState = ref.watch(projectsProvider);
     final terminalsState = ref.watch(terminalsProvider);
+    final alfaState = ref.watch(alfaProvider);
 
     final activeGroup = projectsState.groups
         .where((g) => g.id == projectsState.activeGroupId)
@@ -51,9 +54,28 @@ class StatusBar extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
-          Text(
-            '$terminalCount ${terminalCount == 1 ? 'terminal' : 'terminals'}',
-            style: theme.dimStyle.copyWith(fontSize: 10),
+          Row(
+            children: [
+              Text(
+                '$terminalCount ${terminalCount == 1 ? 'terminal' : 'terminals'}',
+                style: theme.dimStyle.copyWith(fontSize: 10),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 6, height: 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: switch (alfaState.status) {
+                    AlfaStatus.idle => Colors.grey,
+                    AlfaStatus.thinking => Colors.blue,
+                    AlfaStatus.executing => Colors.orange,
+                    AlfaStatus.error => Colors.red,
+                  },
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text('A', style: TextStyle(color: Color(0xFF6B6B8D), fontSize: 10)),
+            ],
           ),
         ],
       ),
