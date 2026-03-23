@@ -155,3 +155,69 @@ class TemplatesDao extends DatabaseAccessor<AppDatabase>
   Future<void> deleteTemplate(int id) =>
       (delete(templates)..where((t) => t.id.equals(id))).go();
 }
+
+@DriftAccessor(tables: [AlfaDecisions])
+class AlfaDecisionsDao extends DatabaseAccessor<AppDatabase>
+    with _$AlfaDecisionsDaoMixin {
+  AlfaDecisionsDao(super.db);
+
+  Future<List<AlfaDecision>> getForProject(String cwd) {
+    return (select(alfaDecisions)
+          ..where((d) => d.projectCwd.equals(cwd))
+          ..orderBy([(d) => OrderingTerm.desc(d.createdAt)])
+          ..limit(50))
+        .get();
+  }
+
+  Future<List<AlfaDecision>> search(String query, {String? projectCwd}) {
+    final q = select(alfaDecisions)
+      ..where((d) =>
+          d.summary.like('%$query%') | d.tags.like('%$query%'))
+      ..orderBy([(d) => OrderingTerm.desc(d.createdAt)])
+      ..limit(20);
+    if (projectCwd != null) {
+      q.where((d) => d.projectCwd.equals(projectCwd));
+    }
+    return q.get();
+  }
+
+  Future<List<AlfaDecision>> getRecent({int limit = 10}) {
+    return (select(alfaDecisions)
+          ..orderBy([(d) => OrderingTerm.desc(d.createdAt)])
+          ..limit(limit))
+        .get();
+  }
+
+  Future<int> insertDecision(AlfaDecisionsCompanion entry) {
+    return into(alfaDecisions).insert(entry);
+  }
+}
+
+@DriftAccessor(tables: [AlfaConversations])
+class AlfaConversationsDao extends DatabaseAccessor<AppDatabase>
+    with _$AlfaConversationsDaoMixin {
+  AlfaConversationsDao(super.db);
+
+  Future<List<AlfaConversation>> getForProject(String? cwd,
+      {int limit = 100}) {
+    final q = select(alfaConversations);
+    if (cwd != null) {
+      q.where((c) => c.projectCwd.equals(cwd));
+    }
+    q
+      ..orderBy([(c) => OrderingTerm.desc(c.createdAt)])
+      ..limit(limit);
+    return q.get();
+  }
+
+  Future<int> insertMessage(AlfaConversationsCompanion entry) {
+    return into(alfaConversations).insert(entry);
+  }
+
+  Future<void> clearForProject(String? cwd) {
+    if (cwd == null) return Future.value();
+    return (delete(alfaConversations)
+          ..where((c) => c.projectCwd.equals(cwd)))
+        .go();
+  }
+}

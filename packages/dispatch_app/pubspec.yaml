@@ -33,6 +33,7 @@ dependencies:
   shelf: ^1.4.0
   shelf_router: ^1.1.0
   json_rpc_2: ^3.0.0
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:

@@ -21,3 +21,10 @@ mixin _$VaultDaoMixin on DatabaseAccessor<AppDatabase> {
 mixin _$TemplatesDaoMixin on DatabaseAccessor<AppDatabase> {
   $TemplatesTable get templates => attachedDatabase.templates;
 }
+mixin _$AlfaDecisionsDaoMixin on DatabaseAccessor<AppDatabase> {
+  $AlfaDecisionsTable get alfaDecisions => attachedDatabase.alfaDecisions;
+}
+mixin _$AlfaConversationsDaoMixin on DatabaseAccessor<AppDatabase> {
+  $AlfaConversationsTable get alfaConversations =>
+      attachedDatabase.alfaConversations;
+}

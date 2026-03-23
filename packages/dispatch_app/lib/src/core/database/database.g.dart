@@ -2201,6 +2201,849 @@ class ProjectGroupsCompanion extends UpdateCompanion<ProjectGroup> {
   }
 }
 
+class $AlfaDecisionsTable extends AlfaDecisions
+    with TableInfo<$AlfaDecisionsTable, AlfaDecision> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AlfaDecisionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _projectCwdMeta = const VerificationMeta(
+    'projectCwd',
+  );
+  @override
+  late final GeneratedColumn<String> projectCwd = GeneratedColumn<String>(
+    'project_cwd',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _summaryMeta = const VerificationMeta(
+    'summary',
+  );
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+    'summary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _outcomeMeta = const VerificationMeta(
+    'outcome',
+  );
+  @override
+  late final GeneratedColumn<String> outcome = GeneratedColumn<String>(
+    'outcome',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _detailMeta = const VerificationMeta('detail');
+  @override
+  late final GeneratedColumn<String> detail = GeneratedColumn<String>(
+    'detail',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    projectCwd,
+    summary,
+    outcome,
+    detail,
+    tags,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'alfa_decisions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AlfaDecision> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('project_cwd')) {
+      context.handle(
+        _projectCwdMeta,
+        projectCwd.isAcceptableOrUnknown(data['project_cwd']!, _projectCwdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectCwdMeta);
+    }
+    if (data.containsKey('summary')) {
+      context.handle(
+        _summaryMeta,
+        summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_summaryMeta);
+    }
+    if (data.containsKey('outcome')) {
+      context.handle(
+        _outcomeMeta,
+        outcome.isAcceptableOrUnknown(data['outcome']!, _outcomeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_outcomeMeta);
+    }
+    if (data.containsKey('detail')) {
+      context.handle(
+        _detailMeta,
+        detail.isAcceptableOrUnknown(data['detail']!, _detailMeta),
+      );
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AlfaDecision map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AlfaDecision(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      projectCwd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_cwd'],
+      )!,
+      summary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}summary'],
+      )!,
+      outcome: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}outcome'],
+      )!,
+      detail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}detail'],
+      ),
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AlfaDecisionsTable createAlias(String alias) {
+    return $AlfaDecisionsTable(attachedDatabase, alias);
+  }
+}
+
+class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
+  final int id;
+  final String projectCwd;
+  final String summary;
+  final String outcome;
+  final String? detail;
+  final String tags;
+  final DateTime createdAt;
+  const AlfaDecision({
+    required this.id,
+    required this.projectCwd,
+    required this.summary,
+    required this.outcome,
+    this.detail,
+    required this.tags,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['project_cwd'] = Variable<String>(projectCwd);
+    map['summary'] = Variable<String>(summary);
+    map['outcome'] = Variable<String>(outcome);
+    if (!nullToAbsent || detail != null) {
+      map['detail'] = Variable<String>(detail);
+    }
+    map['tags'] = Variable<String>(tags);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  AlfaDecisionsCompanion toCompanion(bool nullToAbsent) {
+    return AlfaDecisionsCompanion(
+      id: Value(id),
+      projectCwd: Value(projectCwd),
+      summary: Value(summary),
+      outcome: Value(outcome),
+      detail: detail == null && nullToAbsent
+          ? const Value.absent()
+          : Value(detail),
+      tags: Value(tags),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory AlfaDecision.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AlfaDecision(
+      id: serializer.fromJson<int>(json['id']),
+      projectCwd: serializer.fromJson<String>(json['projectCwd']),
+      summary: serializer.fromJson<String>(json['summary']),
+      outcome: serializer.fromJson<String>(json['outcome']),
+      detail: serializer.fromJson<String?>(json['detail']),
+      tags: serializer.fromJson<String>(json['tags']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'projectCwd': serializer.toJson<String>(projectCwd),
+      'summary': serializer.toJson<String>(summary),
+      'outcome': serializer.toJson<String>(outcome),
+      'detail': serializer.toJson<String?>(detail),
+      'tags': serializer.toJson<String>(tags),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  AlfaDecision copyWith({
+    int? id,
+    String? projectCwd,
+    String? summary,
+    String? outcome,
+    Value<String?> detail = const Value.absent(),
+    String? tags,
+    DateTime? createdAt,
+  }) => AlfaDecision(
+    id: id ?? this.id,
+    projectCwd: projectCwd ?? this.projectCwd,
+    summary: summary ?? this.summary,
+    outcome: outcome ?? this.outcome,
+    detail: detail.present ? detail.value : this.detail,
+    tags: tags ?? this.tags,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  AlfaDecision copyWithCompanion(AlfaDecisionsCompanion data) {
+    return AlfaDecision(
+      id: data.id.present ? data.id.value : this.id,
+      projectCwd: data.projectCwd.present
+          ? data.projectCwd.value
+          : this.projectCwd,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      outcome: data.outcome.present ? data.outcome.value : this.outcome,
+      detail: data.detail.present ? data.detail.value : this.detail,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlfaDecision(')
+          ..write('id: $id, ')
+          ..write('projectCwd: $projectCwd, ')
+          ..write('summary: $summary, ')
+          ..write('outcome: $outcome, ')
+          ..write('detail: $detail, ')
+          ..write('tags: $tags, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, projectCwd, summary, outcome, detail, tags, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AlfaDecision &&
+          other.id == this.id &&
+          other.projectCwd == this.projectCwd &&
+          other.summary == this.summary &&
+          other.outcome == this.outcome &&
+          other.detail == this.detail &&
+          other.tags == this.tags &&
+          other.createdAt == this.createdAt);
+}
+
+class AlfaDecisionsCompanion extends UpdateCompanion<AlfaDecision> {
+  final Value<int> id;
+  final Value<String> projectCwd;
+  final Value<String> summary;
+  final Value<String> outcome;
+  final Value<String?> detail;
+  final Value<String> tags;
+  final Value<DateTime> createdAt;
+  const AlfaDecisionsCompanion({
+    this.id = const Value.absent(),
+    this.projectCwd = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.outcome = const Value.absent(),
+    this.detail = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  AlfaDecisionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String projectCwd,
+    required String summary,
+    required String outcome,
+    this.detail = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : projectCwd = Value(projectCwd),
+       summary = Value(summary),
+       outcome = Value(outcome);
+  static Insertable<AlfaDecision> custom({
+    Expression<int>? id,
+    Expression<String>? projectCwd,
+    Expression<String>? summary,
+    Expression<String>? outcome,
+    Expression<String>? detail,
+    Expression<String>? tags,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (projectCwd != null) 'project_cwd': projectCwd,
+      if (summary != null) 'summary': summary,
+      if (outcome != null) 'outcome': outcome,
+      if (detail != null) 'detail': detail,
+      if (tags != null) 'tags': tags,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  AlfaDecisionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? projectCwd,
+    Value<String>? summary,
+    Value<String>? outcome,
+    Value<String?>? detail,
+    Value<String>? tags,
+    Value<DateTime>? createdAt,
+  }) {
+    return AlfaDecisionsCompanion(
+      id: id ?? this.id,
+      projectCwd: projectCwd ?? this.projectCwd,
+      summary: summary ?? this.summary,
+      outcome: outcome ?? this.outcome,
+      detail: detail ?? this.detail,
+      tags: tags ?? this.tags,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (projectCwd.present) {
+      map['project_cwd'] = Variable<String>(projectCwd.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (outcome.present) {
+      map['outcome'] = Variable<String>(outcome.value);
+    }
+    if (detail.present) {
+      map['detail'] = Variable<String>(detail.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlfaDecisionsCompanion(')
+          ..write('id: $id, ')
+          ..write('projectCwd: $projectCwd, ')
+          ..write('summary: $summary, ')
+          ..write('outcome: $outcome, ')
+          ..write('detail: $detail, ')
+          ..write('tags: $tags, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AlfaConversationsTable extends AlfaConversations
+    with TableInfo<$AlfaConversationsTable, AlfaConversation> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AlfaConversationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _projectCwdMeta = const VerificationMeta(
+    'projectCwd',
+  );
+  @override
+  late final GeneratedColumn<String> projectCwd = GeneratedColumn<String>(
+    'project_cwd',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _toolCallsMeta = const VerificationMeta(
+    'toolCalls',
+  );
+  @override
+  late final GeneratedColumn<String> toolCalls = GeneratedColumn<String>(
+    'tool_calls',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    projectCwd,
+    role,
+    content,
+    toolCalls,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'alfa_conversations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AlfaConversation> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('project_cwd')) {
+      context.handle(
+        _projectCwdMeta,
+        projectCwd.isAcceptableOrUnknown(data['project_cwd']!, _projectCwdMeta),
+      );
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('tool_calls')) {
+      context.handle(
+        _toolCallsMeta,
+        toolCalls.isAcceptableOrUnknown(data['tool_calls']!, _toolCallsMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AlfaConversation map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AlfaConversation(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      projectCwd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_cwd'],
+      ),
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      toolCalls: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tool_calls'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AlfaConversationsTable createAlias(String alias) {
+    return $AlfaConversationsTable(attachedDatabase, alias);
+  }
+}
+
+class AlfaConversation extends DataClass
+    implements Insertable<AlfaConversation> {
+  final int id;
+  final String? projectCwd;
+  final String role;
+  final String content;
+  final String? toolCalls;
+  final DateTime createdAt;
+  const AlfaConversation({
+    required this.id,
+    this.projectCwd,
+    required this.role,
+    required this.content,
+    this.toolCalls,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || projectCwd != null) {
+      map['project_cwd'] = Variable<String>(projectCwd);
+    }
+    map['role'] = Variable<String>(role);
+    map['content'] = Variable<String>(content);
+    if (!nullToAbsent || toolCalls != null) {
+      map['tool_calls'] = Variable<String>(toolCalls);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  AlfaConversationsCompanion toCompanion(bool nullToAbsent) {
+    return AlfaConversationsCompanion(
+      id: Value(id),
+      projectCwd: projectCwd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectCwd),
+      role: Value(role),
+      content: Value(content),
+      toolCalls: toolCalls == null && nullToAbsent
+          ? const Value.absent()
+          : Value(toolCalls),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory AlfaConversation.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AlfaConversation(
+      id: serializer.fromJson<int>(json['id']),
+      projectCwd: serializer.fromJson<String?>(json['projectCwd']),
+      role: serializer.fromJson<String>(json['role']),
+      content: serializer.fromJson<String>(json['content']),
+      toolCalls: serializer.fromJson<String?>(json['toolCalls']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'projectCwd': serializer.toJson<String?>(projectCwd),
+      'role': serializer.toJson<String>(role),
+      'content': serializer.toJson<String>(content),
+      'toolCalls': serializer.toJson<String?>(toolCalls),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  AlfaConversation copyWith({
+    int? id,
+    Value<String?> projectCwd = const Value.absent(),
+    String? role,
+    String? content,
+    Value<String?> toolCalls = const Value.absent(),
+    DateTime? createdAt,
+  }) => AlfaConversation(
+    id: id ?? this.id,
+    projectCwd: projectCwd.present ? projectCwd.value : this.projectCwd,
+    role: role ?? this.role,
+    content: content ?? this.content,
+    toolCalls: toolCalls.present ? toolCalls.value : this.toolCalls,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  AlfaConversation copyWithCompanion(AlfaConversationsCompanion data) {
+    return AlfaConversation(
+      id: data.id.present ? data.id.value : this.id,
+      projectCwd: data.projectCwd.present
+          ? data.projectCwd.value
+          : this.projectCwd,
+      role: data.role.present ? data.role.value : this.role,
+      content: data.content.present ? data.content.value : this.content,
+      toolCalls: data.toolCalls.present ? data.toolCalls.value : this.toolCalls,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlfaConversation(')
+          ..write('id: $id, ')
+          ..write('projectCwd: $projectCwd, ')
+          ..write('role: $role, ')
+          ..write('content: $content, ')
+          ..write('toolCalls: $toolCalls, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, projectCwd, role, content, toolCalls, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AlfaConversation &&
+          other.id == this.id &&
+          other.projectCwd == this.projectCwd &&
+          other.role == this.role &&
+          other.content == this.content &&
+          other.toolCalls == this.toolCalls &&
+          other.createdAt == this.createdAt);
+}
+
+class AlfaConversationsCompanion extends UpdateCompanion<AlfaConversation> {
+  final Value<int> id;
+  final Value<String?> projectCwd;
+  final Value<String> role;
+  final Value<String> content;
+  final Value<String?> toolCalls;
+  final Value<DateTime> createdAt;
+  const AlfaConversationsCompanion({
+    this.id = const Value.absent(),
+    this.projectCwd = const Value.absent(),
+    this.role = const Value.absent(),
+    this.content = const Value.absent(),
+    this.toolCalls = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  AlfaConversationsCompanion.insert({
+    this.id = const Value.absent(),
+    this.projectCwd = const Value.absent(),
+    required String role,
+    required String content,
+    this.toolCalls = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : role = Value(role),
+       content = Value(content);
+  static Insertable<AlfaConversation> custom({
+    Expression<int>? id,
+    Expression<String>? projectCwd,
+    Expression<String>? role,
+    Expression<String>? content,
+    Expression<String>? toolCalls,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (projectCwd != null) 'project_cwd': projectCwd,
+      if (role != null) 'role': role,
+      if (content != null) 'content': content,
+      if (toolCalls != null) 'tool_calls': toolCalls,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  AlfaConversationsCompanion copyWith({
+    Value<int>? id,
+    Value<String?>? projectCwd,
+    Value<String>? role,
+    Value<String>? content,
+    Value<String?>? toolCalls,
+    Value<DateTime>? createdAt,
+  }) {
+    return AlfaConversationsCompanion(
+      id: id ?? this.id,
+      projectCwd: projectCwd ?? this.projectCwd,
+      role: role ?? this.role,
+      content: content ?? this.content,
+      toolCalls: toolCalls ?? this.toolCalls,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (projectCwd.present) {
+      map['project_cwd'] = Variable<String>(projectCwd.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (toolCalls.present) {
+      map['tool_calls'] = Variable<String>(toolCalls.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlfaConversationsCompanion(')
+          ..write('id: $id, ')
+          ..write('projectCwd: $projectCwd, ')
+          ..write('role: $role, ')
+          ..write('content: $content, ')
+          ..write('toolCalls: $toolCalls, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2211,12 +3054,21 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VaultEntriesTable vaultEntries = $VaultEntriesTable(this);
   late final $TemplatesTable templates = $TemplatesTable(this);
   late final $ProjectGroupsTable projectGroups = $ProjectGroupsTable(this);
+  late final $AlfaDecisionsTable alfaDecisions = $AlfaDecisionsTable(this);
+  late final $AlfaConversationsTable alfaConversations =
+      $AlfaConversationsTable(this);
   late final PresetsDao presetsDao = PresetsDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
   late final NotesDao notesDao = NotesDao(this as AppDatabase);
   late final TasksDao tasksDao = TasksDao(this as AppDatabase);
   late final VaultDao vaultDao = VaultDao(this as AppDatabase);
   late final TemplatesDao templatesDao = TemplatesDao(this as AppDatabase);
+  late final AlfaDecisionsDao alfaDecisionsDao = AlfaDecisionsDao(
+    this as AppDatabase,
+  );
+  late final AlfaConversationsDao alfaConversationsDao = AlfaConversationsDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2229,6 +3081,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     vaultEntries,
     templates,
     projectGroups,
+    alfaDecisions,
+    alfaConversations,
   ];
 }
 
@@ -3479,6 +4333,468 @@ typedef $$ProjectGroupsTableProcessedTableManager =
       ProjectGroup,
       PrefetchHooks Function()
     >;
+typedef $$AlfaDecisionsTableCreateCompanionBuilder =
+    AlfaDecisionsCompanion Function({
+      Value<int> id,
+      required String projectCwd,
+      required String summary,
+      required String outcome,
+      Value<String?> detail,
+      Value<String> tags,
+      Value<DateTime> createdAt,
+    });
+typedef $$AlfaDecisionsTableUpdateCompanionBuilder =
+    AlfaDecisionsCompanion Function({
+      Value<int> id,
+      Value<String> projectCwd,
+      Value<String> summary,
+      Value<String> outcome,
+      Value<String?> detail,
+      Value<String> tags,
+      Value<DateTime> createdAt,
+    });
+
+class $$AlfaDecisionsTableFilterComposer
+    extends Composer<_$AppDatabase, $AlfaDecisionsTable> {
+  $$AlfaDecisionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectCwd => $composableBuilder(
+    column: $table.projectCwd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get summary => $composableBuilder(
+    column: $table.summary,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get outcome => $composableBuilder(
+    column: $table.outcome,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AlfaDecisionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AlfaDecisionsTable> {
+  $$AlfaDecisionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectCwd => $composableBuilder(
+    column: $table.projectCwd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+    column: $table.summary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get outcome => $composableBuilder(
+    column: $table.outcome,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AlfaDecisionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AlfaDecisionsTable> {
+  $$AlfaDecisionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get projectCwd => $composableBuilder(
+    column: $table.projectCwd,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<String> get outcome =>
+      $composableBuilder(column: $table.outcome, builder: (column) => column);
+
+  GeneratedColumn<String> get detail =>
+      $composableBuilder(column: $table.detail, builder: (column) => column);
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$AlfaDecisionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AlfaDecisionsTable,
+          AlfaDecision,
+          $$AlfaDecisionsTableFilterComposer,
+          $$AlfaDecisionsTableOrderingComposer,
+          $$AlfaDecisionsTableAnnotationComposer,
+          $$AlfaDecisionsTableCreateCompanionBuilder,
+          $$AlfaDecisionsTableUpdateCompanionBuilder,
+          (
+            AlfaDecision,
+            BaseReferences<_$AppDatabase, $AlfaDecisionsTable, AlfaDecision>,
+          ),
+          AlfaDecision,
+          PrefetchHooks Function()
+        > {
+  $$AlfaDecisionsTableTableManager(_$AppDatabase db, $AlfaDecisionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AlfaDecisionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AlfaDecisionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AlfaDecisionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> projectCwd = const Value.absent(),
+                Value<String> summary = const Value.absent(),
+                Value<String> outcome = const Value.absent(),
+                Value<String?> detail = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AlfaDecisionsCompanion(
+                id: id,
+                projectCwd: projectCwd,
+                summary: summary,
+                outcome: outcome,
+                detail: detail,
+                tags: tags,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String projectCwd,
+                required String summary,
+                required String outcome,
+                Value<String?> detail = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AlfaDecisionsCompanion.insert(
+                id: id,
+                projectCwd: projectCwd,
+                summary: summary,
+                outcome: outcome,
+                detail: detail,
+                tags: tags,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AlfaDecisionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AlfaDecisionsTable,
+      AlfaDecision,
+      $$AlfaDecisionsTableFilterComposer,
+      $$AlfaDecisionsTableOrderingComposer,
+      $$AlfaDecisionsTableAnnotationComposer,
+      $$AlfaDecisionsTableCreateCompanionBuilder,
+      $$AlfaDecisionsTableUpdateCompanionBuilder,
+      (
+        AlfaDecision,
+        BaseReferences<_$AppDatabase, $AlfaDecisionsTable, AlfaDecision>,
+      ),
+      AlfaDecision,
+      PrefetchHooks Function()
+    >;
+typedef $$AlfaConversationsTableCreateCompanionBuilder =
+    AlfaConversationsCompanion Function({
+      Value<int> id,
+      Value<String?> projectCwd,
+      required String role,
+      required String content,
+      Value<String?> toolCalls,
+      Value<DateTime> createdAt,
+    });
+typedef $$AlfaConversationsTableUpdateCompanionBuilder =
+    AlfaConversationsCompanion Function({
+      Value<int> id,
+      Value<String?> projectCwd,
+      Value<String> role,
+      Value<String> content,
+      Value<String?> toolCalls,
+      Value<DateTime> createdAt,
+    });
+
+class $$AlfaConversationsTableFilterComposer
+    extends Composer<_$AppDatabase, $AlfaConversationsTable> {
+  $$AlfaConversationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectCwd => $composableBuilder(
+    column: $table.projectCwd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get toolCalls => $composableBuilder(
+    column: $table.toolCalls,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AlfaConversationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AlfaConversationsTable> {
+  $$AlfaConversationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectCwd => $composableBuilder(
+    column: $table.projectCwd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get toolCalls => $composableBuilder(
+    column: $table.toolCalls,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AlfaConversationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AlfaConversationsTable> {
+  $$AlfaConversationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get projectCwd => $composableBuilder(
+    column: $table.projectCwd,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get toolCalls =>
+      $composableBuilder(column: $table.toolCalls, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$AlfaConversationsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AlfaConversationsTable,
+          AlfaConversation,
+          $$AlfaConversationsTableFilterComposer,
+          $$AlfaConversationsTableOrderingComposer,
+          $$AlfaConversationsTableAnnotationComposer,
+          $$AlfaConversationsTableCreateCompanionBuilder,
+          $$AlfaConversationsTableUpdateCompanionBuilder,
+          (
+            AlfaConversation,
+            BaseReferences<
+              _$AppDatabase,
+              $AlfaConversationsTable,
+              AlfaConversation
+            >,
+          ),
+          AlfaConversation,
+          PrefetchHooks Function()
+        > {
+  $$AlfaConversationsTableTableManager(
+    _$AppDatabase db,
+    $AlfaConversationsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AlfaConversationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AlfaConversationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AlfaConversationsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> projectCwd = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<String?> toolCalls = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AlfaConversationsCompanion(
+                id: id,
+                projectCwd: projectCwd,
+                role: role,
+                content: content,
+                toolCalls: toolCalls,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> projectCwd = const Value.absent(),
+                required String role,
+                required String content,
+                Value<String?> toolCalls = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AlfaConversationsCompanion.insert(
+                id: id,
+                projectCwd: projectCwd,
+                role: role,
+                content: content,
+                toolCalls: toolCalls,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AlfaConversationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AlfaConversationsTable,
+      AlfaConversation,
+      $$AlfaConversationsTableFilterComposer,
+      $$AlfaConversationsTableOrderingComposer,
+      $$AlfaConversationsTableAnnotationComposer,
+      $$AlfaConversationsTableCreateCompanionBuilder,
+      $$AlfaConversationsTableUpdateCompanionBuilder,
+      (
+        AlfaConversation,
+        BaseReferences<
+          _$AppDatabase,
+          $AlfaConversationsTable,
+          AlfaConversation
+        >,
+      ),
+      AlfaConversation,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3497,4 +4813,8 @@ class $AppDatabaseManager {
       $$TemplatesTableTableManager(_db, _db.templates);
   $$ProjectGroupsTableTableManager get projectGroups =>
       $$ProjectGroupsTableTableManager(_db, _db.projectGroups);
+  $$AlfaDecisionsTableTableManager get alfaDecisions =>
+      $$AlfaDecisionsTableTableManager(_db, _db.alfaDecisions);
+  $$AlfaConversationsTableTableManager get alfaConversations =>
+      $$AlfaConversationsTableTableManager(_db, _db.alfaConversations);
 }

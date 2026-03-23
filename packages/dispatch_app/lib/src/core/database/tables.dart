@@ -53,3 +53,22 @@ class ProjectGroups extends Table {
   TextColumn get cwd => text().nullable()();
   IntColumn get displayOrder => integer().withDefault(const Constant(0))();
 }
+
+class AlfaDecisions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get projectCwd => text()();
+  TextColumn get summary => text()();
+  TextColumn get outcome => text()(); // 'success', 'failure', 'partial'
+  TextColumn get detail => text().nullable()();
+  TextColumn get tags => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class AlfaConversations extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get projectCwd => text().nullable()();
+  TextColumn get role => text()(); // 'human', 'alfa'
+  TextColumn get content => text()();
+  TextColumn get toolCalls => text().nullable()(); // JSON
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
