@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/color_theme.dart';
 import '../../core/models/preset.dart' as preset_model;
 import '../../persistence/auto_save.dart';
+import '../alfa/alfa_provider.dart';
 import '../presets/presets_provider.dart';
 import '../terminal/templates_provider.dart';
 import 'settings_provider.dart';
@@ -42,8 +44,8 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
   // Alfa settings
   late TextEditingController _alfaApiKeyCtrl;
   late TextEditingController _alfaModelCtrl;
-  bool _alfaKeyObscured = true;
   bool _alfaLoaded = false;
+  String? _alfaStatus; // null = no status, 'saving', 'connected', 'error: ...'
 
   bool _themeExpanded = false;
 
@@ -61,7 +63,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     _fontSizeCtrl = TextEditingController();
     _lineHeightCtrl = TextEditingController();
     _alfaApiKeyCtrl = TextEditingController();
-    _alfaModelCtrl = TextEditingController(text: 'claude-sonnet-4-20250514');
+    _alfaModelCtrl = TextEditingController(text: 'claude-sonnet-4-6');
   }
 
   @override
@@ -104,9 +106,52 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     }
   }
 
-  void _saveAlfaSetting(String key, String value) {
+  Future<void> _saveAlfaAndTest() async {
+    final apiKey = _alfaApiKeyCtrl.text.trim();
+    final model = _alfaModelCtrl.text.trim();
+
+    if (apiKey.isEmpty) {
+      setState(() => _alfaStatus = 'error: API key is required');
+      return;
+    }
+
+    setState(() => _alfaStatus = 'saving');
+
     final db = ref.read(databaseProvider);
-    db.settingsDao.setValue(key, value);
+    await db.settingsDao.setValue('alfa.api_key', apiKey);
+    if (model.isNotEmpty) {
+      await db.settingsDao.setValue('alfa.model', model);
+    }
+
+    // Test the key with a minimal API call
+    try {
+      final client = HttpClient();
+      final request = await client.postUrl(
+        Uri.https('api.anthropic.com', '/v1/messages'),
+      );
+      request.headers.set('content-type', 'application/json');
+      request.headers.set('x-api-key', apiKey);
+      request.headers.set('anthropic-version', '2023-06-01');
+      request.write('{"model":"${model.isNotEmpty ? model : 'claude-sonnet-4-6'}","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}');
+      final response = await request.close();
+      client.close();
+
+      if (mounted) {
+        if (response.statusCode == 200) {
+          setState(() => _alfaStatus = 'connected');
+          // Re-initialize Alfa with the new key
+          ref.read(alfaProvider.notifier).initialize();
+        } else if (response.statusCode == 401) {
+          setState(() => _alfaStatus = 'error: Invalid API key');
+        } else {
+          setState(() => _alfaStatus = 'error: HTTP ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _alfaStatus = 'error: $e');
+      }
+    }
   }
 
   void _save() {
@@ -308,59 +353,52 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
 
                           // === Alfa Orchestrator Section ===
                           _sectionTitle(theme, 'Alfa Orchestrator'),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Row(
-                              children: [
-                                SizedBox(width: 120, child: Text('API Key', style: TextStyle(color: theme.textSecondary, fontSize: 12))),
-                                SizedBox(
-                                  width: 220,
-                                  child: TextField(
-                                    controller: _alfaApiKeyCtrl,
-                                    obscureText: _alfaKeyObscured,
-                                    style: TextStyle(color: theme.textPrimary, fontSize: 13),
-                                    decoration: InputDecoration(
-                                      hintText: 'sk-ant-...',
-                                      hintStyle: TextStyle(color: theme.textSecondary),
-                                      filled: true, fillColor: theme.surfaceLight, isDense: true,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: theme.border)),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: theme.border)),
-                                      suffixIcon: GestureDetector(
-                                        onTap: () => setState(() => _alfaKeyObscured = !_alfaKeyObscured),
-                                        child: Icon(_alfaKeyObscured ? Icons.visibility_off : Icons.visibility, size: 16, color: theme.textSecondary),
-                                      ),
-                                      suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 0),
+                          _settingsRow(theme, 'API Key', _alfaApiKeyCtrl, wide: true),
+                          _settingsRow(theme, 'Model', _alfaModelCtrl, wide: true),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: _alfaStatus == 'saving' ? null : _saveAlfaAndTest,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: theme.accentBlue,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    _alfaStatus == 'saving' ? 'Saving...' : 'Save & Connect',
+                                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              if (_alfaStatus == 'connected')
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8, height: 8,
+                                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.green),
                                     ),
-                                    onChanged: (v) => _saveAlfaSetting('alfa.api_key', v),
+                                    const SizedBox(width: 6),
+                                    Text('Connected', style: TextStyle(color: Colors.green, fontSize: 12)),
+                                  ],
+                                )
+                              else if (_alfaStatus != null && _alfaStatus!.startsWith('error:'))
+                                Flexible(
+                                  child: Text(
+                                    _alfaStatus!.substring(7),
+                                    style: TextStyle(color: theme.accentRed, fontSize: 11),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              ],
-                            ),
+                            ],
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Row(
-                              children: [
-                                SizedBox(width: 120, child: Text('Model', style: TextStyle(color: theme.textSecondary, fontSize: 12))),
-                                SizedBox(
-                                  width: 220,
-                                  child: TextField(
-                                    controller: _alfaModelCtrl,
-                                    style: TextStyle(color: theme.textPrimary, fontSize: 13),
-                                    decoration: _inputDecor(theme, hint: 'claude-sonnet-4-20250514'),
-                                    onChanged: (v) => _saveAlfaSetting('alfa.model', v),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(
-                              'Alfa uses your own Claude API key. Get one at console.anthropic.com.',
-                              style: TextStyle(color: theme.textSecondary, fontSize: 10),
-                            ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Bring your own key. Get one at console.anthropic.com',
+                            style: TextStyle(color: theme.textSecondary, fontSize: 10),
                           ),
 
                           const SizedBox(height: 24),

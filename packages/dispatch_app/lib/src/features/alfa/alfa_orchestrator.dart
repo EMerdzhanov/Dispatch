@@ -46,7 +46,7 @@ class AlfaOrchestrator {
   Future<void> initialize() async {
     final db = ref.read(databaseProvider);
     final apiKey = await db.settingsDao.getValue('alfa.api_key');
-    final model = await db.settingsDao.getValue('alfa.model') ?? 'claude-sonnet-4-20250514';
+    final model = await db.settingsDao.getValue('alfa.model') ?? 'claude-sonnet-4-6';
     final maxTurns = await db.settingsDao.getValue('alfa.max_turns');
 
     if (apiKey == null || apiKey.isEmpty) return;

@@ -13,7 +13,7 @@ class ClaudeClient {
   static const _baseUrl = 'api.anthropic.com';
   static const _apiVersion = '2023-06-01';
 
-  ClaudeClient({required this.apiKey, this.model = 'claude-sonnet-4-20250514'});
+  ClaudeClient({required this.apiKey, this.model = 'claude-sonnet-4-6'});
 
   /// Send a messages request and stream the response.
   ///
