@@ -155,6 +155,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
       _checkAgent('Gemini CLI', 'gemini --version'),
       _checkAgent('Codex CLI', 'codex --version'),
       _checkAgent('Grok CLI', 'grok --version'),
+      _checkAgent('Kimi CLI', 'kimi --version'),
     ]);
 
     if (mounted) {
