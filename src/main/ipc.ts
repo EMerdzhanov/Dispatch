@@ -10,6 +10,11 @@ import { TerminalMonitor } from './terminal-monitor';
 import { ProjectDataStore } from './project-data-store';
 import { isValidTasks, isValidNotes, isValidVault } from './ipc-validators';
 
+function getMainWindow(): BrowserWindow | null {
+  const windows = BrowserWindow.getAllWindows();
+  return windows.length > 0 ? windows[0] : null;
+}
+
 export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   const projectData = new ProjectDataStore(
     path.join(os.homedir(), '.config', 'dispatch', 'projects')
@@ -67,7 +72,7 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
 
   const monitor = new TerminalMonitor(
     (terminalId, status) => {
-      const win = BrowserWindow.getAllWindows()[0];
+      const win = getMainWindow();
       win?.webContents.send('monitor:status', terminalId, status);
 
       // Desktop notifications for success/error
@@ -82,20 +87,20 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
       }
     },
     (terminalId, url) => {
-      const win = BrowserWindow.getAllWindows()[0];
+      const win = getMainWindow();
       win?.webContents.send('browser:detected', terminalId, url);
     }
   );
 
   // Forward PTY events to renderer
   ptyManager.onData((id, data) => {
-    const win = BrowserWindow.getAllWindows()[0];
+    const win = getMainWindow();
     win?.webContents.send(IPC.PTY_DATA, id, data);
     monitor.onData(id, data);
   });
 
   ptyManager.onExit((id, code, signal) => {
-    const win = BrowserWindow.getAllWindows()[0];
+    const win = getMainWindow();
     win?.webContents.send(IPC.PTY_EXIT, id, code, signal);
     monitor.cleanup(id);
   });
@@ -105,7 +110,8 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   });
 
   ipcMain.handle('dialog:openFolder', async () => {
-    const win = BrowserWindow.getAllWindows()[0];
+    const win = getMainWindow();
+    if (!win) return null;
     const result = await dialog.showOpenDialog(win, {
       properties: ['openDirectory'],
       title: 'Open Project Folder',
@@ -137,7 +143,8 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   });
 
   ipcMain.handle('dialog:openScreenshot', async (_event: any, defaultPath?: string) => {
-    const win = BrowserWindow.getAllWindows()[0];
+    const win = getMainWindow();
+    if (!win) return null;
     const opts: any = {
       title: 'Select Screenshot',
       message: 'Choose an image to insert its path',
@@ -150,7 +157,8 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   });
 
   ipcMain.handle('dialog:selectScreenshotFolder', async () => {
-    const win = BrowserWindow.getAllWindows()[0];
+    const win = getMainWindow();
+    if (!win) return null;
     const result = await dialog.showOpenDialog(win, {
       title: 'Where are your screenshots saved?',
       message: 'Select your screenshots folder',
@@ -161,7 +169,8 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   });
 
   ipcMain.handle('dialog:openFile', async () => {
-    const win = BrowserWindow.getAllWindows()[0];
+    const win = getMainWindow();
+    if (!win) return null;
     const result = await dialog.showOpenDialog(win, {
       title: 'Select File',
       properties: ['openFile'],
