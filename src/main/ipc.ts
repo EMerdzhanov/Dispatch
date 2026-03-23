@@ -122,6 +122,8 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   ipcMain.handle('fs:readdir', async (_event: any, dirPath: string) => {
     if (typeof dirPath !== 'string' || dirPath.includes('\0')) return [];
     const resolved = path.resolve(dirPath);
+    const home = os.homedir();
+    if (resolved !== home && !resolved.startsWith(home + '/')) return [];
     try {
       const entries = await readdir(resolved, { withFileTypes: true });
       return entries
@@ -170,6 +172,9 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
 
   ipcMain.handle('fs:thumbnail', async (_event: any, filePath: string) => {
     if (typeof filePath !== 'string' || filePath.includes('\0')) return null;
+    const resolved = path.resolve(filePath);
+    const home = os.homedir();
+    if (resolved !== home && !resolved.startsWith(home + '/')) return null;
     try {
       const img = await nativeImage.createThumbnailFromPath(filePath, { width: 160, height: 100 });
       return img.toDataURL();
