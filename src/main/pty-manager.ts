@@ -170,8 +170,16 @@ export class PtyManager {
     this.dataCallbacks.push(cb);
   }
 
+  offData(cb: DataCallback): void {
+    this.dataCallbacks = this.dataCallbacks.filter((c) => c !== cb);
+  }
+
   onExit(cb: ExitCallback): void {
     this.exitCallbacks.push(cb);
+  }
+
+  offExit(cb: ExitCallback): void {
+    this.exitCallbacks = this.exitCallbacks.filter((c) => c !== cb);
   }
 
   attachSession(sessionName: string): string {

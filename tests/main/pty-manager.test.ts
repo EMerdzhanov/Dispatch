@@ -62,4 +62,28 @@ describe('PtyManager', () => {
     const id = manager.spawn({ cwd: '/nonexistent/path', shell: '/bin/sh', noTmux: true });
     expect(id).toBeTruthy();
   });
+
+  it('offData removes a callback so it no longer fires', async () => {
+    manager = new PtyManager();
+    const received: string[] = [];
+    const cb = (id: string, data: string) => received.push(data);
+    manager.onData(cb);
+    manager.offData(cb);
+    const id = manager.spawn({ cwd: os.homedir(), shell: '/bin/sh', noTmux: true });
+    manager.write(id, 'echo offtest\r');
+    await new Promise((r) => setTimeout(r, 500));
+    expect(received.length).toBe(0);
+  });
+
+  it('offExit removes a callback so it no longer fires', async () => {
+    manager = new PtyManager();
+    let called = false;
+    const cb = () => { called = true; };
+    manager.onExit(cb);
+    manager.offExit(cb);
+    const id = manager.spawn({ cwd: os.homedir(), shell: '/bin/sh', noTmux: true });
+    manager.write(id, 'exit 0\r');
+    await new Promise((r) => setTimeout(r, 2000));
+    expect(called).toBe(false);
+  });
 });
