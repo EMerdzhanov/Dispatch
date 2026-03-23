@@ -117,7 +117,7 @@ export function App() {
           useStore.getState().addGroup(g.cwd, g.label);
         }
       }
-    });
+    }).catch(() => {});
   }, []);
 
   // Auto-save state on changes (debounced 2 seconds)
@@ -138,7 +138,7 @@ export function App() {
           activeGroupId: state.activeGroupId,
           activeTerminalId: null,
           sidebarWidth: state.sidebarWidth,
-        });
+        }).catch(() => {});
       }, 2000);
     });
     return () => unsub();
@@ -154,58 +154,64 @@ export function App() {
 
   const [homedir, setHomedir] = React.useState('/');
   useEffect(() => {
-    window.dispatch?.app?.getHomedir().then((h: string) => setHomedir(h));
+    window.dispatch?.app?.getHomedir().then((h: string) => setHomedir(h)).catch(() => {});
   }, []);
 
   const handleSpawn = useCallback(async (command: string, env?: Record<string, string>) => {
-    const activeGroup = groups.find((g) => g.id === activeGroupId);
-    const cwd = activeGroup?.cwd || homedir;
-    const groupId = activeGroup?.id || findOrCreateGroup(cwd);
+    try {
+      const activeGroup = groups.find((g) => g.id === activeGroupId);
+      const cwd = activeGroup?.cwd || homedir;
+      const groupId = activeGroup?.id || findOrCreateGroup(cwd);
 
-    const id = await pty.spawn({ cwd, command, env });
+      const id = await pty.spawn({ cwd, command, env });
 
-    addTerminal(groupId, {
-      id,
-      command,
-      cwd,
-      status: TerminalStatus.RUNNING,
-    });
-    setActiveTerminal(id);
+      addTerminal(groupId, {
+        id,
+        command,
+        cwd,
+        status: TerminalStatus.RUNNING,
+      });
+      setActiveTerminal(id);
+    } catch {}
   }, [activeGroupId, groups, pty, addTerminal, findOrCreateGroup, setActiveTerminal, homedir]);
 
   const handleSpawnInCwd = useCallback(async (cwd: string, command?: string) => {
-    const cmd = command || '$SHELL';
-    const groupId = findOrCreateGroup(cwd);
+    try {
+      const cmd = command || '$SHELL';
+      const groupId = findOrCreateGroup(cwd);
 
-    const id = await pty.spawn({ cwd, command: cmd });
+      const id = await pty.spawn({ cwd, command: cmd });
 
-    addTerminal(groupId, {
-      id,
-      command: cmd,
-      cwd,
-      status: TerminalStatus.RUNNING,
-    });
-    useStore.getState().setActiveGroup(groupId);
-    setActiveTerminal(id);
+      addTerminal(groupId, {
+        id,
+        command: cmd,
+        cwd,
+        status: TerminalStatus.RUNNING,
+      });
+      useStore.getState().setActiveGroup(groupId);
+      setActiveTerminal(id);
+    } catch {}
   }, [pty, addTerminal, findOrCreateGroup, setActiveTerminal]);
 
   // Open a folder via the system dialog, create a tab, and auto-spawn a shell
   const handleOpenFolder = useCallback(async () => {
-    const folderPath = await dialogApi.openFolder();
-    if (!folderPath) return;
+    try {
+      const folderPath = await dialogApi.openFolder();
+      if (!folderPath) return;
 
-    // findOrCreateGroup returns the group ID (and creates the group if needed)
-    const groupId = useStore.getState().findOrCreateGroup(folderPath);
-    useStore.getState().setActiveGroup(groupId);
+      // findOrCreateGroup returns the group ID (and creates the group if needed)
+      const groupId = useStore.getState().findOrCreateGroup(folderPath);
+      useStore.getState().setActiveGroup(groupId);
 
-    const id = await pty.spawn({ cwd: folderPath, command: '$SHELL' });
-    addTerminal(groupId, {
-      id,
-      command: '$SHELL',
-      cwd: folderPath,
-      status: TerminalStatus.RUNNING,
-    });
-    setActiveTerminal(id);
+      const id = await pty.spawn({ cwd: folderPath, command: '$SHELL' });
+      addTerminal(groupId, {
+        id,
+        command: '$SHELL',
+        cwd: folderPath,
+        status: TerminalStatus.RUNNING,
+      });
+      setActiveTerminal(id);
+    } catch {}
   }, [dialogApi, pty, addTerminal, setActiveTerminal]);
 
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -215,19 +221,19 @@ export function App() {
   const templates = useStore((s) => s.templates);
 
   useEffect(() => {
-    (window as any).dispatch?.tmux?.isAvailable().then((available: boolean) => {
+    (window as any).dispatch?.tmux?.isAvailable()?.then((available: boolean) => {
       useStore.getState().setTmuxAvailable(available);
-    });
+    })?.catch(() => {});
   }, []);
 
   useEffect(() => {
-    (window as any).dispatch?.templates?.load().then((t: Template[]) => {
+    (window as any).dispatch?.templates?.load()?.then((t: Template[]) => {
       if (t) useStore.getState().setTemplates(t);
-    });
+    })?.catch(() => {});
   }, []);
 
   useEffect(() => {
-    (window as any).dispatch?.resume?.scan().then((sessions: any[]) => {
+    (window as any).dispatch?.resume?.scan()?.then((sessions: any[]) => {
       if (sessions && sessions.length > 0) {
         const mapped = sessions.map((s: any) => ({
           sessionName: s.name,
@@ -238,7 +244,7 @@ export function App() {
         useStore.getState().setResumeSessions(mapped);
         setShowResume(true);
       }
-    });
+    })?.catch(() => {});
   }, []);
 
   const monitorRef = React.useRef(false);
@@ -281,15 +287,15 @@ export function App() {
     if (!group?.cwd) return;
     const cwd = group.cwd;
 
-    (window as any).dispatch?.project?.loadTasks(cwd).then((t: any) => {
+    (window as any).dispatch?.project?.loadTasks(cwd)?.then((t: any) => {
       useStore.getState().setProjectTasks(t || []);
-    });
-    (window as any).dispatch?.project?.loadNotes(cwd).then((n: any) => {
+    })?.catch(() => {});
+    (window as any).dispatch?.project?.loadNotes(cwd)?.then((n: any) => {
       useStore.getState().setProjectNotes(n || []);
-    });
-    (window as any).dispatch?.project?.loadVault(cwd).then((v: any) => {
+    })?.catch(() => {});
+    (window as any).dispatch?.project?.loadVault(cwd)?.then((v: any) => {
       useStore.getState().setProjectVault(v || []);
-    });
+    })?.catch(() => {});
   }, [activeGroupId]);
 
   const handleSaveTemplate = async (name: string) => {
