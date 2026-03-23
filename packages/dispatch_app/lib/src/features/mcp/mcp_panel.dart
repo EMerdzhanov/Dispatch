@@ -271,40 +271,25 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                       ],
                       const SizedBox(height: 12),
 
-                      // Relay server toggle
+                      // Relay server toggle (disabled — not deployed yet)
                       _sectionLabel('RELAY SERVER', theme),
                       const SizedBox(height: 8),
-                      _toggleRow(
-                        'Use relay',
-                        mcpState.relayEnabled,
-                        theme,
-                        onChanged: (v) => ref.read(mcpServerProvider.notifier).setRelayEnabled(v),
-                      ),
-                      if (mcpState.relayEnabled) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          mcpState.relayConnected
-                              ? 'Connected \u2022 ${mcpState.relayClientId ?? "—"}'
-                              : 'Connecting to relay...',
-                          style: TextStyle(
-                            color: mcpState.relayConnected ? theme.accentGreen : theme.accentYellow,
-                            fontSize: 11,
+                      Opacity(
+                        opacity: 0.4,
+                        child: IgnorePointer(
+                          child: _toggleRow(
+                            'Use relay',
+                            false,
+                            theme,
+                            onChanged: (_) {},
                           ),
                         ),
-                        if (mcpState.relayConnected && mcpState.relayClientId != null) ...[
-                          const SizedBox(height: 6),
-                          _copyRow(
-                            'Relay URL',
-                            'https://${mcpState.relayClientId}.relay.osemdynamics.com/mcp',
-                            theme,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Permanent URL — does not change on restart.',
-                            style: TextStyle(color: theme.textSecondary, fontSize: 10),
-                          ),
-                        ],
-                      ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Coming soon — permanent URL without Cloudflare setup.',
+                        style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                      ),
                       const SizedBox(height: 16),
                     ],
 
