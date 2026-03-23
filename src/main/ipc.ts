@@ -8,6 +8,7 @@ import { IPC } from '../shared/types';
 import { TmuxHelper } from './tmux';
 import { TerminalMonitor } from './terminal-monitor';
 import { ProjectDataStore } from './project-data-store';
+import { isValidTasks, isValidNotes, isValidVault } from './ipc-validators';
 
 export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   const projectData = new ProjectDataStore(
@@ -15,11 +16,20 @@ export function registerIpc(ptyManager: PtyManager, store: SessionStore): void {
   );
 
   ipcMain.handle('project:loadTasks', async (_event: any, cwd: string) => projectData.loadTasks(cwd));
-  ipcMain.handle('project:saveTasks', async (_event: any, cwd: string, tasks: unknown) => projectData.saveTasks(cwd, tasks as any));
+  ipcMain.handle('project:saveTasks', async (_event: any, cwd: string, tasks: unknown) => {
+    if (typeof cwd !== 'string' || !isValidTasks(tasks)) throw new Error('Invalid tasks data');
+    return projectData.saveTasks(cwd, tasks);
+  });
   ipcMain.handle('project:loadNotes', async (_event: any, cwd: string) => projectData.loadNotes(cwd));
-  ipcMain.handle('project:saveNotes', async (_event: any, cwd: string, notes: unknown) => projectData.saveNotes(cwd, notes as any));
+  ipcMain.handle('project:saveNotes', async (_event: any, cwd: string, notes: unknown) => {
+    if (typeof cwd !== 'string' || !isValidNotes(notes)) throw new Error('Invalid notes data');
+    return projectData.saveNotes(cwd, notes);
+  });
   ipcMain.handle('project:loadVault', async (_event: any, cwd: string) => projectData.loadVault(cwd));
-  ipcMain.handle('project:saveVault', async (_event: any, cwd: string, entries: unknown) => projectData.saveVault(cwd, entries as any));
+  ipcMain.handle('project:saveVault', async (_event: any, cwd: string, entries: unknown) => {
+    if (typeof cwd !== 'string' || !isValidVault(entries)) throw new Error('Invalid vault data');
+    return projectData.saveVault(cwd, entries);
+  });
 
   ipcMain.handle(IPC.PTY_SPAWN, async (_event: any, opts) => {
     return ptyManager.spawn(opts);
