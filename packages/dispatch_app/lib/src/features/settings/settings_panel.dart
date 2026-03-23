@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
@@ -24,6 +25,40 @@ Color _hexToColor(String hex) {
   return Color(int.parse(h, radix: 16) + 0xFF000000);
 }
 
+class AgentStatus {
+  final String name;
+  final String state; // 'ok', 'auth_required', 'not_installed', 'checking'
+  final String? version;
+  final String? detail;
+
+  const AgentStatus({required this.name, required this.state, this.version, this.detail});
+}
+
+Future<AgentStatus> _checkAgent(String name, String command) async {
+  try {
+    final result = await Process.run('/bin/sh', ['-c', command],
+      environment: Platform.environment,
+    ).timeout(const Duration(seconds: 5));
+
+    if (result.exitCode == 0) {
+      final output = (result.stdout as String).trim();
+      // Extract version from first line
+      final version = output.split('\n').first.trim();
+      return AgentStatus(name: name, state: 'ok', version: version);
+    } else {
+      final stderr = (result.stderr as String).trim();
+      if (stderr.contains('auth') || stderr.contains('login') || stderr.contains('credential')) {
+        return AgentStatus(name: name, state: 'auth_required', detail: 'Run: $command');
+      }
+      return AgentStatus(name: name, state: 'auth_required', detail: stderr.split('\n').first);
+    }
+  } on TimeoutException {
+    return AgentStatus(name: name, state: 'auth_required', detail: 'Timed out');
+  } catch (_) {
+    return AgentStatus(name: name, state: 'not_installed');
+  }
+}
+
 class SettingsPanel extends ConsumerStatefulWidget {
   final bool open;
   final VoidCallback onClose;
@@ -47,6 +82,10 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
   late TextEditingController _alfaModelCtrl;
   bool _alfaLoaded = false;
   String? _alfaStatus; // null = no status, 'saving', 'connected', 'error: ...'
+
+  // Agent status
+  Map<String, AgentStatus> _agentStatuses = {};
+  bool _agentStatusLoading = false;
 
   bool _themeExpanded = false;
 
@@ -92,6 +131,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     if (!_alfaLoaded) {
       _alfaLoaded = true;
       _loadAlfaSettings();
+      _checkAgentStatuses();
     }
   }
 
@@ -103,6 +143,23 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
       setState(() {
         if (apiKey != null) _alfaApiKeyCtrl.text = apiKey;
         if (model != null) _alfaModelCtrl.text = model;
+      });
+    }
+  }
+
+  Future<void> _checkAgentStatuses() async {
+    setState(() => _agentStatusLoading = true);
+
+    final checks = await Future.wait([
+      _checkAgent('Claude Code', 'claude --version'),
+      _checkAgent('Gemini CLI', 'gemini --version'),
+      _checkAgent('Codex CLI', 'codex --version'),
+    ]);
+
+    if (mounted) {
+      setState(() {
+        _agentStatuses = {for (final s in checks) s.name: s};
+        _agentStatusLoading = false;
       });
     }
   }
@@ -355,6 +412,69 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                           _sectionTitle(theme, 'Notifications'),
                           _toggleRow(theme, 'Desktop Notifications', _notificationsEnabled, (v) => setState(() { _notificationsEnabled = v; _save(); })),
                           _toggleRow(theme, 'Sound Effects', _soundEnabled, (v) => setState(() { _soundEnabled = v; _save(); })),
+
+                          const SizedBox(height: 24),
+
+                          // === Agent Status Section ===
+                          Row(
+                            children: [
+                              Expanded(child: _sectionTitle(theme, 'Agent Status')),
+                              if (_agentStatusLoading)
+                                SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: theme.accentBlue))
+                              else
+                                GestureDetector(
+                                  onTap: _checkAgentStatuses,
+                                  child: Text('Refresh', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
+                                ),
+                            ],
+                          ),
+                          ..._agentStatuses.values.map((agent) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8, height: 8,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: switch (agent.state) {
+                                      'ok' => Colors.green,
+                                      'auth_required' => Colors.orange,
+                                      'not_installed' => Colors.red,
+                                      _ => Colors.grey,
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(agent.name, style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+                                      Text(
+                                        switch (agent.state) {
+                                          'ok' => 'Authenticated${agent.version != null ? ' · ${agent.version}' : ''}',
+                                          'auth_required' => 'Auth required${agent.detail != null ? ' · ${agent.detail}' : ''}',
+                                          'not_installed' => 'Not installed',
+                                          _ => 'Checking...',
+                                        },
+                                        style: TextStyle(
+                                          color: switch (agent.state) {
+                                            'ok' => Colors.green,
+                                            'auth_required' => Colors.orange,
+                                            'not_installed' => theme.textSecondary,
+                                            _ => theme.textSecondary,
+                                          },
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )),
+                          if (_agentStatuses.isEmpty && !_agentStatusLoading)
+                            Text('Checking agent status...', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
 
                           const SizedBox(height: 24),
 
