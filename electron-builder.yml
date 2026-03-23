@@ -17,4 +17,4 @@ linux:
   target:
     - AppImage
     - deb
-  maintainer: dispatch
+  maintainer: Emil Merdzhanov <etmerdzhanov@gmail.com>
