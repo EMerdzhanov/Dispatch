@@ -124,6 +124,12 @@ class AlfaOrchestrator {
       );
 
       if (response.hasToolUse) {
+        // Emit any text that came before the tool calls so the UI
+        // clears the streaming buffer and shows it as a message
+        if (response.text.isNotEmpty) {
+          _emit(AlfaChatEvent.alfa(response.text));
+        }
+
         messages.add(AlfaMessage(
           role: MessageRole.assistant,
           text: response.text.isNotEmpty ? response.text : null,
@@ -188,6 +194,23 @@ class AlfaOrchestrator {
     }
 
     final db = ref.read(databaseProvider);
+
+    // Recent conversation history — so Alfa knows what it just did
+    final recentMessages = await db.alfaConversationsDao.getForProject(
+      activeCwd,
+      limit: 20,
+    );
+    if (recentMessages.isNotEmpty) {
+      final lines = recentMessages.reversed.map((m) {
+        final prefix = m.role == 'human' ? 'Human' : 'Alfa';
+        final text = m.content.length > 200
+            ? '${m.content.substring(0, 200)}...'
+            : m.content;
+        return '[$prefix] $text';
+      });
+      parts.add('## Recent Conversation History\n\nYou said these things recently. You remember this context. Don\'t repeat yourself.\n\n${lines.join('\n\n')}');
+    }
+
     final decisions = await db.alfaDecisionsDao.getRecent(limit: 10);
     if (decisions.isNotEmpty) {
       final lines = decisions.map((d) =>
