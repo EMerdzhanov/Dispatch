@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 import '../projects/projects_provider.dart';
-import '../terminal/terminal_pane.dart';
+import '../terminal/session_registry.dart';
 import '../terminal/terminal_provider.dart';
 
 const _fileIcons = <String, ({String icon, Color color})>{
@@ -88,7 +88,8 @@ class _FileTreeState extends ConsumerState<FileTree> {
     }
 
     // Use xterm Terminal.textInput — goes through onOutput → PTY
-    final terminal = TerminalPane.terminalRegistry[activeId];
+    final registry = ref.read(sessionRegistryProvider.notifier);
+    final terminal = registry.getTerminal(activeId);
     if (terminal != null) {
       debugPrint('[FileTree] textInput: $quoted');
       terminal.textInput('$quoted ');
@@ -96,7 +97,7 @@ class _FileTreeState extends ConsumerState<FileTree> {
     }
 
     // Fallback: write to PTY directly
-    final pty = TerminalPane.ptyRegistry[activeId];
+    final pty = registry.getPty(activeId);
     if (pty != null) {
       debugPrint('[FileTree] pty.write: $quoted');
       pty.write(const Utf8Encoder().convert('$quoted '));

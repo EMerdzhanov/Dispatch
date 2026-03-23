@@ -14,7 +14,7 @@ import 'features/projects/tab_bar.dart';
 import 'features/projects/welcome_screen.dart';
 import 'features/terminal/terminal_provider.dart';
 import 'features/terminal/terminal_area.dart';
-import 'features/terminal/terminal_pane.dart';
+import 'features/terminal/session_registry.dart';
 import 'features/sidebar/sidebar.dart';
 import 'features/sidebar/right_panel.dart';
 import 'features/command_palette/command_palette.dart';
@@ -96,7 +96,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
     final activeId = ref.read(terminalsProvider).activeTerminalId;
     if (activeId == null) return;
 
-    final terminal = TerminalPane.terminalRegistry[activeId];
+    final terminal = ref.read(sessionRegistryProvider.notifier).getTerminal(activeId);
     if (terminal == null) return;
 
     final needsQuoting = filePath.contains(' ') || RegExp(r'[()&;|<>$`!"\\#*?{}\[\]~]').hasMatch(filePath);
