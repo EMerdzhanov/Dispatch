@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -317,43 +318,61 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                     if (_advancedOpen) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Get a permanent URL that never changes, even after '
-                        'restarting Dispatch. Requires a Cloudflare account '
-                        'with a domain (e.g. yourdomain.com).',
+                        'The Public URL toggle above already works without any '
+                        'setup \u2014 it generates a temporary URL each time.\n\n'
+                        'This section is for users who want a permanent URL '
+                        'that never changes. It requires a Cloudflare account '
+                        'with your own domain (e.g. yourdomain.com).',
                         style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Run these commands once in your terminal:',
-                        style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w500),
+                      const SizedBox(height: 10),
+                      // Step 1: Prerequisites
+                      _stepHeader('1. Install cloudflared', theme),
+                      const SizedBox(height: 4),
+                      _codeBlock('brew install cloudflared', theme),
+                      const SizedBox(height: 2),
+                      GestureDetector(
+                        onTap: () => Process.run('open', ['https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/']),
+                        child: Text('Other install methods \u2192', style: TextStyle(color: theme.accentBlue, fontSize: 10)),
                       ),
-                      const SizedBox(height: 6),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: theme.background,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('# Step 1: Log in to Cloudflare', style: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
-                            Text('cloudflared tunnel login', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
-                            const SizedBox(height: 4),
-                            Text('# Step 2: Create a named tunnel', style: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
-                            Text('cloudflared tunnel create dispatch', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
-                            const SizedBox(height: 4),
-                            Text('# Step 3: Point your subdomain to it', style: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
-                            Text('cloudflared tunnel route dns dispatch \\', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
-                            Text('  dispatch.yourdomain.com', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
+                      // Step 2: Login
+                      _stepHeader('2. Log in to Cloudflare', theme),
+                      const SizedBox(height: 4),
+                      _codeBlock('cloudflared tunnel login', theme),
+                      const SizedBox(height: 2),
                       Text(
-                        'Then fill in the fields below. The Public URL toggle '
-                        'will use your permanent URL instead of a random one.',
+                        'Opens your browser to authenticate. '
+                        'Need an account?',
+                        style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
+                      ),
+                      GestureDetector(
+                        onTap: () => Process.run('open', ['https://dash.cloudflare.com/sign-up']),
+                        child: Text('Sign up at cloudflare.com \u2192', style: TextStyle(color: theme.accentBlue, fontSize: 10)),
+                      ),
+                      const SizedBox(height: 10),
+                      // Step 3: Create tunnel
+                      _stepHeader('3. Create a named tunnel', theme),
+                      const SizedBox(height: 4),
+                      _codeBlock('cloudflared tunnel create dispatch', theme),
+                      const SizedBox(height: 10),
+                      // Step 4: Route DNS
+                      _stepHeader('4. Point a subdomain to it', theme),
+                      const SizedBox(height: 4),
+                      _codeBlock('cloudflared tunnel route dns dispatch \\\n  dispatch.yourdomain.com', theme),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Replace yourdomain.com with a domain in your '
+                        'Cloudflare account.',
+                        style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
+                      ),
+                      const SizedBox(height: 10),
+                      // Step 5: Configure in Dispatch
+                      _stepHeader('5. Fill in below and hit Save', theme),
+                      const SizedBox(height: 2),
+                      Text(
+                        'The Public URL toggle will use your permanent URL '
+                        'instead of a random one.',
                         style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
                       ),
                       const SizedBox(height: 8),
@@ -500,6 +519,22 @@ class _McpPanelState extends ConsumerState<McpPanel> {
         const Spacer(),
         child,
       ],
+    );
+  }
+
+  Widget _stepHeader(String text, AppTheme theme) {
+    return Text(text, style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w600));
+  }
+
+  Widget _codeBlock(String code, AppTheme theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.background,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(code, style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
     );
   }
 
