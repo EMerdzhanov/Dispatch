@@ -1,27 +1,36 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'alfa_types.dart';
 import 'claude_client.dart';
 import 'tool_executor.dart';
+import 'agents_state.dart';
+import 'playbook_loader.dart';
+import 'monitor_skill.dart';
+import 'default_identity.dart';
 import 'tools/terminal_tools.dart';
 import 'tools/project_tools.dart';
 import 'tools/knowledge_tools.dart';
 import 'tools/filesystem_tools.dart';
-import 'tools/memory_tools.dart';
+import 'tools/state_tools.dart';
+import 'tools/project_tools_v2.dart';
+import 'tools/playbook_tools.dart';
 import '../projects/projects_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../../core/database/database.dart';
+import '../terminal/session_registry.dart';
 
 class AlfaOrchestrator {
   final Ref ref;
   late final ToolExecutor _tools;
   ClaudeClient? _client;
+
+  late final AgentsState _agentsState;
+  late final PlaybookLoader _playbookLoader;
+  MonitorSkill? _monitorSkill;
 
   AlfaStatus _status = AlfaStatus.idle;
   int _turnCount = 0;
@@ -35,12 +44,20 @@ class AlfaOrchestrator {
   AlfaStatus get status => _status;
 
   AlfaOrchestrator(this.ref) {
+    _agentsState = AgentsState();
+    _playbookLoader = PlaybookLoader();
+
     _tools = ToolExecutor(ref);
     _tools.registerAll(terminalTools());
     _tools.registerAll(projectTools());
-    _tools.registerAll(knowledgeTools());
+    // Keep scan_project from knowledge_tools (read_project_knowledge and
+    // update_project_knowledge are superseded by project_tools_v2 but
+    // scan_project is still needed and lives here for now)
+    _tools.register(_scanProjectEntry());
     _tools.registerAll(filesystemTools());
-    _tools.registerAll(memoryTools());
+    _tools.registerAll(stateTools(_agentsState));
+    _tools.registerAll(projectToolsV2());
+    _tools.registerAll(playbookTools(_playbookLoader));
   }
 
   Future<void> initialize() async {
@@ -53,6 +70,33 @@ class AlfaOrchestrator {
 
     _client = ClaudeClient(apiKey: apiKey, model: model);
     if (maxTurns != null) _maxTurns = int.tryParse(maxTurns) ?? 50;
+
+    // Startup sequence
+    await ensureAlfaDirs();
+
+    // Create default identity.md if missing
+    final identityFile = File('${alfaDir()}/identity.md');
+    if (!await identityFile.exists()) {
+      await writeFile(identityFile.path, defaultIdentity);
+    }
+
+    await _playbookLoader.ensureDefaults();
+    await _agentsState.cleanupStale();
+
+    // Start MonitorSkill
+    _monitorSkill = MonitorSkill(
+      ref: ref,
+      agentsState: _agentsState,
+      onEvent: _emit,
+    );
+    _monitorSkill!.start();
+
+    // Hook MonitorSkill into SessionRegistry for event-driven monitoring
+    ref.read(sessionRegistryProvider.notifier).onOutputCallback = (terminalId, output) {
+      if (terminalId.endsWith('-alfa')) {
+        _monitorSkill!.onTerminalOutput(terminalId, output);
+      }
+    };
   }
 
   Future<void> sendMessage(String userMessage) async {
@@ -177,25 +221,57 @@ class AlfaOrchestrator {
   }
 
   Future<String> _buildSystemPrompt(String? activeCwd) async {
-    final parts = <String>[_identityPrompt];
+    final parts = <String>[];
 
+    // 1. Identity — read identity.md
+    final identity = await loadFile('${alfaDir()}/identity.md');
+    parts.add(identity.isNotEmpty ? identity : defaultIdentity);
+
+    // 2. Memory — read memory.md, truncate to ~8000 chars
+    final memory = await loadFile('${alfaDir()}/memory.md');
+    if (memory.isNotEmpty) {
+      parts.add('## Memory\n\n${_truncate(memory, 8000)}');
+    }
+
+    // 3. Project context — read projects/{slugified-cwd}.md, truncate to ~8000 chars
     if (activeCwd != null && activeCwd.isNotEmpty) {
-      final knowledgeFile = File(_knowledgeFilePath(activeCwd));
-      if (await knowledgeFile.exists()) {
-        final content = await knowledgeFile.readAsString();
-        parts.add('## Current Project Context\n\n$content');
+      final projectContent = await loadFile(
+        '${alfaDir()}/projects/${slugifyPath(activeCwd)}.md',
+      );
+      if (projectContent.isNotEmpty) {
+        parts.add('## Current Project Context\n\n${_truncate(projectContent, 8000)}');
       } else {
         parts.add(
           '## Current Project Context\n\n'
-          'No project knowledge yet for: $activeCwd\n'
-          'Use scan_project to learn about this codebase, then update_project_knowledge to save findings.',
+          'No project context yet for: $activeCwd\n'
+          'Use scan_project to learn about this codebase, then update_project to save findings.',
         );
       }
     }
 
-    final db = ref.read(databaseProvider);
+    // 4. Available playbooks — summary from PlaybookLoader
+    final playbookSummary = await _playbookLoader.getPromptSummary();
+    parts.add('## Available Playbooks\n\n$playbookSummary');
 
-    // Recent conversation history — so Alfa knows what it just did
+    // 5. Agent state — summary from AgentsState
+    final agentSummary = await _agentsState.getSummary();
+    parts.add('## Agent State\n\n$agentSummary');
+
+    // 6. Recent log — last 10 lines from log.md
+    final logContent = await loadFile('${alfaDir()}/log.md');
+    if (logContent.isNotEmpty) {
+      final logLines = logContent
+          .split('\n')
+          .where((l) => l.startsWith('- ['))
+          .take(10)
+          .join('\n');
+      if (logLines.isNotEmpty) {
+        parts.add('## Recent Log\n\n$logLines');
+      }
+    }
+
+    // 7. Recent conversation — from DB
+    final db = ref.read(databaseProvider);
     final recentMessages = await db.alfaConversationsDao.getForProject(
       activeCwd,
       limit: 20,
@@ -208,18 +284,18 @@ class AlfaOrchestrator {
             : m.content;
         return '[$prefix] $text';
       });
-      parts.add('## Recent Conversation History\n\nYou said these things recently. You remember this context. Don\'t repeat yourself.\n\n${lines.join('\n\n')}');
-    }
-
-    final decisions = await db.alfaDecisionsDao.getRecent(limit: 10);
-    if (decisions.isNotEmpty) {
-      final lines = decisions.map((d) =>
-          '- [${d.outcome}] ${d.summary} (${d.createdAt.toIso8601String()})');
-      parts.add('## Recent Decisions\n\n${lines.join('\n')}');
+      parts.add(
+        '## Recent Conversation History\n\n'
+        'You said these things recently. You remember this context. Don\'t repeat yourself.\n\n'
+        '${lines.join('\n\n')}',
+      );
     }
 
     return parts.join('\n\n');
   }
+
+  String _truncate(String s, int maxChars) =>
+      s.length > maxChars ? '${s.substring(0, maxChars)}\n[truncated]' : s;
 
   String? _getActiveCwd() {
     final state = ref.read(projectsProvider);
@@ -227,12 +303,6 @@ class AlfaOrchestrator {
         .where((g) => g.id == state.activeGroupId)
         .firstOrNull;
     return group?.cwd;
-  }
-
-  String _knowledgeFilePath(String cwd) {
-    final hash = sha256.convert(utf8.encode(cwd)).toString();
-    final home = Platform.environment['HOME'] ?? '/tmp';
-    return '$home/.config/dispatch/alfa/projects/$hash/knowledge.md';
   }
 
   void _setStatus(AlfaStatus s) {
@@ -245,28 +315,36 @@ class AlfaOrchestrator {
   }
 
   void dispose() {
+    _monitorSkill?.stop();
+
+    // Best-effort shutdown: append summary to log.md
+    _appendShutdownLog();
+
     _client?.close();
     _statusController.close();
     _messageController.close();
   }
 
-  static const _identityPrompt = '''
-You are Alfa — a sharp, friendly orchestrator who manages coding projects through Dispatch terminals running AI coding tools.
+  /// Fire-and-forget log append on shutdown. Errors are silently ignored.
+  void _appendShutdownLog() {
+    final timestamp = DateTime.now().toUtc().toIso8601String();
+    final logPath = '${alfaDir()}/log.md';
+    final entry = '- [$timestamp] Session ended.\n';
 
-Personality: You talk like an old friend who happens to be brilliant at coding. Concise, warm, occasional dry humor. Never robotic. Never verbose. Say what needs saying, nothing more.
+    File(logPath).readAsString().then((existing) {
+      File(logPath).writeAsString(entry + existing);
+    }).catchError((_) {
+      // If file doesn't exist yet, create it
+      writeFile(logPath, entry);
+    });
+  }
+}
 
-Rules:
-- Full autonomy. Spawn terminals, delegate, monitor, decide. No asking permission.
-- Lead with action, not explanation. Do first, summarize after.
-- Keep responses SHORT. 1-3 sentences for status updates. Only go longer if explaining something complex the human asked about.
-- No bullet-point walls. No markdown headers for simple replies. Use markdown only when showing code or structured data.
-- When something breaks, fix it. Don't apologize, just handle it.
-
-Technical:
-- Use scan_project on new projects, save findings with update_project_knowledge.
-- Terminal IDs ending in "-alfa" are yours. Use read_terminal to check output, run_command to send instructions.
-- Break big tasks into parallel terminal work when it makes sense.
-''';
+/// Extract only the scan_project tool entry from knowledge_tools.
+/// The old read_project_knowledge / update_project_knowledge tools are
+/// superseded by project_tools_v2 (read_project / update_project).
+AlfaToolEntry _scanProjectEntry() {
+  return knowledgeTools().firstWhere((t) => t.definition.name == 'scan_project');
 }
 
 /// Events emitted by the orchestrator to the UI.
