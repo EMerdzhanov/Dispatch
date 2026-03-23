@@ -19,6 +19,7 @@ import 'tools/notes_tools.dart';
 import 'tools/vault_tools.dart';
 import 'tools/memory_tools.dart';
 import 'tools/agent_status_tools.dart';
+import 'tools/code_search_tools.dart';
 
 class McpServer {
   final Ref ref;
@@ -46,6 +47,7 @@ class McpServer {
     _registry.registerAll(vaultTools());
     _registry.registerAll(memoryTools());
     _registry.registerAll(agentStatusTools());
+    _registry.registerAll(codeSearchTools()); // #4 — code search via MCP
   }
 
   Future<int> start({
@@ -65,13 +67,12 @@ class McpServer {
         .addMiddleware(_authMiddleware())
         .addHandler(router.call);
 
-    // Try the requested port, fall back to random
-    final address = bindAll ? InternetAddress.anyIPv4 : InternetAddress.loopbackIPv4;
+    final address =
+        bindAll ? InternetAddress.anyIPv4 : InternetAddress.loopbackIPv4;
     try {
       _server = await shelf_io.serve(handler, address, port);
       _port = port;
     } catch (_) {
-      // Port in use — try a random port
       _server = await shelf_io.serve(handler, address, 0);
       _port = _server!.port;
     }
@@ -88,7 +89,6 @@ class McpServer {
     _server = null;
   }
 
-  /// Push a notification to all connected SSE clients.
   void notify(McpNotification notification) {
     final event = notification.toSseEvent();
     for (final client in _sseClients) {
@@ -99,9 +99,7 @@ class McpServer {
   shelf.Middleware _authMiddleware() {
     return (shelf.Handler handler) {
       return (shelf.Request request) {
-        if (_authToken == null || _authToken!.isEmpty) {
-          return handler(request);
-        }
+        if (_authToken == null || _authToken!.isEmpty) return handler(request);
         final auth = request.headers['authorization'];
         if (auth != 'Bearer $_authToken') {
           return shelf.Response.forbidden(
@@ -114,13 +112,11 @@ class McpServer {
     };
   }
 
-  /// Format a JSON-RPC response as either JSON or SSE based on Accept header.
   shelf.Response _respond(shelf.Request request, McpResponse response) {
     final accept = request.headers['accept'] ?? '';
     final jsonStr = response.toJsonString();
 
     if (accept.contains('text/event-stream')) {
-      // SSE format: event + data lines
       final sseBody = 'event: message\ndata: $jsonStr\n\n';
       return shelf.Response.ok(sseBody, headers: {
         'content-type': 'text/event-stream',
@@ -146,22 +142,15 @@ class McpServer {
 
     final mcpRequest = McpRequest.fromJson(json);
 
-    // Handle JSON-RPC notifications (no id) — return 202 Accepted
-    if (mcpRequest.id == null) {
-      return shelf.Response(202);
-    }
+    if (mcpRequest.id == null) return shelf.Response(202);
 
-    // Handle MCP protocol methods
     if (mcpRequest.method == 'initialize') {
       return _respond(request, McpResponse.success(mcpRequest.id, {
         'protocolVersion': '2024-11-05',
         'capabilities': {
           'tools': {'listChanged': false},
         },
-        'serverInfo': {
-          'name': 'dispatch',
-          'version': '0.1.0',
-        },
+        'serverInfo': {'name': 'dispatch', 'version': '0.1.0'},
       }));
     }
 
@@ -177,35 +166,35 @@ class McpServer {
           (mcpRequest.params['arguments'] as Map<String, dynamic>?) ?? {};
       if (toolName == null) {
         return _respond(request,
-          McpResponse.invalidParams(mcpRequest.id, 'Missing tool name'));
+            McpResponse.invalidParams(mcpRequest.id, 'Missing tool name'));
       }
 
       final toolRequest =
           McpRequest(method: toolName, params: toolParams, id: mcpRequest.id);
       final response = await _registry.handle(ref, toolRequest);
 
-      // Log activity
       _requestCount++;
-      activityLog.insert(0, McpActivityEntry(
-        timestamp: DateTime.now(),
-        toolName: toolName,
-        agentId: request.headers['x-agent-id'] ?? 'unknown',
-      ));
+      activityLog.insert(
+          0,
+          McpActivityEntry(
+            timestamp: DateTime.now(),
+            toolName: toolName,
+            agentId: request.headers['x-agent-id'] ?? 'unknown',
+          ));
       if (activityLog.length > 100) activityLog.removeLast();
 
-      // Wrap tool result in MCP content format
       McpResponse mcpResponse;
       if (response.error != null) {
         mcpResponse = McpResponse.success(mcpRequest.id, {
           'content': [
-            {'type': 'text', 'text': response.error!.message},
+            {'type': 'text', 'text': response.error!.message}
           ],
           'isError': true,
         });
       } else {
         mcpResponse = McpResponse.success(mcpRequest.id, {
           'content': [
-            {'type': 'text', 'text': jsonEncode(response.result)},
+            {'type': 'text', 'text': jsonEncode(response.result)}
           ],
         });
       }
@@ -213,19 +202,14 @@ class McpServer {
       return _respond(request, mcpResponse);
     }
 
-    // Unknown method
-    return _respond(request,
-      McpResponse.methodNotFound(mcpRequest.id, mcpRequest.method));
+    return _respond(
+        request, McpResponse.methodNotFound(mcpRequest.id, mcpRequest.method));
   }
 
   Future<shelf.Response> _handleSse(shelf.Request request) async {
     final controller = StreamController<String>();
     _sseClients.add(controller);
-
-    // Remove client on disconnect
-    controller.onCancel = () {
-      _sseClients.remove(controller);
-    };
+    controller.onCancel = () => _sseClients.remove(controller);
 
     return shelf.Response.ok(
       controller.stream,

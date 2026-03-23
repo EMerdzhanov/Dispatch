@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'alfa_orchestrator.dart';
+import 'alfa_types.dart';
 import 'agents_state.dart';
 
 /// Background terminal monitor that watches Alfa-spawned terminals.
@@ -14,7 +14,7 @@ class MonitorSkill {
   final void Function(AlfaChatEvent event) onEvent;
 
   Timer? _pollTimer;
-  final Map<String, DateTime> _lastAlerts = {}; // key: "$terminalId:$classification"
+  final Map<String, DateTime> _lastAlerts = {};
 
   MonitorSkill({
     required this.ref,
@@ -23,7 +23,6 @@ class MonitorSkill {
   });
 
   void start() {
-    // Poll fallback every 30s
     _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _poll());
   }
 
@@ -32,14 +31,11 @@ class MonitorSkill {
     _pollTimer = null;
   }
 
-  /// Called when terminal output arrives (event-driven path).
   void onTerminalOutput(String terminalId, String output) {
     _updateHeartbeat(terminalId);
     _classify(terminalId, output);
   }
 
-  /// Poll all Alfa terminals for status.
-  /// NOTE: poll does NOT update heartbeats — only onTerminalOutput() does.
   Future<void> _poll() async {
     final state = await agentsState.readState();
     final agents = (state['agents'] as Map<String, dynamic>?) ?? {};
@@ -48,25 +44,24 @@ class MonitorSkill {
       final agent = entry.value as Map<String, dynamic>;
       if (agent['status'] != 'working') continue;
 
-      // Only fire stuck alerts for terminals that are actually agents,
-      // not idle shell sessions. Agents are flagged with is_agent: true
-      // at registration time or detected by terminal ID suffix.
       final isAgent = (agent['is_agent'] as bool?) ??
           entry.key.endsWith('-alfa') ||
           entry.key.endsWith('-mcp');
       if (!isAgent) continue;
 
-      // Check for stuck agents BEFORE updating heartbeat
-      // (heartbeat is only refreshed by actual terminal output via onTerminalOutput,
-      // NOT by polling — poll only checks, it doesn't renew)
-      final heartbeat = DateTime.tryParse(agent['last_heartbeat'] as String? ?? '');
-      if (heartbeat != null && DateTime.now().toUtc().difference(heartbeat).inSeconds > 120) {
-        _emitDebounced(entry.key, 'stuck',
-          AlfaChatEvent.alfa('⚠️ Agent ${entry.key} appears stuck — no output for 2+ minutes.'));
+      final heartbeat =
+          DateTime.tryParse(agent['last_heartbeat'] as String? ?? '');
+      if (heartbeat != null &&
+          DateTime.now().toUtc().difference(heartbeat).inSeconds > 120) {
+        _emitDebounced(
+          entry.key,
+          'stuck',
+          AlfaChatEvent.alfa(
+              '⚠️ Agent ${entry.key} appears stuck — no output for 2+ minutes.'),
+        );
       }
     }
 
-    // Cleanup stale claims
     await agentsState.cleanupStale();
   }
 
@@ -74,27 +69,31 @@ class MonitorSkill {
     agentsState.updateAgent(terminalId);
   }
 
-  /// Strip ANSI escape sequences so they don't cause false-positive matches.
-  static final _ansiPattern = RegExp(r'\x1B\[[0-9;]*[A-Za-z]|\x1B\][^\x07]*\x07|\x1B[()][A-B012]');
+  static final _ansiPattern = RegExp(
+      r'\x1B\[[0-9;]*[A-Za-z]|\x1B\][^\x07]*\x07|\x1B[()][A-B012]');
 
   void _classify(String terminalId, String output) {
     final stripped = output.replaceAll(_ansiPattern, '');
     final lower = stripped.toLowerCase();
 
-    // Error detection
-    if (lower.contains('error') || lower.contains('exception') ||
-        lower.contains('fatal') || lower.contains('panic') ||
+    if (lower.contains('error') ||
+        lower.contains('exception') ||
+        lower.contains('fatal') ||
+        lower.contains('panic') ||
         lower.contains('stack trace')) {
-      _emitDebounced(terminalId, 'error',
-        AlfaChatEvent.alfa('💥 Error detected in $terminalId'));
+      _emitDebounced(
+        terminalId,
+        'error',
+        AlfaChatEvent.alfa('💥 Error detected in $terminalId'),
+      );
     }
   }
 
-  void _emitDebounced(String terminalId, String classification, AlfaChatEvent event) {
+  void _emitDebounced(
+      String terminalId, String classification, AlfaChatEvent event) {
     final key = '$terminalId:$classification';
     final last = _lastAlerts[key];
     if (last != null && DateTime.now().difference(last).inSeconds < 60) return;
-
     _lastAlerts[key] = DateTime.now();
     onEvent(event);
   }

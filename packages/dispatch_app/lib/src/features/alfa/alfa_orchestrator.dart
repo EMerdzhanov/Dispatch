@@ -10,6 +10,7 @@ import 'tool_executor.dart';
 import 'agents_state.dart';
 import 'playbook_loader.dart';
 import 'monitor_skill.dart';
+import 'background_loop.dart';
 import 'default_identity.dart';
 import 'migration.dart';
 import 'tools/terminal_tools.dart';
@@ -19,6 +20,10 @@ import 'tools/filesystem_tools.dart';
 import 'tools/state_tools.dart';
 import 'tools/project_tools_v2.dart';
 import 'tools/playbook_tools.dart';
+import 'tools/code_tools.dart';
+import 'tools/test_tools.dart';
+import 'tools/routing_tools.dart';
+import 'tools/delegate_tools.dart';
 import '../projects/projects_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../../core/database/database.dart';
@@ -32,6 +37,9 @@ class AlfaOrchestrator {
   late final AgentsState _agentsState;
   late final PlaybookLoader _playbookLoader;
   MonitorSkill? _monitorSkill;
+  BackgroundLoop? _backgroundLoop;
+
+  final Map<String, TestTracker> _testTrackers = {};
 
   AlfaStatus _status = AlfaStatus.idle;
   int _turnCount = 0;
@@ -51,14 +59,17 @@ class AlfaOrchestrator {
     _tools = ToolExecutor(ref);
     _tools.registerAll(terminalTools());
     _tools.registerAll(projectTools());
-    // Keep scan_project from knowledge_tools (read_project_knowledge and
-    // update_project_knowledge are superseded by project_tools_v2 but
-    // scan_project is still needed and lives here for now)
     _tools.register(_scanProjectEntry());
     _tools.registerAll(filesystemTools());
     _tools.registerAll(stateTools(_agentsState));
     _tools.registerAll(projectToolsV2());
     _tools.registerAll(playbookTools(_playbookLoader));
+    _tools.register(_loopStatusTool());
+
+    _tools.registerAll(codeTools());
+    _tools.registerAll(testTools(_testTrackers, _emit));
+    _tools.registerAll(routingTools());
+    _tools.registerAll(delegateTools(_agentsState, _emit));
   }
 
   Future<void> initialize() async {
@@ -72,23 +83,19 @@ class AlfaOrchestrator {
     _client = ClaudeClient(apiKey: apiKey, model: model);
     if (maxTurns != null) _maxTurns = int.tryParse(maxTurns) ?? 50;
 
-    // Startup sequence
     await ensureAlfaDirs();
     await migrateFromV1(ref);
 
-    // Create default identity.md if missing
     final identityFile = File('${alfaDir()}/identity.md');
     if (!await identityFile.exists()) {
       await writeFile(identityFile.path, defaultIdentity);
     }
 
-    // Create default memory.md if missing
     final memoryFile = File('${alfaDir()}/memory.md');
     if (!await memoryFile.exists()) {
       await writeFile(memoryFile.path, defaultMemory);
     }
 
-    // Create default log.md if missing
     final logFile = File('${alfaDir()}/log.md');
     if (!await logFile.exists()) {
       final timestamp = DateTime.now().toUtc().toIso8601String();
@@ -98,7 +105,6 @@ class AlfaOrchestrator {
     await _playbookLoader.ensureDefaults();
     await _agentsState.cleanupStale();
 
-    // Start MonitorSkill
     _monitorSkill = MonitorSkill(
       ref: ref,
       agentsState: _agentsState,
@@ -106,24 +112,32 @@ class AlfaOrchestrator {
     );
     _monitorSkill!.start();
 
-    // Hook MonitorSkill into SessionRegistry for event-driven monitoring
-    ref.read(sessionRegistryProvider.notifier).onOutputCallback = (terminalId, output) {
+    ref.read(sessionRegistryProvider.notifier).onOutputCallback =
+        (terminalId, output) {
       if (terminalId.endsWith('-alfa')) {
         _monitorSkill!.onTerminalOutput(terminalId, output);
       }
     };
+
+    _backgroundLoop = BackgroundLoop(
+      ref: ref,
+      agentsState: _agentsState,
+      onEvent: _emit,
+    );
+    _backgroundLoop!.start();
   }
 
   Future<void> sendMessage(String userMessage) async {
     if (_client == null) {
-      _emit(AlfaChatEvent.alfa('Alfa is not configured. Set your API key in settings (alfa.api_key).'));
+      _emit(AlfaChatEvent.alfa(
+          'Alfa is not configured. Set your API key in settings (alfa.api_key).'));
       return;
     }
 
+    _backgroundLoop?.pause();
     _setStatus(AlfaStatus.thinking);
     _turnCount = 0;
 
-    // Save human message to DB
     final db = ref.read(databaseProvider);
     final activeCwd = _getActiveCwd();
     await db.alfaConversationsDao.insertMessage(
@@ -135,15 +149,11 @@ class AlfaOrchestrator {
     );
     _emit(AlfaChatEvent.human(userMessage));
 
-    // Build system prompt
     final systemPrompt = await _buildSystemPrompt(activeCwd);
-
-    // Build conversation (single turn — ephemeral)
     final messages = <AlfaMessage>[
       AlfaMessage(role: MessageRole.user, text: userMessage),
     ];
 
-    // Agentic loop
     try {
       await _runLoop(systemPrompt, messages, activeCwd);
     } catch (e) {
@@ -151,6 +161,7 @@ class AlfaOrchestrator {
       _emit(AlfaChatEvent.alfa('Error: $e'));
     } finally {
       _setStatus(AlfaStatus.idle);
+      _backgroundLoop?.resume();
     }
   }
 
@@ -165,29 +176,22 @@ class AlfaOrchestrator {
       if (_turnCount == _maxTurns - 5) {
         messages.add(AlfaMessage(
           role: MessageRole.user,
-          text: '[System: You have ${_maxTurns - _turnCount} tool turns remaining. Wrap up and summarize progress.]',
+          text:
+              '[System: You have ${_maxTurns - _turnCount} tool turns remaining. Wrap up and summarize progress.]',
         ));
       }
 
       _setStatus(AlfaStatus.thinking);
 
-      final textBuffer = StringBuffer();
       final response = await _client!.sendMessage(
         systemPrompt: systemPrompt,
         messages: messages,
         tools: _tools.definitions,
-        onTextDelta: (delta) {
-          textBuffer.write(delta);
-          _emit(AlfaChatEvent.delta(delta));
-        },
+        onTextDelta: (delta) => _emit(AlfaChatEvent.delta(delta)),
       );
 
       if (response.hasToolUse) {
-        // Emit any text that came before the tool calls so the UI
-        // clears the streaming buffer and shows it as a message
-        if (response.text.isNotEmpty) {
-          _emit(AlfaChatEvent.alfa(response.text));
-        }
+        if (response.text.isNotEmpty) _emit(AlfaChatEvent.alfa(response.text));
 
         messages.add(AlfaMessage(
           role: MessageRole.assistant,
@@ -207,11 +211,7 @@ class AlfaOrchestrator {
           ));
         }
 
-        messages.add(AlfaMessage(
-          role: MessageRole.user,
-          toolResults: results,
-        ));
-
+        messages.add(AlfaMessage(role: MessageRole.user, toolResults: results));
         continue;
       }
 
@@ -238,45 +238,36 @@ class AlfaOrchestrator {
   Future<String> _buildSystemPrompt(String? activeCwd) async {
     final parts = <String>[];
 
-    // 1. Identity — read identity.md
     final identity = await loadFile('${alfaDir()}/identity.md');
     parts.add(identity.isNotEmpty ? identity : defaultIdentity);
 
-    // 2. Alfa Memory — read memory.md, truncate to ~8000 chars
     final memory = await loadFile('${alfaDir()}/memory.md');
     if (memory.isNotEmpty) {
       parts.add('## Alfa Memory\n\n${_truncate(memory, 8000)}');
     }
 
-    // 3. Project Knowledge — read projects/{slugified-cwd}.md, truncate to ~8000 chars
     if (activeCwd != null && activeCwd.isNotEmpty) {
       final projectPath = '${alfaDir()}/projects/${slugifyPath(activeCwd)}.md';
       var projectContent = await loadFile(projectPath);
       if (projectContent.isEmpty) {
-        // Create default project file on first encounter
         final label = activeCwd.split('/').last;
         projectContent = defaultProjectTemplate(label, activeCwd);
         await writeFile(projectPath, projectContent);
         parts.add(
           '## Project Knowledge\n\n$projectContent\n\n'
-          'This is a new project. Use scan_project to learn about this codebase, '
-          'then update_project_knowledge to save findings. '
-          'Consider asking the user for a 2-minute briefing.',
+          'This is a new project. Use scan_project to learn about it.',
         );
       } else {
         parts.add('## Project Knowledge\n\n${_truncate(projectContent, 8000)}');
       }
     }
 
-    // 4. Available playbooks — summary from PlaybookLoader
     final playbookSummary = await _playbookLoader.getPromptSummary();
     parts.add('## Available Playbooks\n\n$playbookSummary');
 
-    // 5. Agent state — summary from AgentsState
     final agentSummary = await _agentsState.getSummary();
     parts.add('## Agent State\n\n$agentSummary');
 
-    // 6. Recent log — last 10 lines from log.md
     final logContent = await loadFile('${alfaDir()}/log.md');
     if (logContent.isNotEmpty) {
       final logLines = logContent
@@ -284,12 +275,9 @@ class AlfaOrchestrator {
           .where((l) => l.startsWith('- ['))
           .take(10)
           .join('\n');
-      if (logLines.isNotEmpty) {
-        parts.add('## Recent Log\n\n$logLines');
-      }
+      if (logLines.isNotEmpty) parts.add('## Recent Log\n\n$logLines');
     }
 
-    // 7. Current tasks and notes — from DB
     final db = ref.read(databaseProvider);
     if (activeCwd != null && activeCwd.isNotEmpty) {
       final tasks = await db.tasksDao.getTasksForProject(activeCwd);
@@ -304,24 +292,28 @@ class AlfaOrchestrator {
         parts.add('## Current Tasks\n\nNo incomplete tasks.');
       }
 
-      // 8. Notes — first 500 chars from most recent note
       final notes = await db.notesDao.getNotesForProject(activeCwd);
       if (notes.isNotEmpty) {
-        final firstNote = notes.first;
-        final preview = firstNote.body.length > 500
-            ? '${firstNote.body.substring(0, 500)}...'
-            : firstNote.body;
-        if (preview.isNotEmpty) {
-          parts.add('## Notes\n\n$preview');
+        final preview = notes.first.body.length > 500
+            ? '${notes.first.body.substring(0, 500)}...'
+            : notes.first.body;
+        if (preview.isNotEmpty) parts.add('## Notes\n\n$preview');
+      }
+
+      final tracker = _testTrackers[activeCwd];
+      if (tracker != null && tracker.latest != null) {
+        final s = tracker.getSummary();
+        final trend = s['trend'] as String? ?? 'stable';
+        final latest = s['latest_run'] as Map<String, dynamic>?;
+        if (latest != null) {
+          parts.add(
+              '## Test Status\n\n${latest['passed']} passed, ${latest['failed']} failed — trend: $trend');
         }
       }
     }
 
-    // 9. Recent conversation — from DB
-    final recentMessages = await db.alfaConversationsDao.getForProject(
-      activeCwd,
-      limit: 20,
-    );
+    final recentMessages =
+        await db.alfaConversationsDao.getForProject(activeCwd, limit: 20);
     if (recentMessages.isNotEmpty) {
       final lines = recentMessages.reversed.map((m) {
         final prefix = m.role == 'human' ? 'Human' : 'Alfa';
@@ -332,8 +324,7 @@ class AlfaOrchestrator {
       });
       parts.add(
         '## Recent Conversation History\n\n'
-        'You said these things recently. You remember this context. Don\'t repeat yourself.\n\n'
-        '${lines.join('\n\n')}',
+        "Don't repeat yourself.\n\n${lines.join('\n\n')}",
       );
     }
 
@@ -345,10 +336,10 @@ class AlfaOrchestrator {
 
   String? _getActiveCwd() {
     final state = ref.read(projectsProvider);
-    final group = state.groups
+    return state.groups
         .where((g) => g.id == state.activeGroupId)
-        .firstOrNull;
-    return group?.cwd;
+        .firstOrNull
+        ?.cwd;
   }
 
   void _setStatus(AlfaStatus s) {
@@ -356,83 +347,45 @@ class AlfaOrchestrator {
     _statusController.add(s);
   }
 
-  void _emit(AlfaChatEvent event) {
-    _messageController.add(event);
-  }
+  void _emit(AlfaChatEvent event) => _messageController.add(event);
+
+  AlfaToolEntry _loopStatusTool() => AlfaToolEntry(
+        definition: const AlfaToolDefinition(
+          name: 'get_loop_status',
+          description:
+              'Returns background loop status: running/paused, last tick, active alerts.',
+          inputSchema: {'type': 'object', 'properties': {}},
+        ),
+        handler: (ref, params) async =>
+            _backgroundLoop?.getStatus() ?? {'status': 'not_started'},
+      );
 
   void dispose() {
+    _backgroundLoop?.stop();
     _monitorSkill?.stop();
-
-    // Best-effort shutdown: append summary to log.md
     _appendShutdownLog();
-
     _client?.close();
     _statusController.close();
     _messageController.close();
   }
 
-  /// Fire-and-forget log append on shutdown. Errors are silently ignored.
+  /// Fire-and-forget log append on shutdown. Runs in background, never throws.
   void _appendShutdownLog() {
     final timestamp = DateTime.now().toUtc().toIso8601String();
     final logPath = '${alfaDir()}/log.md';
     final entry = '- [$timestamp] Session ended.\n';
+    _doShutdownLog(logPath, entry);
+  }
 
-    File(logPath).readAsString().then((existing) {
-      File(logPath).writeAsString(entry + existing);
-    }).catchError((_) {
-      // If file doesn't exist yet, create it
-      writeFile(logPath, entry);
-    });
+  static Future<void> _doShutdownLog(String logPath, String entry) async {
+    try {
+      final existing = await File(logPath).readAsString();
+      await File(logPath).writeAsString(entry + existing);
+    } catch (_) {
+      try { await writeFile(logPath, entry); } catch (_) {}
+    }
   }
 }
 
-/// Extract only the scan_project tool entry from knowledge_tools.
-/// The old read_project_knowledge / update_project_knowledge tools are
-/// superseded by project_tools_v2 (read_project / update_project).
-AlfaToolEntry _scanProjectEntry() {
-  return knowledgeTools().firstWhere((t) => t.definition.name == 'scan_project');
-}
-
-/// Events emitted by the orchestrator to the UI.
-sealed class AlfaChatEvent {
-  const AlfaChatEvent();
-
-  factory AlfaChatEvent.human(String text) = HumanMessageEvent;
-  factory AlfaChatEvent.alfa(String text) = AlfaMessageEvent;
-  factory AlfaChatEvent.alfaDone(String text) = AlfaDoneEvent;
-  factory AlfaChatEvent.delta(String text) = AlfaDeltaEvent;
-  factory AlfaChatEvent.toolCall(
-    String name,
-    Map<String, dynamic> input,
-    String result,
-    bool isError,
-  ) = ToolCallEvent;
-}
-
-class HumanMessageEvent extends AlfaChatEvent {
-  final String text;
-  const HumanMessageEvent(this.text);
-}
-
-class AlfaMessageEvent extends AlfaChatEvent {
-  final String text;
-  const AlfaMessageEvent(this.text);
-}
-
-class AlfaDoneEvent extends AlfaChatEvent {
-  final String text;
-  const AlfaDoneEvent(this.text);
-}
-
-class AlfaDeltaEvent extends AlfaChatEvent {
-  final String text;
-  const AlfaDeltaEvent(this.text);
-}
-
-class ToolCallEvent extends AlfaChatEvent {
-  final String name;
-  final Map<String, dynamic> input;
-  final String result;
-  final bool isError;
-  const ToolCallEvent(this.name, this.input, this.result, this.isError);
-}
+AlfaToolEntry _scanProjectEntry() =>
+    knowledgeTools().firstWhere((t) => t.definition.name == 'scan_project');

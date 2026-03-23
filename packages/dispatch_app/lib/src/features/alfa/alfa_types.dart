@@ -97,3 +97,51 @@ class AlfaToolDefinition {
 }
 
 enum AlfaStatus { idle, thinking, executing, error }
+
+// ---------------------------------------------------------------------------
+// Chat events — defined here (not in alfa_orchestrator.dart) so that tools
+// can import and emit them without creating circular dependencies.
+// ---------------------------------------------------------------------------
+
+sealed class AlfaChatEvent {
+  const AlfaChatEvent();
+
+  factory AlfaChatEvent.human(String text) = HumanMessageEvent;
+  factory AlfaChatEvent.alfa(String text) = AlfaMessageEvent;
+  factory AlfaChatEvent.alfaDone(String text) = AlfaDoneEvent;
+  factory AlfaChatEvent.delta(String text) = AlfaDeltaEvent;
+  factory AlfaChatEvent.toolCall(
+    String name,
+    Map<String, dynamic> input,
+    String result,
+    bool isError,
+  ) = ToolCallEvent;
+}
+
+class HumanMessageEvent extends AlfaChatEvent {
+  final String text;
+  const HumanMessageEvent(this.text);
+}
+
+class AlfaMessageEvent extends AlfaChatEvent {
+  final String text;
+  const AlfaMessageEvent(this.text);
+}
+
+class AlfaDoneEvent extends AlfaChatEvent {
+  final String text;
+  const AlfaDoneEvent(this.text);
+}
+
+class AlfaDeltaEvent extends AlfaChatEvent {
+  final String text;
+  const AlfaDeltaEvent(this.text);
+}
+
+class ToolCallEvent extends AlfaChatEvent {
+  final String name;
+  final Map<String, dynamic> input;
+  final String result;
+  final bool isError;
+  const ToolCallEvent(this.name, this.input, this.result, this.isError);
+}

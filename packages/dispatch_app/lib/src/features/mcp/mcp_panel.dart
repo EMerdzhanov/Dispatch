@@ -33,9 +33,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     _portCtrl = TextEditingController();
     _tunnelNameCtrl = TextEditingController();
     _tunnelUrlCtrl = TextEditingController();
-    // Check cloudflared availability on open
     ref.read(mcpServerProvider.notifier).checkCloudflared();
-    // Refresh connection count periodically
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       ref.read(mcpServerProvider.notifier).refreshStatus();
     });
@@ -57,15 +55,14 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     final mcpState = ref.watch(mcpServerProvider);
     final colorTheme = ref.watch(activeThemeProvider);
     final theme = AppTheme(colorTheme);
-    // Only update controller if value actually changed (avoids overwriting mid-edit)
+
     final portStr = mcpState.port.toString();
     if (_portCtrl.text != portStr) _portCtrl.text = portStr;
-    // Derive dirty state by comparing controllers to saved provider values.
+
     final tunnelDirty =
         _tunnelNameCtrl.text != (mcpState.tunnelName ?? '') ||
         _tunnelUrlCtrl.text != (mcpState.tunnelCustomUrl ?? '');
-    // Sync tunnel controllers from provider only when user hasn't edited them.
-    // Compare against prev values inside callback to avoid stale closure.
+
     ref.listen(
       mcpServerProvider.select((s) => (s.tunnelName, s.tunnelCustomUrl)),
       (prev, next) {
@@ -85,420 +82,369 @@ class _McpPanelState extends ConsumerState<McpPanel> {
         color: Colors.black54,
         child: Center(
           child: GestureDetector(
-            onTap: () {}, // prevent close on panel tap
+            onTap: () {},
             child: Material(
               color: Colors.transparent,
               child: Container(
-              width: 480,
-              constraints: const BoxConstraints(maxHeight: 700),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: theme.border, width: 1),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header
-                    Row(
-                      children: [
-                        Icon(Icons.extension_outlined, color: theme.textPrimary, size: 18),
-                        const SizedBox(width: 8),
-                        Text('Integrations', style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: widget.onClose,
-                          child: Icon(Icons.close, color: theme.textSecondary, size: 16),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Server Status
-                    _sectionLabel('MCP SERVER', theme),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Text('Server', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: () => ref.read(mcpServerProvider.notifier).toggle(),
-                          child: Container(
-                            width: 40,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              color: mcpState.running ? theme.accentGreen : theme.border,
-                              borderRadius: BorderRadius.circular(11),
-                            ),
-                            child: AnimatedAlign(
-                              duration: const Duration(milliseconds: 150),
-                              alignment: mcpState.running ? Alignment.centerRight : Alignment.centerLeft,
-                              child: Container(
-                                width: 18,
-                                height: 18,
-                                margin: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: theme.textPrimary,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (mcpState.running) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Running on port ${mcpState.port} \u2022 ${mcpState.connectionCount} connected',
-                        style: TextStyle(color: theme.textSecondary, fontSize: 11),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-
-                    // Connection URL + Public Access
-                    if (mcpState.running) ...[
-                      _sectionLabel('CONNECTION', theme),
-                      const SizedBox(height: 8),
-                      // Show the active URL (tunnel or localhost) with copy
-                      _copyRow('URL', mcpState.httpUrl, theme),
-                      if (mcpState.authEnabled && mcpState.authToken != null) ...[
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Text('Token', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () => setState(() => _tokenVisible = !_tokenVisible),
-                              child: Text(
-                                _tokenVisible ? mcpState.authToken! : '\u2022' * 16,
-                                style: TextStyle(color: theme.textPrimary, fontSize: 11, fontFamily: 'Menlo'),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            _copyButton(mcpState.authToken!, theme),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        GestureDetector(
-                          onTap: () => ref.read(mcpServerProvider.notifier).regenerateToken(),
-                          child: Text('Regenerate token', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
-                        ),
-                      ],
-                      const SizedBox(height: 10),
-                      // Public URL toggle
-                      if (!mcpState.cloudflaredAvailable) ...[
-                        Text(
-                          'Install cloudflared for public URLs: brew install cloudflared',
-                          style: TextStyle(color: theme.textSecondary, fontSize: 10),
-                        ),
-                        const SizedBox(height: 4),
-                        GestureDetector(
-                          onTap: () => ref.read(mcpServerProvider.notifier).checkCloudflared(),
-                          child: Text('Re-check', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
-                        ),
-                      ] else ...[
-                        Row(
-                          children: [
-                            Text('Public URL', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () {
-                                if (mcpState.tunnelRunning) {
-                                  ref.read(mcpServerProvider.notifier).stopTunnel();
-                                } else if (!mcpState.tunnelStarting) {
-                                  ref.read(mcpServerProvider.notifier).startTunnel();
-                                }
-                              },
-                              child: Container(
-                                width: 36,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  color: mcpState.tunnelRunning
-                                      ? theme.accentGreen
-                                      : mcpState.tunnelStarting
-                                          ? theme.accentYellow
-                                          : theme.border,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: AnimatedAlign(
-                                  duration: const Duration(milliseconds: 150),
-                                  alignment: (mcpState.tunnelRunning || mcpState.tunnelStarting)
-                                      ? Alignment.centerRight
-                                      : Alignment.centerLeft,
-                                  child: Container(
-                                    width: 16,
-                                    height: 16,
-                                    margin: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: theme.textPrimary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (mcpState.tunnelStarting)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text('Starting tunnel...', style: TextStyle(color: theme.accentYellow, fontSize: 11)),
-                          ),
-                        if (mcpState.tunnelRunning && !mcpState.tunnelStarting) ...[
-                          const SizedBox(height: 6),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: theme.background,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'To connect Claude.ai:\n'
-                              '1. Go to claude.ai \u2192 Settings \u2192 Connectors\n'
-                              '2. Add connector \u2192 paste the URL above\n'
-                              '3. Start a new chat to use Dispatch tools\n\n'
-                              'This URL is temporary and changes on restart.\n'
-                              'For a permanent URL, see Advanced below.',
-                              style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.5),
-                            ),
-                          ),
-                        ],
-                      ],
-                      const SizedBox(height: 12),
-
-                      // Relay server toggle (disabled — not deployed yet)
-                      _sectionLabel('RELAY SERVER', theme),
-                      const SizedBox(height: 8),
-                      Opacity(
-                        opacity: 0.4,
-                        child: IgnorePointer(
-                          child: _toggleRow(
-                            'Use relay',
-                            false,
-                            theme,
-                            onChanged: (_) {},
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Coming soon — permanent URL without Cloudflare setup.',
-                        style: TextStyle(color: theme.textSecondary, fontSize: 10),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Settings
-                    _sectionLabel('SETTINGS', theme),
-                    const SizedBox(height: 8),
-                    _settingRow('Port', theme, child: SizedBox(
-                      width: 80,
-                      height: 28,
-                      child: TextField(
-                        controller: _portCtrl,
-                        style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                        ),
-                        onSubmitted: (value) {
-                          final port = int.tryParse(value);
-                          if (port != null && port > 0 && port < 65536) {
-                            ref.read(mcpServerProvider.notifier).setPort(port);
-                          }
-                        },
-                      ),
-                    )),
-                    const SizedBox(height: 6),
-                    _toggleRow('Token auth', mcpState.authEnabled, theme,
-                        onChanged: (v) => ref.read(mcpServerProvider.notifier).setAuthEnabled(v)),
-
-                    // Advanced section (collapsible)
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () => setState(() => _advancedOpen = !_advancedOpen),
-                      child: Row(
+                width: 480,
+                constraints: const BoxConstraints(maxHeight: 700),
+                decoration: BoxDecoration(
+                  color: theme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.border, width: 1),
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header
+                      Row(
                         children: [
-                          Icon(
-                            _advancedOpen ? Icons.expand_less : Icons.expand_more,
-                            size: 14,
-                            color: theme.textSecondary,
+                          Icon(Icons.extension_outlined, color: theme.textPrimary, size: 18),
+                          const SizedBox(width: 8),
+                          Text('Integrations', style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: widget.onClose,
+                            child: Icon(Icons.close, color: theme.textSecondary, size: 16),
                           ),
-                          const SizedBox(width: 4),
-                          Text('Advanced', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1)),
                         ],
                       ),
-                    ),
-                    if (_advancedOpen) ...[
+                      const SizedBox(height: 20),
+
+                      // Server Status
+                      _sectionLabel('MCP SERVER', theme),
                       const SizedBox(height: 8),
-                      Text(
-                        'The Public URL toggle above already works without any '
-                        'setup \u2014 it generates a temporary URL each time.\n\n'
-                        'This section is for users who want a permanent URL '
-                        'that never changes. It requires a Cloudflare account '
-                        'with your own domain (e.g. yourdomain.com).',
-                        style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
-                      ),
-                      const SizedBox(height: 10),
-                      // Step 1: Prerequisites
-                      _stepHeader('1. Install cloudflared', theme),
-                      const SizedBox(height: 4),
-                      _codeBlock('brew install cloudflared', theme),
-                      const SizedBox(height: 2),
-                      GestureDetector(
-                        onTap: () => Process.run('open', ['https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/']),
-                        child: Text('Other install methods \u2192', style: TextStyle(color: theme.accentBlue, fontSize: 10)),
-                      ),
-                      const SizedBox(height: 10),
-                      // Step 2: Login
-                      _stepHeader('2. Log in to Cloudflare', theme),
-                      const SizedBox(height: 4),
-                      _codeBlock('cloudflared tunnel login', theme),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Opens your browser to authenticate. '
-                        'Need an account?',
-                        style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
-                      ),
-                      GestureDetector(
-                        onTap: () => Process.run('open', ['https://dash.cloudflare.com/sign-up']),
-                        child: Text('Sign up at cloudflare.com \u2192', style: TextStyle(color: theme.accentBlue, fontSize: 10)),
-                      ),
-                      const SizedBox(height: 10),
-                      // Step 3: Create tunnel
-                      _stepHeader('3. Create a named tunnel', theme),
-                      const SizedBox(height: 4),
-                      _codeBlock('cloudflared tunnel create dispatch', theme),
-                      const SizedBox(height: 10),
-                      // Step 4: Route DNS
-                      _stepHeader('4. Point a subdomain to it', theme),
-                      const SizedBox(height: 4),
-                      _codeBlock('cloudflared tunnel route dns dispatch \\\n  dispatch.yourdomain.com', theme),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Replace yourdomain.com with a domain in your '
-                        'Cloudflare account.',
-                        style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
-                      ),
-                      const SizedBox(height: 10),
-                      // Step 5: Configure in Dispatch
-                      _stepHeader('5. Fill in below and hit Save', theme),
-                      const SizedBox(height: 2),
-                      Text(
-                        'The Public URL toggle will use your permanent URL '
-                        'instead of a random one.',
-                        style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
-                      ),
-                      const SizedBox(height: 8),
-                      _settingRow('Tunnel name', theme, child: SizedBox(
-                        width: 140,
-                        height: 28,
-                        child: TextField(
-                          controller: _tunnelNameCtrl,
-                          style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            hintText: 'e.g. dispatch',
-                            hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 12),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                      Row(
+                        children: [
+                          Text('Server', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () => ref.read(mcpServerProvider.notifier).toggle(),
+                            child: _Toggle(value: mcpState.running, theme: theme, size: 40),
                           ),
-                          onChanged: (_) => setState(() {}),
+                        ],
+                      ),
+                      if (mcpState.running) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Port ${mcpState.port} \u2022 ${mcpState.connectionCount} connected',
+                          style: TextStyle(color: theme.textSecondary, fontSize: 11),
                         ),
-                      )),
-                      const SizedBox(height: 6),
-                      _settingRow('Tunnel URL', theme, child: SizedBox(
-                        width: 220,
-                        height: 28,
-                        child: TextField(
-                          controller: _tunnelUrlCtrl,
-                          style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            hintText: 'https://dispatch.yourdomain.com',
-                            hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                      ],
+                      const SizedBox(height: 16),
+
+                      // Connection URL
+                      if (mcpState.running) ...[
+                        _sectionLabel('CONNECTION', theme),
+                        const SizedBox(height: 8),
+                        _copyRow('URL', mcpState.httpUrl, theme),
+                        if (mcpState.authEnabled && mcpState.authToken != null) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Text('Token', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: () => setState(() => _tokenVisible = !_tokenVisible),
+                                child: Text(
+                                  _tokenVisible ? mcpState.authToken! : '\u2022' * 16,
+                                  style: TextStyle(color: theme.textPrimary, fontSize: 11, fontFamily: 'Menlo'),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              _CopyButton(text: mcpState.authToken!, theme: theme),
+                            ],
                           ),
-                          onChanged: (_) => setState(() {}),
-                        ),
-                      )),
-                      if (tunnelDirty) ...[
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => ref.read(mcpServerProvider.notifier).regenerateToken(),
+                            child: Text('Regenerate token', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
+                          ),
+                        ],
+                        const SizedBox(height: 10),
+
+                        // Public URL (Cloudflare tunnel)
+                        if (!mcpState.cloudflaredAvailable) ...[
+                          Text(
+                            'Install cloudflared for public URLs: brew install cloudflared',
+                            style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => ref.read(mcpServerProvider.notifier).checkCloudflared(),
+                            child: Text('Re-check', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
+                          ),
+                        ] else ...[
+                          Row(
+                            children: [
+                              Text('Public URL', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: () {
+                                  if (mcpState.tunnelRunning) {
+                                    ref.read(mcpServerProvider.notifier).stopTunnel();
+                                  } else if (!mcpState.tunnelStarting) {
+                                    ref.read(mcpServerProvider.notifier).startTunnel();
+                                  }
+                                },
+                                child: _Toggle(
+                                  value: mcpState.tunnelRunning,
+                                  pending: mcpState.tunnelStarting,
+                                  theme: theme,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (mcpState.tunnelStarting)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text('Starting tunnel...', style: TextStyle(color: theme.accentYellow, fontSize: 11)),
+                            ),
+                          if (mcpState.tunnelRunning && !mcpState.tunnelStarting) ...[
+                            const SizedBox(height: 6),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: theme.background,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'To connect Claude.ai:\n'
+                                '1. Go to claude.ai \u2192 Settings \u2192 Connectors\n'
+                                '2. Add connector \u2192 paste the URL above\n'
+                                '3. Start a new chat to use Dispatch tools\n\n'
+                                'This URL is temporary and changes on restart.\n'
+                                'For a permanent URL, use Relay below.',
+                                style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.5),
+                              ),
+                            ),
+                          ],
+                        ],
+                        const SizedBox(height: 12),
+
+                        // ── Relay Server ──────────────────────────────────────
+                        _sectionLabel('RELAY SERVER', theme),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            GestureDetector(
-                              onTap: () {
-                                ref.read(mcpServerProvider.notifier).setTunnelConfig(
-                                  name: _tunnelNameCtrl.text,
-                                  customUrl: _tunnelUrlCtrl.text,
-                                );
-                                setState(() {});
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: theme.accentGreen,
-                                  borderRadius: BorderRadius.circular(4),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Use relay', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+                                Text(
+                                  mcpState.relayConnected
+                                      ? '\u2022 Connected \u2014 permanent URL active'
+                                      : mcpState.relayEnabled
+                                          ? '\u2022 Connecting...'
+                                          : 'Permanent URL, no Cloudflare needed',
+                                  style: TextStyle(
+                                    color: mcpState.relayConnected
+                                        ? theme.accentGreen
+                                        : theme.textSecondary,
+                                    fontSize: 10,
+                                  ),
                                 ),
-                                child: Text('Save', style: TextStyle(color: theme.background, fontSize: 11, fontWeight: FontWeight.w600)),
-                              ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
+                            const Spacer(),
                             GestureDetector(
-                              onTap: () {
-                                _tunnelNameCtrl.text = mcpState.tunnelName ?? '';
-                                _tunnelUrlCtrl.text = mcpState.tunnelCustomUrl ?? '';
-                                setState(() {});
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: theme.border),
-                                ),
-                                child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+                              onTap: () => ref.read(mcpServerProvider.notifier)
+                                  .setRelayEnabled(!mcpState.relayEnabled),
+                              child: _Toggle(
+                                value: mcpState.relayEnabled,
+                                pending: mcpState.relayEnabled && !mcpState.relayConnected,
+                                theme: theme,
                               ),
                             ),
                           ],
                         ),
+                        if (mcpState.relayConnected && mcpState.relayClientId != null) ...[
+                          const SizedBox(height: 8),
+                          _copyRow('URL', mcpState.httpUrl, theme),
+                          const SizedBox(height: 4),
+                          Text(
+                            'This URL is permanent and survives Dispatch restarts.',
+                            style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Settings
+                      _sectionLabel('SETTINGS', theme),
+                      const SizedBox(height: 8),
+                      _settingRow('Port', theme, child: SizedBox(
+                        width: 80,
+                        height: 28,
+                        child: TextField(
+                          controller: _portCtrl,
+                          style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                          ),
+                          onSubmitted: (value) {
+                            final port = int.tryParse(value);
+                            if (port != null && port > 0 && port < 65536) {
+                              ref.read(mcpServerProvider.notifier).setPort(port);
+                            }
+                          },
+                        ),
+                      )),
+                      const SizedBox(height: 6),
+                      _toggleRow('Token auth', mcpState.authEnabled, theme,
+                          onChanged: (v) => ref.read(mcpServerProvider.notifier).setAuthEnabled(v)),
+
+                      // Advanced (named cloudflare tunnel)
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () => setState(() => _advancedOpen = !_advancedOpen),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _advancedOpen ? Icons.expand_less : Icons.expand_more,
+                              size: 14,
+                              color: theme.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text('Advanced', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                          ],
+                        ),
+                      ),
+                      if (_advancedOpen) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Named Cloudflare tunnel — permanent URL using your own domain.\n'
+                          'Requires a Cloudflare account and cloudflared installed.',
+                          style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
+                        ),
+                        const SizedBox(height: 10),
+                        _stepHeader('1. Install cloudflared', theme),
+                        const SizedBox(height: 4),
+                        _codeBlock('brew install cloudflared', theme),
+                        const SizedBox(height: 10),
+                        _stepHeader('2. Log in to Cloudflare', theme),
+                        const SizedBox(height: 4),
+                        _codeBlock('cloudflared tunnel login', theme),
+                        const SizedBox(height: 10),
+                        _stepHeader('3. Create a named tunnel', theme),
+                        const SizedBox(height: 4),
+                        _codeBlock('cloudflared tunnel create dispatch', theme),
+                        const SizedBox(height: 10),
+                        _stepHeader('4. Point a subdomain to it', theme),
+                        const SizedBox(height: 4),
+                        _codeBlock('cloudflared tunnel route dns dispatch \\\n  dispatch.yourdomain.com', theme),
+                        const SizedBox(height: 10),
+                        _stepHeader('5. Fill in below and hit Save', theme),
+                        const SizedBox(height: 8),
+                        _settingRow('Tunnel name', theme, child: SizedBox(
+                          width: 140,
+                          height: 28,
+                          child: TextField(
+                            controller: _tunnelNameCtrl,
+                            style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: 'e.g. dispatch',
+                              hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 12),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                            ),
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        )),
+                        const SizedBox(height: 6),
+                        _settingRow('Tunnel URL', theme, child: SizedBox(
+                          width: 220,
+                          height: 28,
+                          child: TextField(
+                            controller: _tunnelUrlCtrl,
+                            style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: 'https://dispatch.yourdomain.com',
+                              hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                            ),
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        )),
+                        if (tunnelDirty) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  ref.read(mcpServerProvider.notifier).setTunnelConfig(
+                                    name: _tunnelNameCtrl.text,
+                                    customUrl: _tunnelUrlCtrl.text,
+                                  );
+                                  setState(() {});
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: theme.accentGreen,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('Save', style: TextStyle(color: theme.background, fontSize: 11, fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () {
+                                  _tunnelNameCtrl.text = mcpState.tunnelName ?? '';
+                                  _tunnelUrlCtrl.text = mcpState.tunnelCustomUrl ?? '';
+                                  setState(() {});
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: theme.border),
+                                  ),
+                                  child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+
+                      // Activity Log
+                      if (mcpState.running && mcpState.activityLog.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        _sectionLabel('RECENT ACTIVITY', theme),
+                        const SizedBox(height: 8),
+                        ...mcpState.activityLog.take(10).map((entry) => Padding(
+                              padding: const EdgeInsets.only(bottom: 3),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '${entry.timestamp.hour.toString().padLeft(2, '0')}:${entry.timestamp.minute.toString().padLeft(2, '0')}:${entry.timestamp.second.toString().padLeft(2, '0')}',
+                                    style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(entry.toolName, style: TextStyle(color: theme.textPrimary, fontSize: 11)),
+                                  const Spacer(),
+                                  Text(entry.agentId, style: TextStyle(color: theme.textSecondary, fontSize: 10)),
+                                ],
+                              ),
+                            )),
                       ],
                     ],
-
-                    // Activity Log
-                    if (mcpState.running && mcpState.activityLog.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      _sectionLabel('RECENT ACTIVITY', theme),
-                      const SizedBox(height: 8),
-                      ...mcpState.activityLog.take(10).map((entry) => Padding(
-                            padding: const EdgeInsets.only(bottom: 3),
-                            child: Row(
-                              children: [
-                                Text(
-                                  '${entry.timestamp.hour.toString().padLeft(2, '0')}:${entry.timestamp.minute.toString().padLeft(2, '0')}:${entry.timestamp.second.toString().padLeft(2, '0')}',
-                                  style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo'),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(entry.toolName, style: TextStyle(color: theme.textPrimary, fontSize: 11)),
-                                const Spacer(),
-                                Text(entry.agentId, style: TextStyle(color: theme.textSecondary, fontSize: 10)),
-                              ],
-                            ),
-                          )),
-                    ],
-                  ],
+                  ),
                 ),
               ),
-            ),
             ),
           ),
         ),
@@ -506,9 +452,8 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     );
   }
 
-  Widget _sectionLabel(String text, AppTheme theme) {
-    return Text(text, style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1));
-  }
+  Widget _sectionLabel(String text, AppTheme theme) =>
+      Text(text, style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1));
 
   Widget _copyRow(String label, String value, AppTheme theme) {
     return Row(
@@ -524,13 +469,9 @@ class _McpPanelState extends ConsumerState<McpPanel> {
           ),
         ),
         const SizedBox(width: 6),
-        _copyButton(value, theme),
+        _CopyButton(text: value, theme: theme),
       ],
     );
-  }
-
-  Widget _copyButton(String text, AppTheme theme) {
-    return _CopyButton(text: text, theme: theme);
   }
 
   Widget _settingRow(String label, AppTheme theme, {required Widget child}) {
@@ -543,63 +484,66 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     );
   }
 
-  Widget _stepHeader(String text, AppTheme theme) {
-    return Text(text, style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w600));
-  }
+  Widget _stepHeader(String text, AppTheme theme) =>
+      Text(text, style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w600));
 
   Widget _codeBlock(String code, AppTheme theme) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.background,
-        borderRadius: BorderRadius.circular(4),
-      ),
+      decoration: BoxDecoration(color: theme.background, borderRadius: BorderRadius.circular(4)),
       child: Text(code, style: TextStyle(color: theme.textSecondary, fontSize: 10, fontFamily: 'Menlo', height: 1.6)),
     );
   }
 
   Widget _toggleRow(String label, bool value, AppTheme theme,
-      {required ValueChanged<bool> onChanged, String? warning}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      {required ValueChanged<bool> onChanged}) {
+    return Row(
       children: [
-        Row(
-          children: [
-            Text(label, style: TextStyle(color: theme.textPrimary, fontSize: 13)),
-            const Spacer(),
-            GestureDetector(
-              onTap: () => onChanged(!value),
-              child: Container(
-                width: 36,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: value ? theme.accentGreen : theme.border,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: AnimatedAlign(
-                  duration: const Duration(milliseconds: 150),
-                  alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    margin: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: theme.textPrimary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        Text(label, style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+        const Spacer(),
+        GestureDetector(
+          onTap: () => onChanged(!value),
+          child: _Toggle(value: value, theme: theme),
         ),
-        if (warning != null && value)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(warning, style: TextStyle(color: theme.accentYellow, fontSize: 10)),
-          ),
       ],
+    );
+  }
+}
+
+/// Reusable toggle widget with optional pending/yellow state.
+class _Toggle extends StatelessWidget {
+  final bool value;
+  final bool pending;
+  final AppTheme theme;
+  final double size;
+
+  const _Toggle({required this.value, required this.theme, this.pending = false, this.size = 36});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = pending
+        ? theme.accentYellow
+        : value
+            ? theme.accentGreen
+            : theme.border;
+    final knobSize = size * 0.44;
+    final height = size * 0.55;
+
+    return Container(
+      width: size,
+      height: height,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(height / 2)),
+      child: AnimatedAlign(
+        duration: const Duration(milliseconds: 150),
+        alignment: (value || pending) ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          width: knobSize,
+          height: knobSize,
+          margin: EdgeInsets.all(height * 0.1),
+          decoration: BoxDecoration(color: theme.textPrimary, shape: BoxShape.circle),
+        ),
+      ),
     );
   }
 }
@@ -607,16 +551,13 @@ class _McpPanelState extends ConsumerState<McpPanel> {
 class _CopyButton extends StatefulWidget {
   final String text;
   final AppTheme theme;
-
   const _CopyButton({required this.text, required this.theme});
-
   @override
   State<_CopyButton> createState() => _CopyButtonState();
 }
 
 class _CopyButtonState extends State<_CopyButton> {
   bool _copied = false;
-
   void _handleCopy() {
     Clipboard.setData(ClipboardData(text: widget.text));
     setState(() => _copied = true);
@@ -624,7 +565,6 @@ class _CopyButtonState extends State<_CopyButton> {
       if (mounted) setState(() => _copied = false);
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
