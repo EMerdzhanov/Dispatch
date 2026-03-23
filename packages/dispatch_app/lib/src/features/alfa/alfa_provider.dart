@@ -63,6 +63,16 @@ class AlfaNotifier extends Notifier<AlfaState> {
   void clearMessages() {
     state = state.copyWith(messages: []);
   }
+
+  /// Inject a task-triggered message into the Alfa orchestrator.
+  /// Used when a task with [ALFA] prefix is created.
+  Future<void> injectTask(String title, String description) async {
+    if (_orchestrator == null) return;
+    final message = 'New task assigned: $title'
+        '${description.isNotEmpty ? '. Details: $description' : ''}. '
+        'Handle this now.';
+    await _orchestrator!.sendMessage(message);
+  }
 }
 
 final alfaProvider =

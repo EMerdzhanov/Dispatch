@@ -82,6 +82,19 @@ class AlfaOrchestrator {
       await writeFile(identityFile.path, defaultIdentity);
     }
 
+    // Create default memory.md if missing
+    final memoryFile = File('${alfaDir()}/memory.md');
+    if (!await memoryFile.exists()) {
+      await writeFile(memoryFile.path, defaultMemory);
+    }
+
+    // Create default log.md if missing
+    final logFile = File('${alfaDir()}/log.md');
+    if (!await logFile.exists()) {
+      final timestamp = DateTime.now().toUtc().toIso8601String();
+      await writeFile(logFile.path, '- [$timestamp] Alfa initialized.\n');
+    }
+
     await _playbookLoader.ensureDefaults();
     await _agentsState.cleanupStale();
 
@@ -229,25 +242,29 @@ class AlfaOrchestrator {
     final identity = await loadFile('${alfaDir()}/identity.md');
     parts.add(identity.isNotEmpty ? identity : defaultIdentity);
 
-    // 2. Memory — read memory.md, truncate to ~8000 chars
+    // 2. Alfa Memory — read memory.md, truncate to ~8000 chars
     final memory = await loadFile('${alfaDir()}/memory.md');
     if (memory.isNotEmpty) {
-      parts.add('## Memory\n\n${_truncate(memory, 8000)}');
+      parts.add('## Alfa Memory\n\n${_truncate(memory, 8000)}');
     }
 
-    // 3. Project context — read projects/{slugified-cwd}.md, truncate to ~8000 chars
+    // 3. Project Knowledge — read projects/{slugified-cwd}.md, truncate to ~8000 chars
     if (activeCwd != null && activeCwd.isNotEmpty) {
-      final projectContent = await loadFile(
-        '${alfaDir()}/projects/${slugifyPath(activeCwd)}.md',
-      );
-      if (projectContent.isNotEmpty) {
-        parts.add('## Current Project Context\n\n${_truncate(projectContent, 8000)}');
-      } else {
+      final projectPath = '${alfaDir()}/projects/${slugifyPath(activeCwd)}.md';
+      var projectContent = await loadFile(projectPath);
+      if (projectContent.isEmpty) {
+        // Create default project file on first encounter
+        final label = activeCwd.split('/').last;
+        projectContent = defaultProjectTemplate(label, activeCwd);
+        await writeFile(projectPath, projectContent);
         parts.add(
-          '## Current Project Context\n\n'
-          'No project context yet for: $activeCwd\n'
-          'Use scan_project to learn about this codebase, then update_project to save findings.',
+          '## Project Knowledge\n\n$projectContent\n\n'
+          'This is a new project. Use scan_project to learn about this codebase, '
+          'then update_project_knowledge to save findings. '
+          'Consider asking the user for a 2-minute briefing.',
         );
+      } else {
+        parts.add('## Project Knowledge\n\n${_truncate(projectContent, 8000)}');
       }
     }
 
@@ -272,8 +289,35 @@ class AlfaOrchestrator {
       }
     }
 
-    // 7. Recent conversation — from DB
+    // 7. Current tasks and notes — from DB
     final db = ref.read(databaseProvider);
+    if (activeCwd != null && activeCwd.isNotEmpty) {
+      final tasks = await db.tasksDao.getTasksForProject(activeCwd);
+      final incomplete = tasks.where((t) => !t.done).toList();
+      if (incomplete.isNotEmpty) {
+        final taskLines = incomplete.map((t) {
+          final desc = t.description.isNotEmpty ? ' — ${t.description}' : '';
+          return '- [${t.id}] ${t.title}$desc';
+        }).join('\n');
+        parts.add('## Current Tasks\n\n$taskLines');
+      } else {
+        parts.add('## Current Tasks\n\nNo incomplete tasks.');
+      }
+
+      // 8. Notes — first 500 chars from most recent note
+      final notes = await db.notesDao.getNotesForProject(activeCwd);
+      if (notes.isNotEmpty) {
+        final firstNote = notes.first;
+        final preview = firstNote.body.length > 500
+            ? '${firstNote.body.substring(0, 500)}...'
+            : firstNote.body;
+        if (preview.isNotEmpty) {
+          parts.add('## Notes\n\n$preview');
+        }
+      }
+    }
+
+    // 9. Recent conversation — from DB
     final recentMessages = await db.alfaConversationsDao.getForProject(
       activeCwd,
       limit: 20,

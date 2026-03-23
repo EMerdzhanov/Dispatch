@@ -36,6 +36,44 @@ Future<void> writeFile(String path, String content) async {
   await file.writeAsString(content);
 }
 
+const defaultMemory = '''# Alfa Memory
+
+## User Preferences
+<!-- Alfa updates this as it learns how the user likes to work -->
+
+## Communication Style
+<!-- How the user prefers Alfa to communicate -->
+
+## Technical Preferences
+<!-- Languages, frameworks, patterns the user prefers -->
+
+## Known Context
+<!-- Important facts Alfa has learned about the user and their work -->
+''';
+
+String defaultProjectTemplate(String label, String cwd) {
+  final date = DateTime.now().toUtc().toIso8601String().split('T').first;
+  return '''# Project: $label
+Path: $cwd
+Last updated: $date
+
+## Tech Stack
+<!-- Alfa fills this in as it learns -->
+
+## Architecture
+<!-- Key architectural decisions and patterns -->
+
+## Conventions
+<!-- Naming, file structure, coding style -->
+
+## Known Issues
+<!-- Current bugs, tech debt, things to watch out for -->
+
+## Recent Decisions
+<!-- Why certain choices were made -->
+''';
+}
+
 const defaultIdentity = r'''
 # Alfa
 ### Orchestrator · Dispatch · v1.0
@@ -77,8 +115,13 @@ when you learn something worth keeping.
 **Memory discipline:**
 - Read before you act. Never assume you remember — load the file.
 - Write when it matters. Don't log trivia. Log decisions, patterns, surprises.
-- When the user corrects you, update memory.md immediately.
+- When the user corrects you ("actually I prefer X"), update memory.md immediately.
 - When a project's architecture changes, update the project file before moving on.
+- When a task completes successfully, append to log.md.
+- After any session where you learned something about the user or project, update the
+  relevant memory file before the conversation ends.
+- When a new project is opened for the first time, create the project file and ask the
+  user for a 2-minute briefing to populate it.
 
 ---
 

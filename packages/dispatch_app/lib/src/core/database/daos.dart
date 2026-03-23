@@ -106,6 +106,18 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
         .write(TasksCompanion(done: Value(!task.done)));
   }
 
+  Future<void> updateTask(int id, {String? title, String? description}) {
+    return (update(tasks)..where((t) => t.id.equals(id))).write(TasksCompanion(
+      title: title != null ? Value(title) : const Value.absent(),
+      description: description != null ? Value(description) : const Value.absent(),
+    ));
+  }
+
+  Future<void> markDone(int id) {
+    return (update(tasks)..where((t) => t.id.equals(id)))
+        .write(const TasksCompanion(done: Value(true)));
+  }
+
   Future<void> deleteTask(int id) =>
       (delete(tasks)..where((t) => t.id.equals(id))).go();
 }
@@ -127,6 +139,16 @@ class VaultDao extends DatabaseAccessor<AppDatabase> with _$VaultDaoMixin {
       label: label,
       encryptedValue: encryptedValue,
     ));
+  }
+
+  Future<VaultEntry?> getEntryByLabel(String cwd, String label) =>
+      (select(vaultEntries)
+            ..where((t) => t.projectCwd.equals(cwd) & t.label.equals(label)))
+          .getSingleOrNull();
+
+  Future<void> updateEntry(int id, {required String encryptedValue}) {
+    return (update(vaultEntries)..where((t) => t.id.equals(id)))
+        .write(VaultEntriesCompanion(encryptedValue: Value(encryptedValue)));
   }
 
   Future<void> deleteEntry(int id) =>

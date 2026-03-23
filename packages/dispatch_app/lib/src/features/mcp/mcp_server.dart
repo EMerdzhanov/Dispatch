@@ -14,6 +14,11 @@ import 'tools/observe_tools.dart';
 import 'tools/act_tools.dart';
 import 'tools/orchestrate_tools.dart';
 import 'tools/filesystem_tools.dart';
+import 'tools/tasks_tools.dart';
+import 'tools/notes_tools.dart';
+import 'tools/vault_tools.dart';
+import 'tools/memory_tools.dart';
+import 'tools/agent_status_tools.dart';
 
 class McpServer {
   final Ref ref;
@@ -36,6 +41,11 @@ class McpServer {
     _registry.registerAll(actTools());
     _registry.registerAll(orchestrateTools());
     _registry.registerAll(filesystemTools());
+    _registry.registerAll(tasksTools());
+    _registry.registerAll(notesTools());
+    _registry.registerAll(vaultTools());
+    _registry.registerAll(memoryTools());
+    _registry.registerAll(agentStatusTools());
   }
 
   Future<int> start({

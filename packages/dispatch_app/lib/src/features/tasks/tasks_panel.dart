@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../projects/projects_provider.dart';
+import '../alfa/alfa_provider.dart';
 
 class TasksPanel extends ConsumerStatefulWidget {
   const TasksPanel({super.key});
@@ -70,6 +71,11 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
         final db = ref.read(databaseProvider);
         await db.tasksDao.insertTask(projectCwd: cwd, title: text);
         await _loadTasks();
+
+        // [ALFA] prefix detection — notify Alfa orchestrator
+        if (text.toLowerCase().startsWith('[alfa]')) {
+          ref.read(alfaProvider.notifier).injectTask(text, '');
+        }
       }
     }
     setState(() => _adding = false);
