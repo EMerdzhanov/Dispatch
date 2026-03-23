@@ -40,10 +40,10 @@ class ClaudeClient {
     final request = await _http.postUrl(
       Uri.https(_baseUrl, '/v1/messages'),
     );
-    request.headers.set('content-type', 'application/json');
+    request.headers.set('content-type', 'application/json; charset=utf-8');
     request.headers.set('x-api-key', apiKey);
     request.headers.set('anthropic-version', _apiVersion);
-    request.write(body);
+    request.add(utf8.encode(body));
 
     final response = await request.close();
 

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -125,19 +126,25 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
 
     // Test the key with a minimal API call
     try {
+      final testModel = model.isNotEmpty ? model : 'claude-sonnet-4-6';
+      final body = '{"model":"$testModel","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}';
+
       final client = HttpClient();
       final request = await client.postUrl(
         Uri.https('api.anthropic.com', '/v1/messages'),
       );
-      request.headers.set('content-type', 'application/json');
+      request.headers.set('content-type', 'application/json; charset=utf-8');
       request.headers.set('x-api-key', apiKey);
       request.headers.set('anthropic-version', '2023-06-01');
-      request.write('{"model":"${model.isNotEmpty ? model : 'claude-sonnet-4-6'}","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}');
+      request.add(utf8.encode(body));
       final response = await request.close();
       client.close();
 
       if (mounted) {
         if (response.statusCode == 200) {
+          // Obscure the key after successful save
+          final masked = '${apiKey.substring(0, 7)}..${apiKey.substring(apiKey.length - 4)}';
+          _alfaApiKeyCtrl.text = masked;
           setState(() => _alfaStatus = 'connected');
           // Re-initialize Alfa with the new key
           ref.read(alfaProvider.notifier).initialize();
