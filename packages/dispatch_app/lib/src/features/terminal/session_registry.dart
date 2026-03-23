@@ -37,6 +37,10 @@ class TerminalSessionRecord {
 class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
   static const int maxOutputLines = 10000;
 
+  /// Optional callback invoked on every output line appended to any terminal.
+  /// MonitorSkill registers here for event-driven monitoring.
+  void Function(String terminalId, String output)? onOutputCallback;
+
   @override
   Map<String, TerminalSessionRecord> build() => {};
 
@@ -72,6 +76,9 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
       meta: record.meta,
     );
     state = updated;
+    if (onOutputCallback != null) {
+      onOutputCallback!(id, data);
+    }
   }
 
   /// Read the last N lines from a terminal's output buffer.
