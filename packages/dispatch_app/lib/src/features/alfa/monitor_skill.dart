@@ -48,6 +48,14 @@ class MonitorSkill {
       final agent = entry.value as Map<String, dynamic>;
       if (agent['status'] != 'working') continue;
 
+      // Only fire stuck alerts for terminals that are actually agents,
+      // not idle shell sessions. Agents are flagged with is_agent: true
+      // at registration time or detected by terminal ID suffix.
+      final isAgent = (agent['is_agent'] as bool?) ??
+          entry.key.endsWith('-alfa') ||
+          entry.key.endsWith('-mcp');
+      if (!isAgent) continue;
+
       // Check for stuck agents BEFORE updating heartbeat
       // (heartbeat is only refreshed by actual terminal output via onTerminalOutput,
       // NOT by polling — poll only checks, it doesn't renew)
@@ -66,8 +74,12 @@ class MonitorSkill {
     agentsState.updateAgent(terminalId);
   }
 
+  /// Strip ANSI escape sequences so they don't cause false-positive matches.
+  static final _ansiPattern = RegExp(r'\x1B\[[0-9;]*[A-Za-z]|\x1B\][^\x07]*\x07|\x1B[()][A-B012]');
+
   void _classify(String terminalId, String output) {
-    final lower = output.toLowerCase();
+    final stripped = output.replaceAll(_ansiPattern, '');
+    final lower = stripped.toLowerCase();
 
     // Error detection
     if (lower.contains('error') || lower.contains('exception') ||

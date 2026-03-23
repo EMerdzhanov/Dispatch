@@ -22,6 +22,10 @@ class McpServerState {
   final bool cloudflaredAvailable;
   final String? tunnelName;
   final String? tunnelCustomUrl;
+  // Relay server fields
+  final bool relayEnabled;
+  final bool relayConnected;
+  final String? relayClientId;
 
   const McpServerState({
     this.enabled = false,
@@ -38,6 +42,9 @@ class McpServerState {
     this.cloudflaredAvailable = false,
     this.tunnelName,
     this.tunnelCustomUrl,
+    this.relayEnabled = false,
+    this.relayConnected = false,
+    this.relayClientId,
   });
 
   /// Whether a named tunnel is configured (persistent URL).
@@ -58,6 +65,9 @@ class McpServerState {
     bool? cloudflaredAvailable,
     String? Function()? tunnelName,
     String? Function()? tunnelCustomUrl,
+    bool? relayEnabled,
+    bool? relayConnected,
+    String? Function()? relayClientId,
   }) {
     return McpServerState(
       enabled: enabled ?? this.enabled,
@@ -74,11 +84,17 @@ class McpServerState {
       cloudflaredAvailable: cloudflaredAvailable ?? this.cloudflaredAvailable,
       tunnelName: tunnelName != null ? tunnelName() : this.tunnelName,
       tunnelCustomUrl: tunnelCustomUrl != null ? tunnelCustomUrl() : this.tunnelCustomUrl,
+      relayEnabled: relayEnabled ?? this.relayEnabled,
+      relayConnected: relayConnected ?? this.relayConnected,
+      relayClientId: relayClientId != null ? relayClientId() : this.relayClientId,
     );
   }
 
-  /// Returns tunnel URL when tunnel is active, localhost otherwise.
+  /// Returns the best available public URL: relay > tunnel > localhost.
   String get httpUrl {
+    if (relayConnected && relayClientId != null) {
+      return 'https://$relayClientId.relay.osemdynamics.com/mcp';
+    }
     if (tunnelRunning && tunnelUrl != null) return '${tunnelUrl!}/mcp';
     return 'http://localhost:$port/mcp';
   }
@@ -101,6 +117,7 @@ class McpServerNotifier extends Notifier<McpServerState> {
   McpServer? _server;
   McpNotificationManager? _notificationManager;
   Process? _tunnelProcess;
+  WebSocket? _relaySocket;
   bool _disposed = false;
 
   @override
@@ -110,6 +127,8 @@ class McpServerNotifier extends Notifier<McpServerState> {
       _disposed = true;
       _tunnelProcess?.kill();
       _tunnelProcess = null;
+      _relaySocket?.close();
+      _relaySocket = null;
       stopServer();
     });
     // Load settings from database at startup
@@ -126,6 +145,8 @@ class McpServerNotifier extends Notifier<McpServerState> {
     final bindAll = await db.settingsDao.getValue('mcp_bind_all');
     final tunnelName = await db.settingsDao.getValue('mcp_tunnel_name');
     final tunnelCustomUrl = await db.settingsDao.getValue('mcp_tunnel_custom_url');
+    final relayEnabled = await db.settingsDao.getValue('mcp_relay_enabled');
+    final relayClientId = await _loadOrCreateRelayClientId();
 
     // Guard against disposal during async gap
     if (_disposed) return;
@@ -138,11 +159,18 @@ class McpServerNotifier extends Notifier<McpServerState> {
       bindAll: bindAll == 'true',
       tunnelName: () => tunnelName,
       tunnelCustomUrl: () => tunnelCustomUrl,
+      relayEnabled: relayEnabled == 'true',
+      relayClientId: () => relayClientId,
     );
 
     // Auto-start if enabled
     if (state.enabled) {
       await startServer();
+    }
+
+    // Auto-connect relay if enabled
+    if (state.relayEnabled && state.running) {
+      await connectRelay();
     }
   }
 
@@ -157,6 +185,7 @@ class McpServerNotifier extends Notifier<McpServerState> {
     await db.settingsDao.setValue('mcp_bind_all', state.bindAll.toString());
     await db.settingsDao.setValue('mcp_tunnel_name', state.tunnelName ?? '');
     await db.settingsDao.setValue('mcp_tunnel_custom_url', state.tunnelCustomUrl ?? '');
+    await db.settingsDao.setValue('mcp_relay_enabled', state.relayEnabled.toString());
   }
 
   Future<void> startServer() async {
@@ -356,6 +385,97 @@ class McpServerNotifier extends Notifier<McpServerState> {
       connectionCount: _server!.connectionCount,
       activityLog: List.of(_server!.activityLog),
     );
+  }
+
+  // ── Relay server ────────────────────────────────────────────────────
+
+  static const _relayHost = 'wss://relay.osemdynamics.com:3901';
+
+  /// Load or generate a stable relay client ID from ~/.config/dispatch/relay_id.
+  static Future<String> _loadOrCreateRelayClientId() async {
+    final home = Platform.environment['HOME'] ?? '/tmp';
+    final file = File('$home/.config/dispatch/relay_id');
+    if (await file.exists()) {
+      final id = (await file.readAsString()).trim();
+      if (id.isNotEmpty) return id;
+    }
+    // Generate a UUID-like ID
+    final random = List<int>.generate(16, (_) => DateTime.now().microsecond % 256);
+    final id = [
+      random.sublist(0, 4),
+      random.sublist(4, 6),
+      random.sublist(6, 8),
+      random.sublist(8, 10),
+      random.sublist(10, 16),
+    ].map((g) => g.map((b) => b.toRadixString(16).padLeft(2, '0')).join()).join('-');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(id);
+    return id;
+  }
+
+  /// Toggle relay mode on/off.
+  Future<void> setRelayEnabled(bool enabled) async {
+    state = state.copyWith(relayEnabled: enabled);
+    if (enabled && state.running) {
+      await connectRelay();
+    } else if (!enabled) {
+      await disconnectRelay();
+    }
+    await _saveSettings();
+  }
+
+  /// Connect to the relay WebSocket server.
+  Future<void> connectRelay() async {
+    if (_relaySocket != null) return;
+    final clientId = state.relayClientId;
+    if (clientId == null) return;
+
+    try {
+      _relaySocket = await WebSocket.connect(
+        '$_relayHost?clientId=$clientId&localPort=${state.port}',
+      );
+      if (_disposed) {
+        _relaySocket?.close();
+        _relaySocket = null;
+        return;
+      }
+      state = state.copyWith(relayConnected: true);
+
+      _relaySocket!.listen(
+        (_) {}, // Relay protocol messages handled by the relay server
+        onDone: () {
+          _relaySocket = null;
+          if (!_disposed) {
+            state = state.copyWith(relayConnected: false);
+            // Auto-reconnect after 5 seconds
+            if (state.relayEnabled && state.running) {
+              Future.delayed(const Duration(seconds: 5), () {
+                if (!_disposed && state.relayEnabled && state.running) {
+                  connectRelay();
+                }
+              });
+            }
+          }
+        },
+        onError: (_) {
+          _relaySocket = null;
+          if (!_disposed) {
+            state = state.copyWith(relayConnected: false);
+          }
+        },
+      );
+    } catch (_) {
+      if (!_disposed) {
+        state = state.copyWith(relayConnected: false);
+      }
+    }
+  }
+
+  /// Disconnect from the relay server.
+  Future<void> disconnectRelay() async {
+    await _relaySocket?.close();
+    _relaySocket = null;
+    state = state.copyWith(relayConnected: false);
   }
 }
 

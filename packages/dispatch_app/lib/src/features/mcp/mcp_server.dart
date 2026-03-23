@@ -13,6 +13,7 @@ import 'mcp_tools.dart';
 import 'tools/observe_tools.dart';
 import 'tools/act_tools.dart';
 import 'tools/orchestrate_tools.dart';
+import 'tools/filesystem_tools.dart';
 
 class McpServer {
   final Ref ref;
@@ -34,6 +35,7 @@ class McpServer {
     _registry.registerAll(observeTools());
     _registry.registerAll(actTools());
     _registry.registerAll(orchestrateTools());
+    _registry.registerAll(filesystemTools());
   }
 
   Future<int> start({

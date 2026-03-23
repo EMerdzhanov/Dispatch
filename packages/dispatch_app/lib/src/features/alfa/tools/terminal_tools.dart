@@ -73,6 +73,27 @@ List<AlfaToolEntry> terminalTools() => [
       ),
       AlfaToolEntry(
         definition: const AlfaToolDefinition(
+          name: 'send_key',
+          description:
+              'Sends a named key to a terminal PTY. '
+              'Supported keys: Enter, Yes, No, ArrowUp, ArrowDown, Escape, Tab. '
+              '"Yes" sends y + Enter, "No" sends n + Enter.',
+          inputSchema: {
+            'type': 'object',
+            'properties': {
+              'terminal_id': {'type': 'string'},
+              'key': {
+                'type': 'string',
+                'enum': ['Enter', 'Yes', 'No', 'ArrowUp', 'ArrowDown', 'Escape', 'Tab'],
+              },
+            },
+            'required': ['terminal_id', 'key'],
+          },
+        ),
+        handler: _sendKey,
+      ),
+      AlfaToolEntry(
+        definition: const AlfaToolDefinition(
           name: 'kill_terminal',
           description: 'Kills a terminal process.',
           inputSchema: {
@@ -114,8 +135,46 @@ Future<Map<String, dynamic>> _writeToTerminal(Ref ref, Map<String, dynamic> para
   final data = params['data'] as String;
   final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
   if (pty == null) return {'error': 'Terminal not found or not running'};
-  pty.write(const Utf8Encoder().convert(data));
+  pty.write(const Utf8Encoder().convert(_interpretEscapes(data)));
   return {'success': true};
+}
+
+/// Maps named keys to the byte sequences expected by a PTY.
+const _keyMap = <String, String>{
+  'Enter': '\r',
+  'Yes': 'y\r',
+  'No': 'n\r',
+  'ArrowUp': '\x1B[A',
+  'ArrowDown': '\x1B[B',
+  'Escape': '\x1B',
+  'Tab': '\t',
+};
+
+Future<Map<String, dynamic>> _sendKey(Ref ref, Map<String, dynamic> params) async {
+  final terminalId = params['terminal_id'] as String;
+  final key = params['key'] as String;
+
+  final sequence = _keyMap[key];
+  if (sequence == null) {
+    return {'error': 'Unknown key: $key. Supported: ${_keyMap.keys.join(", ")}'};
+  }
+
+  final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
+  if (pty == null) return {'error': 'Terminal not found or not running'};
+
+  pty.write(const Utf8Encoder().convert(sequence));
+  return {'success': true, 'key': key};
+}
+
+/// Interpret common C-style escape sequences that arrive as literal
+/// backslash characters from JSON clients (e.g. `\\r` → `\r`).
+String _interpretEscapes(String s) {
+  return s
+      .replaceAll(r'\r', '\r')
+      .replaceAll(r'\n', '\n')
+      .replaceAll(r'\t', '\t')
+      .replaceAll(r'\0', '\x00')
+      .replaceAll(r'\\', '\\');
 }
 
 Future<Map<String, dynamic>> _runCommand(Ref ref, Map<String, dynamic> params) async {

@@ -60,6 +60,7 @@ class AgentsState {
     String? planStepId,
     String? successSignal,
     List<String> filesClaimed = const [],
+    bool isAgent = true,
   }) {
     return _withLock((state) async {
       final agents = (state['agents'] as Map<String, dynamic>?) ?? {};
@@ -77,6 +78,7 @@ class AgentsState {
         'task': task,
         'project': project,
         'status': 'working',
+        'is_agent': isAgent,
         'files_claimed': filesClaimed,
         'claimed_at': now,
         'last_heartbeat': now,

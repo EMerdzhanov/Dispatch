@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,40 @@ Future<void> _deferStateChange(void Function() fn) async {
 }
 
 List<McpToolDefinition> orchestrateTools() => [
+      McpToolDefinition(
+        name: 'set_project_config',
+        description:
+            'Sets project-level configuration. '
+            'auto_approve: when true, spawned AI agent terminals (claude, codex, gemini) '
+            'will use permission-skipping flags. '
+            'allowlist: glob patterns for allowed commands (e.g. "npm:*", "git:*").',
+        inputSchema: {
+          'type': 'object',
+          'properties': {
+            'projectId': {'type': 'string'},
+            'auto_approve': {'type': 'boolean'},
+            'allowlist': {
+              'type': 'array',
+              'items': {'type': 'string'},
+              'description': 'Command patterns to auto-approve (e.g. ["npm:*", "git:*"])',
+            },
+          },
+          'required': ['projectId'],
+        },
+        handler: _setProjectConfig,
+      ),
+      McpToolDefinition(
+        name: 'get_project_config',
+        description: 'Gets the current project-level configuration.',
+        inputSchema: {
+          'type': 'object',
+          'properties': {
+            'projectId': {'type': 'string'},
+          },
+          'required': ['projectId'],
+        },
+        handler: _getProjectConfig,
+      ),
       McpToolDefinition(
         name: 'create_project',
         description: 'Creates a new project group',
@@ -201,4 +236,48 @@ Future<Map<String, dynamic>> _splitTerminal(Ref ref, Map<String, dynamic> params
   });
 
   return {'terminalId': targetTerminalId};
+}
+
+// ── Project config persistence ──────────────────────────────────────────
+
+String _configDir() {
+  final home = Platform.environment['HOME'] ?? '/tmp';
+  return '$home/.config/dispatch';
+}
+
+Future<Map<String, dynamic>> _readProjectConfig(String projectId) async {
+  final file = File('${_configDir()}/project_configs/$projectId.json');
+  if (!await file.exists()) return {};
+  try {
+    return jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+  } catch (_) {
+    return {};
+  }
+}
+
+Future<void> _writeProjectConfig(String projectId, Map<String, dynamic> config) async {
+  final file = File('${_configDir()}/project_configs/$projectId.json');
+  await file.parent.create(recursive: true);
+  await file.writeAsString(const JsonEncoder.withIndent('  ').convert(config));
+}
+
+Future<Map<String, dynamic>> _setProjectConfig(Ref ref, Map<String, dynamic> params) async {
+  final projectId = params['projectId'] as String?;
+  if (projectId == null) throw ArgumentError('projectId is required');
+
+  final config = await _readProjectConfig(projectId);
+  if (params.containsKey('auto_approve')) {
+    config['auto_approve'] = params['auto_approve'] as bool;
+  }
+  if (params.containsKey('allowlist')) {
+    config['allowlist'] = params['allowlist'];
+  }
+  await _writeProjectConfig(projectId, config);
+  return {'success': true, 'config': config};
+}
+
+Future<Map<String, dynamic>> _getProjectConfig(Ref ref, Map<String, dynamic> params) async {
+  final projectId = params['projectId'] as String?;
+  if (projectId == null) throw ArgumentError('projectId is required');
+  return await _readProjectConfig(projectId);
 }
