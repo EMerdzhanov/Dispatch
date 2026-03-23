@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'alfa_orchestrator.dart';
@@ -214,7 +215,27 @@ class _MessageBubble extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: theme.border),
           ),
-          child: SelectableText(text, style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+          child: isHuman
+              ? SelectableText(text, style: TextStyle(color: theme.textPrimary, fontSize: 13))
+              : MarkdownBody(
+                  data: text,
+                  selectable: true,
+                  styleSheet: MarkdownStyleSheet(
+                    p: TextStyle(color: theme.textPrimary, fontSize: 13, height: 1.4),
+                    h1: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                    h2: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                    h3: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                    code: TextStyle(color: theme.accentBlue, fontSize: 12, fontFamily: 'JetBrains Mono', backgroundColor: theme.surfaceLight),
+                    codeblockDecoration: BoxDecoration(color: theme.surfaceLight, borderRadius: BorderRadius.circular(4)),
+                    codeblockPadding: const EdgeInsets.all(8),
+                    listBullet: TextStyle(color: theme.textSecondary, fontSize: 13),
+                    blockquoteDecoration: BoxDecoration(
+                      border: Border(left: BorderSide(color: theme.accentBlue, width: 3)),
+                    ),
+                    blockquotePadding: const EdgeInsets.only(left: 12),
+                    a: TextStyle(color: theme.accentBlue, decoration: TextDecoration.underline),
+                  ),
+                ),
         ),
       ),
     );
