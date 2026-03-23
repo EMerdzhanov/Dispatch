@@ -45,6 +45,26 @@ describe('SessionStore', () => {
       const backup = JSON.parse(fs.readFileSync(path.join(tmpDir, 'state.json.bak'), 'utf-8'));
       expect(backup.activeGroupId).toBe('g1');
     });
+
+    it('aborts save if backup copy fails on existing file', async () => {
+      const state1 = { groups: [], activeGroupId: 'g1', activeTerminalId: null, windowBounds: { x: 0, y: 0, width: 1200, height: 800 }, sidebarWidth: 220 };
+      await store.saveState(state1);
+
+      // Make the backup target unwritable to force copyFile failure
+      const bakPath = path.join(tmpDir, 'state.json.bak');
+      fs.writeFileSync(bakPath, 'original backup');
+      fs.chmodSync(bakPath, 0o000);
+
+      const state2 = { ...state1, sidebarWidth: 999 };
+      await expect(store.saveState(state2)).rejects.toThrow();
+
+      // Restore permissions for cleanup
+      fs.chmodSync(bakPath, 0o644);
+
+      // Original state.json should be unchanged
+      const loaded = await store.loadState();
+      expect(loaded.sidebarWidth).toBe(220);
+    });
   });
 
   describe('presets', () => {

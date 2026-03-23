@@ -46,9 +46,11 @@ export class SessionStore {
     const statePath = this.filePath('state.json');
     try {
       await fs.access(statePath);
+      // File exists — backup before overwriting. If backup fails, abort save.
       await fs.copyFile(statePath, this.filePath('state.json.bak'));
-    } catch {
-      // No existing file to backup
+    } catch (err: any) {
+      // ENOENT means no existing file to backup — safe to proceed
+      if (err?.code !== 'ENOENT') throw err;
     }
     await this.writeJson('state.json', state);
   }
