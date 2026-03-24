@@ -70,7 +70,7 @@ class _RightPanelState extends ConsumerState<RightPanel> {
                     child: Row(
                       children: [
                         _PanelTab(
-                          label: 'ALFA',
+                          label: 'GRACE',
                           active: _tab == 'alfa',
                           onTap: () => setState(() => _tab = 'alfa'),
                           theme: theme,

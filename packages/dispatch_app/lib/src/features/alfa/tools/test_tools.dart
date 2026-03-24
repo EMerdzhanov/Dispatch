@@ -87,7 +87,7 @@ class TestTracker {
       projectCwd.replaceAll('/', '_').replaceAll(' ', '-');
 
   String get _historyPath =>
-      '${alfaDir()}/test_history/$_historyKey.json';
+      '${graceDir()}/test_history/$_historyKey.json';
 
   Future<void> load() async {
     try {

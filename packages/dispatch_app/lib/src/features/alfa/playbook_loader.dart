@@ -25,7 +25,7 @@ class PlaybookMeta {
 class PlaybookLoader {
   final String _dir;
 
-  PlaybookLoader() : _dir = '${alfaDir()}/playbooks';
+  PlaybookLoader() : _dir = '${graceDir()}/playbooks';
 
   /// List all playbooks with metadata (from frontmatter).
   Future<List<PlaybookMeta>> listPlaybooks() async {

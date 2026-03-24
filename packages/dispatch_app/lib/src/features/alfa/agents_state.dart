@@ -5,14 +5,12 @@ import 'dart:io';
 import 'default_identity.dart';
 
 /// Thread-safe read/write manager for agents.json.
-/// Uses a chained-future lock to serialize all access.
 class AgentsState {
   final String _path;
   Future<void> _chain = Future.value();
 
-  AgentsState() : _path = '${alfaDir()}/agents.json';
+  AgentsState() : _path = '${graceDir()}/agents.json';
 
-  /// Acquire the lock via future chaining, run [fn] with current state, write back.
   Future<T> _withLock<T>(Future<T> Function(Map<String, dynamic> state) fn) {
     final prev = _chain;
     final completer = Completer<void>();
@@ -47,12 +45,10 @@ class AgentsState {
     await file.writeAsString(const JsonEncoder.withIndent('  ').convert(state));
   }
 
-  /// Read the full state (read-only snapshot).
   Future<Map<String, dynamic>> readState() async {
     return _withLock((state) async => Map<String, dynamic>.from(state));
   }
 
-  /// Register a new agent.
   Future<void> registerAgent({
     required String terminalId,
     required String task,
@@ -66,7 +62,6 @@ class AgentsState {
       final agents = (state['agents'] as Map<String, dynamic>?) ?? {};
       final now = DateTime.now().toUtc().toIso8601String();
 
-      // Check file ownership before claiming
       for (final file in filesClaimed) {
         final owner = _findFileOwner(agents, file);
         if (owner != null && owner != terminalId) {
@@ -90,7 +85,6 @@ class AgentsState {
     });
   }
 
-  /// Update agent status and heartbeat.
   Future<void> updateAgent(String terminalId, {String? status, List<String>? filesClaimed}) {
     return _withLock((state) async {
       final agents = (state['agents'] as Map<String, dynamic>?) ?? {};
@@ -104,7 +98,6 @@ class AgentsState {
     });
   }
 
-  /// Remove a completed/killed agent.
   Future<void> removeAgent(String terminalId) {
     return _withLock((state) async {
       final agents = (state['agents'] as Map<String, dynamic>?) ?? {};
@@ -113,7 +106,6 @@ class AgentsState {
     });
   }
 
-  /// Cleanup stale agents (no heartbeat for >300s).
   Future<List<String>> cleanupStale() {
     return _withLock((state) async {
       final agents = (state['agents'] as Map<String, dynamic>?) ?? {};
@@ -134,7 +126,6 @@ class AgentsState {
     });
   }
 
-  /// Check who owns a file. Returns terminal ID or null.
   String? _findFileOwner(Map<String, dynamic> agents, String filePath) {
     for (final entry in agents.entries) {
       final agent = entry.value as Map<String, dynamic>;
@@ -144,7 +135,6 @@ class AgentsState {
     return null;
   }
 
-  /// Get a summary string for the system prompt.
   Future<String> getSummary() async {
     final state = await _read();
     final agents = (state['agents'] as Map<String, dynamic>?) ?? {};

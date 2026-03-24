@@ -11,7 +11,6 @@ import '../../terminal/session_registry.dart';
 import '../../projects/projects_provider.dart';
 import '../../../core/models/terminal_entry.dart';
 
-/// Schedule a state modification outside Flutter's build phase.
 Future<void> _deferStateChange(void Function() fn) async {
   await Future.delayed(Duration.zero);
   fn();
@@ -67,7 +66,7 @@ List<McpToolDefinition> actTools() => [
       ),
       McpToolDefinition(
         name: 'kill_terminal',
-        description: 'Kills a terminal PTY process',
+        description: 'Kills a terminal PTY process and removes it from the UI',
         inputSchema: {
           'type': 'object',
           'properties': {
@@ -99,8 +98,6 @@ Future<Map<String, dynamic>> _runCommand(Ref ref, Map<String, dynamic> params) a
     throw ArgumentError('terminalId and command are required');
   }
 
-  // Retry up to 3 seconds waiting for PTY to become available
-  // (needed when run_command follows spawn_terminal immediately)
   Pty? pty;
   for (var i = 0; i < 6; i++) {
     pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
@@ -113,14 +110,11 @@ Future<Map<String, dynamic>> _runCommand(Ref ref, Map<String, dynamic> params) a
   return {'success': true};
 }
 
-/// Patterns for AI agent CLIs that support auto-approve flags.
 final _agentAutoApproveFlags = <RegExp, String>{
   RegExp(r'^claude\b'): '--dangerously-skip-permissions',
   RegExp(r'^codex\b'): '--full-auto',
 };
 
-/// If the project has auto_approve enabled and the command is a known
-/// AI agent CLI, append the appropriate skip-permissions flag.
 Future<String> _maybeAutoApprove(String command, String? projectId) async {
   if (projectId == null) return command;
   final config = await _readProjectConfig(projectId);
@@ -134,7 +128,6 @@ Future<String> _maybeAutoApprove(String command, String? projectId) async {
   return command;
 }
 
-/// Read project config from ~/.config/dispatch/project_configs/<projectId>.json
 Future<Map<String, dynamic>> _readProjectConfig(String projectId) async {
   final home = Platform.environment['HOME'] ?? '/tmp';
   final file = File('$home/.config/dispatch/project_configs/$projectId.json');
@@ -156,14 +149,11 @@ Future<Map<String, dynamic>> _spawnTerminal(Ref ref, Map<String, dynamic> params
   final projectId = params['projectId'] as String?;
   final label = params['label'] as String?;
 
-  // Find or create group
   final groupId = projectId ??
       ref.read(projectsProvider).activeGroupId ??
       ref.read(projectsProvider.notifier).findOrCreateGroup(cwd);
 
-  // Auto-approve: append skip-permissions flags for known AI agent CLIs
   final command = await _maybeAutoApprove(rawCommand, groupId);
-
   final terminalId = 'term-${DateTime.now().millisecondsSinceEpoch}-mcp';
 
   await _deferStateChange(() {
@@ -188,9 +178,15 @@ Future<Map<String, dynamic>> _killTerminal(Ref ref, Map<String, dynamic> params)
   if (terminalId == null) throw ArgumentError('terminalId is required');
 
   final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
-  if (pty == null) return {'success': false, 'error': 'Terminal PTY not found'};
 
-  pty.kill();
+  // Kill the PTY if it's still alive
+  if (pty != null) pty.kill();
+
+  // Always remove from UI registry — covers both live and already-dead PTYs
+  await _deferStateChange(() {
+    ref.read(terminalsProvider.notifier).removeTerminal(terminalId);
+  });
+
   return {'success': true};
 }
 
@@ -201,7 +197,6 @@ Future<Map<String, dynamic>> _writeToTerminal(Ref ref, Map<String, dynamic> para
     throw ArgumentError('terminalId and input are required');
   }
 
-  // Retry up to 3 seconds waiting for PTY to become available
   Pty? pty;
   for (var i = 0; i < 6; i++) {
     pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
@@ -214,7 +209,6 @@ Future<Map<String, dynamic>> _writeToTerminal(Ref ref, Map<String, dynamic> para
   return {'success': true};
 }
 
-/// Maps named keys to the byte sequences expected by a PTY.
 const _keyMap = <String, String>{
   'Enter': '\r',
   'Yes': 'y\r',
@@ -237,7 +231,6 @@ Future<Map<String, dynamic>> _sendKey(Ref ref, Map<String, dynamic> params) asyn
     return {'success': false, 'error': 'Unknown key: $key. Supported: ${_keyMap.keys.join(", ")}'};
   }
 
-  // Retry up to 3 seconds waiting for PTY
   Pty? pty;
   for (var i = 0; i < 6; i++) {
     pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
@@ -250,8 +243,6 @@ Future<Map<String, dynamic>> _sendKey(Ref ref, Map<String, dynamic> params) asyn
   return {'success': true, 'key': key};
 }
 
-/// Interpret common C-style escape sequences that arrive as literal
-/// backslash characters from JSON/MCP clients (e.g. `\\r` → `\r`).
 String _interpretEscapes(String s) {
   return s
       .replaceAll(r'\r', '\r')

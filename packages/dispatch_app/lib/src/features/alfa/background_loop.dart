@@ -145,7 +145,7 @@ class BackgroundLoop {
 
     for (final task in tasks) {
       if (task.done) continue;
-      if (!task.title.toLowerCase().startsWith('[alfa]')) continue;
+      if (!task.title.toLowerCase().startsWith('[grace]')) continue;
       if (_state.handledAlfaTasks.contains(task.id)) continue;
 
       final agentState = await agentsState.readState();
@@ -159,7 +159,7 @@ class BackgroundLoop {
       if (!alreadyHandled) {
         _state.handledAlfaTasks.add(task.id);
         onEvent(AlfaChatEvent.alfa(
-          '[Background] New [ALFA] task: "${task.title}". Injecting.',
+          '[Background] New [GRACE] task: "${task.title}". Injecting.',
         ));
         final message = 'New task assigned: ${task.title}'
             '${task.description.isNotEmpty ? '. Details: ${task.description}' : ''}. '
@@ -309,7 +309,7 @@ class BackgroundLoop {
 
     for (final task in tasks) {
       if (task.done) continue;
-      if (!task.title.toLowerCase().startsWith('[alfa]')) continue;
+      if (!task.title.toLowerCase().startsWith('[grace]')) continue;
       if (!_state.handledAlfaTasks.contains(task.id)) continue;
 
       final handlingAgent = agents.entries.where((e) {
@@ -326,7 +326,7 @@ class BackgroundLoop {
         await db.tasksDao.markDone(task.id);
         _state.handledAlfaTasks.remove(task.id);
         onEvent(AlfaChatEvent.alfa(
-          '[Background] [ALFA] task "${task.title}" completed by ${handlingAgent.key}.',
+          '[Background] [GRACE] task "${task.title}" completed by ${handlingAgent.key}.',
         ));
       }
     }
@@ -342,7 +342,7 @@ class BackgroundLoop {
 
   Future<void> _saveState() async {
     try {
-      final path = '${alfaDir()}/loop_state.json';
+      final path = '${graceDir()}/loop_state.json';
       final file = File(path);
       await file.parent.create(recursive: true);
       await file.writeAsString(
@@ -352,7 +352,7 @@ class BackgroundLoop {
 
   Future<void> _loadState() async {
     try {
-      final path = '${alfaDir()}/loop_state.json';
+      final path = '${graceDir()}/loop_state.json';
       final file = File(path);
       if (await file.exists()) {
         final content = await file.readAsString();

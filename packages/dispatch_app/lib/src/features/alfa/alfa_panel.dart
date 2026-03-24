@@ -80,7 +80,7 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
             children: [
               _StatusDot(status: state.status, theme: theme),
               const SizedBox(width: 8),
-              Text('ALFA', style: TextStyle(
+              Text('GRACE', style: TextStyle(
                 color: theme.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -107,7 +107,7 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
             itemBuilder: (context, index) {
               final items = _buildDisplayItems(state.messages);
               if (index == items.length && _streamingText.isNotEmpty) {
-                return _MessageBubble(role: 'alfa', text: _streamingText, theme: theme);
+                return _MessageBubble(role: 'grace', text: _streamingText, theme: theme);
               }
               if (index >= items.length) return const SizedBox.shrink();
               return items[index];
@@ -129,8 +129,8 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
                   style: TextStyle(color: theme.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: state.configured
-                        ? 'Talk to Alfa...'
-                        : 'Set alfa.api_key in settings first',
+                        ? 'Talk to Grace...'
+                        : 'Set grace.api_key in settings first',
                     hintStyle: TextStyle(color: theme.textSecondary),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
@@ -165,9 +165,9 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
         case HumanMessageEvent(:final text):
           widgets.add(_MessageBubble(role: 'human', text: text, theme: theme));
         case AlfaMessageEvent(:final text):
-          widgets.add(_MessageBubble(role: 'alfa', text: text, theme: theme));
+          widgets.add(_MessageBubble(role: 'grace', text: text, theme: theme));
         case AlfaDoneEvent(:final text):
-          widgets.add(_MessageBubble(role: 'alfa', text: text, theme: theme));
+          widgets.add(_MessageBubble(role: 'grace', text: text, theme: theme));
         case ToolCallEvent(:final name, :final isError):
           widgets.add(_ToolCallCard(name: name, isError: isError, theme: theme));
         case AlfaDeltaEvent():

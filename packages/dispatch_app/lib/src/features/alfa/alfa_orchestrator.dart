@@ -65,6 +65,7 @@ class AlfaOrchestrator {
     _tools.registerAll(projectToolsV2());
     _tools.registerAll(playbookTools(_playbookLoader));
     _tools.register(_loopStatusTool());
+    _tools.register(_generateGraceMdTool());
 
     _tools.registerAll(codeTools());
     _tools.registerAll(testTools(_testTrackers, _emit));
@@ -74,32 +75,40 @@ class AlfaOrchestrator {
 
   Future<void> initialize() async {
     final db = ref.read(databaseProvider);
-    final apiKey = await db.settingsDao.getValue('alfa.api_key');
-    final model = await db.settingsDao.getValue('alfa.model') ?? 'claude-sonnet-4-6';
-    final maxTurns = await db.settingsDao.getValue('alfa.max_turns');
+    // Support both old 'alfa.api_key' and new 'grace.api_key' settings keys
+    final apiKey = await db.settingsDao.getValue('grace.api_key')
+        ?? await db.settingsDao.getValue('alfa.api_key');
+    final model = await db.settingsDao.getValue('grace.model')
+        ?? await db.settingsDao.getValue('alfa.model')
+        ?? 'claude-sonnet-4-6';
+    final maxTurns = await db.settingsDao.getValue('grace.max_turns')
+        ?? await db.settingsDao.getValue('alfa.max_turns');
 
     if (apiKey == null || apiKey.isEmpty) return;
 
     _client = ClaudeClient(apiKey: apiKey, model: model);
     if (maxTurns != null) _maxTurns = int.tryParse(maxTurns) ?? 50;
 
-    await ensureAlfaDirs();
+    await ensureGraceDirs();
     await migrateFromV1(ref);
 
-    final identityFile = File('${alfaDir()}/identity.md');
+    // Migrate old alfa config dir if grace dir is empty
+    await _migrateAlfaToGrace();
+
+    final identityFile = File('${graceDir()}/identity.md');
     if (!await identityFile.exists()) {
       await writeFile(identityFile.path, defaultIdentity);
     }
 
-    final memoryFile = File('${alfaDir()}/memory.md');
+    final memoryFile = File('${graceDir()}/memory.md');
     if (!await memoryFile.exists()) {
       await writeFile(memoryFile.path, defaultMemory);
     }
 
-    final logFile = File('${alfaDir()}/log.md');
+    final logFile = File('${graceDir()}/log.md');
     if (!await logFile.exists()) {
       final timestamp = DateTime.now().toUtc().toIso8601String();
-      await writeFile(logFile.path, '- [$timestamp] Alfa initialized.\n');
+      await writeFile(logFile.path, '- [$timestamp] Grace initialized.\n');
     }
 
     await _playbookLoader.ensureDefaults();
@@ -114,7 +123,7 @@ class AlfaOrchestrator {
 
     ref.read(sessionRegistryProvider.notifier).onOutputCallback =
         (terminalId, output) {
-      if (terminalId.endsWith('-alfa')) {
+      if (terminalId.endsWith('-alfa') || terminalId.endsWith('-grace')) {
         _monitorSkill!.onTerminalOutput(terminalId, output);
       }
     };
@@ -127,10 +136,46 @@ class AlfaOrchestrator {
     _backgroundLoop!.start();
   }
 
+  /// Migrate ~/.config/dispatch/alfa to ~/.config/dispatch/grace if needed.
+  static Future<void> _migrateAlfaToGrace() async {
+    final home = Platform.environment['HOME'] ?? '/tmp';
+    final oldDir = Directory('$home/.config/dispatch/alfa');
+    final newDir = Directory('$home/.config/dispatch/grace');
+
+    if (!await oldDir.exists()) return;
+    if (await File('${newDir.path}/memory.md').exists()) return; // already migrated
+
+    // Copy key files from old to new
+    for (final name in ['memory.md', 'log.md', 'agents.json']) {
+      final oldFile = File('${oldDir.path}/$name');
+      if (await oldFile.exists()) {
+        final newFile = File('${newDir.path}/$name');
+        if (!await newFile.exists()) {
+          await newFile.parent.create(recursive: true);
+          await oldFile.copy(newFile.path);
+        }
+      }
+    }
+
+    // Copy project knowledge files
+    final oldProjects = Directory('${oldDir.path}/projects');
+    if (await oldProjects.exists()) {
+      await for (final entity in oldProjects.list()) {
+        if (entity is File) {
+          final newFile = File('${newDir.path}/projects/${entity.uri.pathSegments.last}');
+          if (!await newFile.exists()) {
+            await newFile.parent.create(recursive: true);
+            await entity.copy(newFile.path);
+          }
+        }
+      }
+    }
+  }
+
   Future<void> sendMessage(String userMessage) async {
     if (_client == null) {
       _emit(AlfaChatEvent.alfa(
-          'Alfa is not configured. Set your API key in settings (alfa.api_key).'));
+          'Grace is not configured. Set your API key in settings (grace.api_key).'));
       return;
     }
 
@@ -220,7 +265,7 @@ class AlfaOrchestrator {
         await db.alfaConversationsDao.insertMessage(
           AlfaConversationsCompanion.insert(
             projectCwd: Value(activeCwd),
-            role: 'alfa',
+            role: 'grace',
             content: response.text,
           ),
         );
@@ -238,16 +283,17 @@ class AlfaOrchestrator {
   Future<String> _buildSystemPrompt(String? activeCwd) async {
     final parts = <String>[];
 
-    final identity = await loadFile('${alfaDir()}/identity.md');
+    final identity = await loadFile('${graceDir()}/identity.md');
     parts.add(identity.isNotEmpty ? identity : defaultIdentity);
 
-    final memory = await loadFile('${alfaDir()}/memory.md');
+    final memory = await loadFile('${graceDir()}/memory.md');
     if (memory.isNotEmpty) {
-      parts.add('## Alfa Memory\n\n${_truncate(memory, 8000)}');
+      parts.add('## Grace Memory\n\n${_truncate(memory, 8000)}');
     }
 
     if (activeCwd != null && activeCwd.isNotEmpty) {
-      final projectPath = '${alfaDir()}/projects/${slugifyPath(activeCwd)}.md';
+      final projectPath =
+          '${graceDir()}/projects/${slugifyPath(activeCwd)}.md';
       var projectContent = await loadFile(projectPath);
       if (projectContent.isEmpty) {
         final label = activeCwd.split('/').last;
@@ -255,7 +301,8 @@ class AlfaOrchestrator {
         await writeFile(projectPath, projectContent);
         parts.add(
           '## Project Knowledge\n\n$projectContent\n\n'
-          'This is a new project. Use scan_project to learn about it.',
+          'This is a new project. Use scan_project to learn about it, '
+          'then generate_grace_md to brief Claude Code.',
         );
       } else {
         parts.add('## Project Knowledge\n\n${_truncate(projectContent, 8000)}');
@@ -268,7 +315,7 @@ class AlfaOrchestrator {
     final agentSummary = await _agentsState.getSummary();
     parts.add('## Agent State\n\n$agentSummary');
 
-    final logContent = await loadFile('${alfaDir()}/log.md');
+    final logContent = await loadFile('${graceDir()}/log.md');
     if (logContent.isNotEmpty) {
       final logLines = logContent
           .split('\n')
@@ -288,8 +335,6 @@ class AlfaOrchestrator {
           return '- [${t.id}] ${t.title}$desc';
         }).join('\n');
         parts.add('## Current Tasks\n\n$taskLines');
-      } else {
-        parts.add('## Current Tasks\n\nNo incomplete tasks.');
       }
 
       final notes = await db.notesDao.getNotesForProject(activeCwd);
@@ -316,7 +361,7 @@ class AlfaOrchestrator {
         await db.alfaConversationsDao.getForProject(activeCwd, limit: 20);
     if (recentMessages.isNotEmpty) {
       final lines = recentMessages.reversed.map((m) {
-        final prefix = m.role == 'human' ? 'Human' : 'Alfa';
+        final prefix = m.role == 'human' ? 'Human' : 'Grace';
         final text = m.content.length > 200
             ? '${m.content.substring(0, 200)}...'
             : m.content;
@@ -360,6 +405,117 @@ class AlfaOrchestrator {
             _backgroundLoop?.getStatus() ?? {'status': 'not_started'},
       );
 
+  /// generate_grace_md — writes GRACE.md to the project root.
+  /// Synthesizes project knowledge, recent log, and current tasks into a
+  /// concise briefing file that Claude Code reads at session start.
+  AlfaToolEntry _generateGraceMdTool() => AlfaToolEntry(
+        definition: const AlfaToolDefinition(
+          name: 'generate_grace_md',
+          description:
+              'Generate or update GRACE.md in the project root. '
+              'GRACE.md briefs Claude Code at session start with current tech stack, '
+              'conventions, what was last worked on, what is broken, and what is next. '
+              'Call this after updating project knowledge or completing a session. '
+              'Never writes to CLAUDE.md — that is Claude Code\'s file.',
+          inputSchema: {
+            'type': 'object',
+            'properties': {
+              'cwd': {
+                'type': 'string',
+                'description': 'Project directory. Defaults to active project.',
+              },
+            },
+          },
+        ),
+        handler: (ref, params) => _doGenerateGraceMd(ref, params),
+      );
+
+  Future<Map<String, dynamic>> _doGenerateGraceMd(
+      Ref ref, Map<String, dynamic> params) async {
+    final cwd = (params['cwd'] as String?) ?? _getActiveCwd();
+    if (cwd == null) return {'error': 'No active project and no cwd provided'};
+
+    final projectPath =
+        '${graceDir()}/projects/${slugifyPath(cwd)}.md';
+    final projectContent = await loadFile(projectPath);
+    final logContent = await loadFile('${graceDir()}/log.md');
+
+    final logLines = logContent
+        .split('\n')
+        .where((l) => l.startsWith('- ['))
+        .take(5)
+        .join('\n');
+
+    final db = ref.read(databaseProvider);
+    final tasks = await db.tasksDao.getTasksForProject(cwd);
+    final incomplete = tasks.where((t) => !t.done).toList();
+    final taskLines = incomplete.isEmpty
+        ? 'No open tasks.'
+        : incomplete.map((t) => '- ${t.title}').join('\n');
+
+    final timestamp = DateTime.now().toUtc().toIso8601String();
+    final label = cwd.split('/').last;
+
+    final graceMd = '''# GRACE.md — $label
+Generated by Grace · $timestamp
+
+> This file is maintained by Grace (Dispatch's dev assistant).
+> Do not edit manually — it will be overwritten.
+> See GRACE.md for session context. See CLAUDE.md for project conventions.
+
+---
+
+## Project Context
+
+$projectContent
+
+---
+
+## Recent Activity
+
+$logLines
+
+---
+
+## Open Tasks
+
+$taskLines
+
+---
+
+## Instructions for Claude Code
+
+Read this file at the start of every session to understand:
+- What was last worked on
+- What is currently broken or in progress  
+- What conventions this project follows
+- What to work on next
+
+Do not modify this file. Grace maintains it.
+''';
+
+    final graceMdPath = '$cwd/GRACE.md';
+    await writeFile(graceMdPath, graceMd);
+
+    // Add a reference to GRACE.md in CLAUDE.md if it exists and doesn't already reference it
+    final claudeMdPath = '$cwd/CLAUDE.md';
+    final claudeMdFile = File(claudeMdPath);
+    if (await claudeMdFile.exists()) {
+      final claudeContent = await claudeMdFile.readAsString();
+      if (!claudeContent.contains('GRACE.md')) {
+        await claudeMdFile.writeAsString(
+          '$claudeContent\n\n---\n\nSee GRACE.md for session context and project history.\n',
+        );
+      }
+    }
+
+    return {
+      'success': true,
+      'path': graceMdPath,
+      'message': 'GRACE.md written to $graceMdPath',
+    };
+  }
+
   void dispose() {
     _backgroundLoop?.stop();
     _monitorSkill?.stop();
@@ -369,10 +525,9 @@ class AlfaOrchestrator {
     _messageController.close();
   }
 
-  /// Fire-and-forget log append on shutdown. Runs in background, never throws.
   void _appendShutdownLog() {
     final timestamp = DateTime.now().toUtc().toIso8601String();
-    final logPath = '${alfaDir()}/log.md';
+    final logPath = '${graceDir()}/log.md';
     final entry = '- [$timestamp] Session ended.\n';
     _doShutdownLog(logPath, entry);
   }
@@ -382,7 +537,9 @@ class AlfaOrchestrator {
       final existing = await File(logPath).readAsString();
       await File(logPath).writeAsString(entry + existing);
     } catch (_) {
-      try { await writeFile(logPath, entry); } catch (_) {}
+      try {
+        await writeFile(logPath, entry);
+      } catch (_) {}
     }
   }
 }

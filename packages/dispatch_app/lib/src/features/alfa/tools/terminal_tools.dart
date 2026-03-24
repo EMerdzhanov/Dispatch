@@ -29,7 +29,7 @@ List<AlfaToolEntry> terminalTools() => [
       AlfaToolEntry(
         definition: const AlfaToolDefinition(
           name: 'write_to_terminal',
-          description: 'Sends raw bytes to a terminal PTY without appending a newline. Use for control sequences like Ctrl-C.',
+          description: 'Sends raw bytes to a terminal PTY without appending a newline.',
           inputSchema: {
             'type': 'object',
             'properties': {
@@ -44,12 +44,12 @@ List<AlfaToolEntry> terminalTools() => [
       AlfaToolEntry(
         definition: const AlfaToolDefinition(
           name: 'run_command',
-          description: 'Sends a command to a terminal followed by Enter (carriage return). Use for typing prompts to AI coding agents.',
+          description: 'Sends a command to a terminal followed by Enter.',
           inputSchema: {
             'type': 'object',
             'properties': {
               'terminal_id': {'type': 'string'},
-              'command': {'type': 'string', 'description': 'Command to type'},
+              'command': {'type': 'string'},
             },
             'required': ['terminal_id', 'command'],
           },
@@ -59,7 +59,7 @@ List<AlfaToolEntry> terminalTools() => [
       AlfaToolEntry(
         definition: const AlfaToolDefinition(
           name: 'read_terminal',
-          description: 'Returns the last N lines from a terminal output buffer. Includes ANSI codes.',
+          description: 'Returns the last N lines from a terminal output buffer.',
           inputSchema: {
             'type': 'object',
             'properties': {
@@ -76,8 +76,7 @@ List<AlfaToolEntry> terminalTools() => [
           name: 'send_key',
           description:
               'Sends a named key to a terminal PTY. '
-              'Supported keys: Enter, Yes, No, ArrowUp, ArrowDown, Escape, Tab. '
-              '"Yes" sends y + Enter, "No" sends n + Enter.',
+              'Supported keys: Enter, Yes, No, ArrowUp, ArrowDown, Escape, Tab.',
           inputSchema: {
             'type': 'object',
             'properties': {
@@ -95,7 +94,7 @@ List<AlfaToolEntry> terminalTools() => [
       AlfaToolEntry(
         definition: const AlfaToolDefinition(
           name: 'kill_terminal',
-          description: 'Kills a terminal process.',
+          description: 'Kills a terminal process and removes it from the UI.',
           inputSchema: {
             'type': 'object',
             'properties': {
@@ -109,7 +108,7 @@ List<AlfaToolEntry> terminalTools() => [
       AlfaToolEntry(
         definition: const AlfaToolDefinition(
           name: 'list_terminals',
-          description: 'Lists all terminals with their ID, label, status, project, cwd, and last activity.',
+          description: 'Lists all terminals with their ID, label, status, cwd, and last activity.',
           inputSchema: {
             'type': 'object',
             'properties': {},
@@ -126,7 +125,10 @@ Future<Map<String, dynamic>> _spawnTerminal(Ref ref, Map<String, dynamic> params
   final label = params['label'] as String?;
   final id = 'term-${DateTime.now().millisecondsSinceEpoch}-alfa';
   await Future.delayed(Duration.zero);
-  ref.read(terminalsProvider.notifier).addTerminal(projectId, TerminalEntry(id: id, command: command, cwd: cwd, status: TerminalStatus.running, label: label));
+  ref.read(terminalsProvider.notifier).addTerminal(
+        projectId,
+        TerminalEntry(id: id, command: command, cwd: cwd, status: TerminalStatus.running, label: label),
+      );
   return {'terminal_id': id};
 }
 
@@ -139,7 +141,6 @@ Future<Map<String, dynamic>> _writeToTerminal(Ref ref, Map<String, dynamic> para
   return {'success': true};
 }
 
-/// Maps named keys to the byte sequences expected by a PTY.
 const _keyMap = <String, String>{
   'Enter': '\r',
   'Yes': 'y\r',
@@ -153,21 +154,16 @@ const _keyMap = <String, String>{
 Future<Map<String, dynamic>> _sendKey(Ref ref, Map<String, dynamic> params) async {
   final terminalId = params['terminal_id'] as String;
   final key = params['key'] as String;
-
   final sequence = _keyMap[key];
   if (sequence == null) {
     return {'error': 'Unknown key: $key. Supported: ${_keyMap.keys.join(", ")}'};
   }
-
   final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
   if (pty == null) return {'error': 'Terminal not found or not running'};
-
   pty.write(const Utf8Encoder().convert(sequence));
   return {'success': true, 'key': key};
 }
 
-/// Interpret common C-style escape sequences that arrive as literal
-/// backslash characters from JSON clients (e.g. `\\r` → `\r`).
 String _interpretEscapes(String s) {
   return s
       .replaceAll(r'\r', '\r')
@@ -195,9 +191,15 @@ Future<Map<String, dynamic>> _readTerminal(Ref ref, Map<String, dynamic> params)
 
 Future<Map<String, dynamic>> _killTerminal(Ref ref, Map<String, dynamic> params) async {
   final terminalId = params['terminal_id'] as String;
+
+  // Kill the PTY if still alive
   final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
-  if (pty == null) return {'error': 'Terminal not found'};
-  pty.kill();
+  if (pty != null) pty.kill();
+
+  // Always remove from UI registry — handles both live and ghost entries
+  await Future.delayed(Duration.zero);
+  ref.read(terminalsProvider.notifier).removeTerminal(terminalId);
+
   return {'success': true};
 }
 

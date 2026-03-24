@@ -101,8 +101,8 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
 
   Future<void> _loadAlfaSettings() async {
     final db = ref.read(databaseProvider);
-    final apiKey = await db.settingsDao.getValue('alfa.api_key');
-    final model = await db.settingsDao.getValue('alfa.model');
+    final apiKey = await db.settingsDao.getValue('grace.api_key');
+    final model = await db.settingsDao.getValue('grace.model');
     if (mounted) {
       setState(() {
         if (apiKey != null) _alfaApiKeyCtrl.text = apiKey;
@@ -123,9 +123,9 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     setState(() => _alfaStatus = 'saving');
 
     final db = ref.read(databaseProvider);
-    await db.settingsDao.setValue('alfa.api_key', apiKey);
+    await db.settingsDao.setValue('grace.api_key', apiKey);
     if (model.isNotEmpty) {
-      await db.settingsDao.setValue('alfa.model', model);
+      await db.settingsDao.setValue('grace.model', model);
     }
 
     // Test the key with a minimal API call
@@ -150,7 +150,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
           final masked = '${apiKey.substring(0, 7)}..${apiKey.substring(apiKey.length - 4)}';
           _alfaApiKeyCtrl.text = masked;
           setState(() => _alfaStatus = 'connected');
-          // Re-initialize Alfa with the new key
+          // Re-initialize Grace with the new key
           ref.read(alfaProvider.notifier).initialize();
         } else if (response.statusCode == 401) {
           setState(() => _alfaStatus = 'error: Invalid API key');
@@ -379,8 +379,8 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
 
                           const SizedBox(height: 24),
 
-                          // === Alfa Orchestrator Section ===
-                          _sectionTitle(theme, 'Alfa Orchestrator'),
+                          // === Grace Section ===
+                          _sectionTitle(theme, 'Grace'),
                           _settingsRow(theme, 'API Key', _alfaApiKeyCtrl, wide: true),
                           _settingsRow(theme, 'Model', _alfaModelCtrl, wide: true),
                           const SizedBox(height: 8),

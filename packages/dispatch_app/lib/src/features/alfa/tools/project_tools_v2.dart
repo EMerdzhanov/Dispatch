@@ -35,7 +35,7 @@ List<AlfaToolEntry> projectToolsV2() => [
     ];
 
 String _projectPath(String cwd) {
-  return '${alfaDir()}/projects/${slugifyPath(cwd)}.md';
+  return '${graceDir()}/projects/${slugifyPath(cwd)}.md';
 }
 
 Future<Map<String, dynamic>> _readProject(Map<String, dynamic> params) async {

@@ -100,7 +100,7 @@ Future<Map<String, dynamic>> _updateAgents(AgentsState agentsState, Map<String, 
 
 Future<Map<String, dynamic>> _appendLog(Map<String, dynamic> params) async {
   final entry = params['entry'] as String;
-  final path = '${alfaDir()}/log.md';
+  final path = '${graceDir()}/log.md';
   final file = File(path);
 
   var content = '';
@@ -121,12 +121,12 @@ Future<Map<String, dynamic>> _appendLog(Map<String, dynamic> params) async {
 }
 
 Future<Map<String, dynamic>> _readMemory() async {
-  final content = await loadFile('${alfaDir()}/memory.md');
+  final content = await loadFile('${graceDir()}/memory.md');
   return {'content': content};
 }
 
 Future<Map<String, dynamic>> _updateMemory(Map<String, dynamic> params) async {
   final content = params['content'] as String;
-  await writeFile('${alfaDir()}/memory.md', content);
+  await writeFile('${graceDir()}/memory.md', content);
   return {'success': true};
 }

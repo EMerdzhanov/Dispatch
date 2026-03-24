@@ -10,20 +10,6 @@ import '../../terminal/terminal_provider.dart';
 import '../../terminal/session_registry.dart';
 import '../../../core/models/terminal_entry.dart';
 
-// ---------------------------------------------------------------------------
-// delegate_to_agent — true agent-to-agent handshake
-//
-// Full lifecycle:
-//   1. Spawn a subagent terminal (claude / gemini / codex / bash)
-//   2. Register it in agents.json
-//   3. Wait for PTY to be ready
-//   4. Send optional context + task prompt
-//   5. Poll output watching for a completion signal
-//   6. Extract result summary from output
-//   7. Mark subagent done in agents.json
-//   8. Return structured result to Alfa
-// ---------------------------------------------------------------------------
-
 final _ansiRe = RegExp(
     r'\x1B\[[0-9;]*[A-Za-z]|\x1B\][^\x07]*\x07|\x1B[()][A-B012]');
 
@@ -151,7 +137,7 @@ List<AlfaToolEntry> delegateTools(
         definition: const AlfaToolDefinition(
           name: 'cancel_subagent',
           description:
-              'Cancel a running subagent: sends Ctrl-C, kills terminal, cleans agents.json.',
+              'Cancel a running subagent: sends Ctrl-C, kills terminal, removes from UI, cleans agents.json.',
           inputSchema: {
             'type': 'object',
             'properties': {
@@ -164,10 +150,6 @@ List<AlfaToolEntry> delegateTools(
         handler: (ref, params) => _cancelSubagent(ref, params, agentsState),
       ),
     ];
-
-// ---------------------------------------------------------------------------
-// delegate_to_agent
-// ---------------------------------------------------------------------------
 
 Future<Map<String, dynamic>> _delegateToAgent(
   Ref ref,
@@ -188,7 +170,6 @@ Future<Map<String, dynamic>> _delegateToAgent(
   final command = _agentCommands[agent];
   if (command == null) return {'error': 'Unknown agent: $agent'};
 
-  // 1. Spawn terminal
   final terminalId = 'term-${DateTime.now().millisecondsSinceEpoch}-alfa';
   final projectId = _activeProjectId(ref) ?? '';
   final label =
@@ -206,7 +187,6 @@ Future<Map<String, dynamic>> _delegateToAgent(
         ),
       );
 
-  // 2. Register in agents.json
   await agentsState.registerAgent(
     terminalId: terminalId,
     task: task,
@@ -215,17 +195,15 @@ Future<Map<String, dynamic>> _delegateToAgent(
     isAgent: true,
   );
 
-  final shortTask =
-      task.length > 80 ? '${task.substring(0, 80)}...' : task;
+  final shortTask = task.length > 80 ? '${task.substring(0, 80)}...' : task;
   onEvent(AlfaChatEvent.alfa(
       '[Delegate] Spawned $agent → $terminalId\nTask: "$shortTask"'));
 
-  // 3. Wait for PTY (up to 5 s)
+  // Wait for PTY (up to 5s)
   var ptyReady = false;
   for (var i = 0; i < 10; i++) {
     await Future.delayed(const Duration(milliseconds: 500));
-    if (ref.read(sessionRegistryProvider.notifier).getPty(terminalId) !=
-        null) {
+    if (ref.read(sessionRegistryProvider.notifier).getPty(terminalId) != null) {
       ptyReady = true;
       break;
     }
@@ -233,21 +211,29 @@ Future<Map<String, dynamic>> _delegateToAgent(
 
   if (!ptyReady) {
     await agentsState.removeAgent(terminalId);
+    await Future.delayed(Duration.zero);
+    ref.read(terminalsProvider.notifier).removeTerminal(terminalId);
     return {'error': 'PTY failed to start for $agent in $cwd'};
   }
 
-  // 4. Send context + task (agent needs ~2s to render welcome screen)
+  // Wait for agent welcome screen to render
   await Future.delayed(const Duration(seconds: 2));
 
   if (context != null && context.isNotEmpty) {
-    _writeToTty(ref, terminalId,
+    _writeToPty(ref, terminalId,
         'Context from orchestrator:\n$context\n\nNow complete the following task:');
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
-  _writeToTty(ref, terminalId, task);
+  // Send the task text
+  _writeToPty(ref, terminalId, task);
 
-  // 5. Poll for completion
+  // FIX: Claude Code's multi-line paste detection holds the text waiting for
+  // confirmation. Send an explicit Enter 1 second later to force submission.
+  await Future.delayed(const Duration(seconds: 1));
+  _sendEnter(ref, terminalId);
+
+  // Poll for completion
   final deadline = DateTime.now().add(Duration(seconds: timeoutSeconds));
   final signals = [
     if (customSignal != null) RegExp(customSignal, caseSensitive: false),
@@ -276,7 +262,6 @@ Future<Map<String, dynamic>> _delegateToAgent(
     if (stripped == lastOutput) {
       idleCount++;
       if (idleCount >= 10) {
-        // 30 s of no change → treat as done
         completed = true;
         break;
       }
@@ -286,10 +271,7 @@ Future<Map<String, dynamic>> _delegateToAgent(
     }
   }
 
-  // 6. Extract result
   final result = _extractResult(lastOutput, completed);
-
-  // 7. Update agents.json
   await agentsState.updateAgent(terminalId,
       status: completed ? 'done' : 'timeout');
 
@@ -305,10 +287,18 @@ Future<Map<String, dynamic>> _delegateToAgent(
   };
 }
 
-void _writeToTty(Ref ref, String terminalId, String text) {
+/// Write text followed by carriage return.
+void _writeToPty(Ref ref, String terminalId, String text) {
   final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
   if (pty == null) return;
   pty.write(utf8.encode('$text\r'));
+}
+
+/// Send a bare carriage return — used to confirm multi-line pastes.
+void _sendEnter(Ref ref, String terminalId) {
+  final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
+  if (pty == null) return;
+  pty.write(utf8.encode('\r'));
 }
 
 Map<String, dynamic> _extractResult(String output, bool completed) {
@@ -351,10 +341,6 @@ Map<String, dynamic> _extractResult(String output, bool completed) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// list_subagents
-// ---------------------------------------------------------------------------
-
 Future<Map<String, dynamic>> _listSubagents(
     Ref ref, AgentsState agentsState) async {
   final state = await agentsState.readState();
@@ -393,10 +379,6 @@ String _inferAgent(String cmd) {
   return 'unknown';
 }
 
-// ---------------------------------------------------------------------------
-// read_subagent_output
-// ---------------------------------------------------------------------------
-
 Future<Map<String, dynamic>> _readSubagentOutput(
     Ref ref, Map<String, dynamic> params) async {
   final terminalId = params['terminal_id'] as String;
@@ -410,25 +392,15 @@ Future<Map<String, dynamic>> _readSubagentOutput(
   };
 }
 
-// ---------------------------------------------------------------------------
-// send_to_subagent
-// ---------------------------------------------------------------------------
-
 Future<Map<String, dynamic>> _sendToSubagent(
     Ref ref, Map<String, dynamic> params) async {
   final terminalId = params['terminal_id'] as String;
   final message = params['message'] as String;
   final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
-  if (pty == null) {
-    return {'error': 'Terminal $terminalId not found'};
-  }
+  if (pty == null) return {'error': 'Terminal $terminalId not found'};
   pty.write(utf8.encode('$message\r'));
   return {'success': true, 'terminal_id': terminalId};
 }
-
-// ---------------------------------------------------------------------------
-// cancel_subagent
-// ---------------------------------------------------------------------------
 
 Future<Map<String, dynamic>> _cancelSubagent(
   Ref ref,
@@ -440,20 +412,19 @@ Future<Map<String, dynamic>> _cancelSubagent(
 
   final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
   if (pty != null) {
-    pty.write(utf8.encode('\x03')); // Ctrl-C
+    pty.write(utf8.encode('\x03'));
     await Future.delayed(const Duration(milliseconds: 300));
     pty.kill();
   }
+
+  await Future.delayed(Duration.zero);
+  ref.read(terminalsProvider.notifier).removeTerminal(terminalId);
 
   await agentsState.updateAgent(terminalId, status: 'cancelled');
   await agentsState.removeAgent(terminalId);
 
   return {'success': true, 'terminal_id': terminalId, 'reason': reason};
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 String? _activeCwd(Ref ref) {
   final state = ref.read(projectsProvider);

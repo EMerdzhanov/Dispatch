@@ -10,7 +10,7 @@ import '../../persistence/auto_save.dart';
 /// Migrate from Alfa v1 (sha256-hashed project files, Drift decisions) to v2
 /// (slugified paths, file-based log). Only runs if old data exists and new doesn't.
 Future<void> migrateFromV1(Ref ref) async {
-  final base = alfaDir();
+  final base = graceDir();
 
   // Migrate project knowledge files: {hash}/knowledge.md → {slugified-path}.md
   final db = ref.read(databaseProvider);

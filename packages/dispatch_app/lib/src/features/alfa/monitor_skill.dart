@@ -7,7 +7,7 @@ import 'agents_state.dart';
 
 /// Background terminal monitor that watches Alfa-spawned terminals.
 /// Event-driven via SessionRegistry output callbacks + 30s poll fallback.
-/// Debounces alerts: same terminal + classification, max 1 per 60s.
+/// Debounces alerts: same terminal + classification, max 1 per 5 minutes.
 class MonitorSkill {
   final Ref ref;
   final AgentsState agentsState;
@@ -72,28 +72,63 @@ class MonitorSkill {
   static final _ansiPattern = RegExp(
       r'\x1B\[[0-9;]*[A-Za-z]|\x1B\][^\x07]*\x07|\x1B[()][A-B012]');
 
+  // Patterns that look like errors but are NOT actionable:
+  // - Claude Code conversational text containing "error" or "exception"
+  // - npm/node standard output (EADDRINUSE etc already handled by the agent)
+  // - Lines that are inside code blocks or diffs
+  static final _falsePositivePatterns = [
+    RegExp(r'EADDRINUSE'),                         // port conflict — agent handles it
+    RegExp(r'error\b.*\bhandled\b', caseSensitive: false),
+    RegExp(r'error\b.*\bfixed\b', caseSensitive: false),
+    RegExp(r'error\b.*\balready\b', caseSensitive: false),
+    RegExp(r'error\b.*\bresolved\b', caseSensitive: false),
+    RegExp(r'^\s*[+\-]\s'),                        // diff lines
+    RegExp(r'^\s*//'),                             // code comments
+    RegExp(r'^\s*\*'),                             // JSDoc/block comments
+    RegExp(r'try\s*\{'),                           // try/catch blocks
+    RegExp(r'catch\s*\('),
+    RegExp(r'throw\s+new'),
+    RegExp(r'npm warn', caseSensitive: false),
+    RegExp(r'deprecated', caseSensitive: false),
+    RegExp(r'⏺'),                                  // Claude Code response marker
+  ];
+
+  // Real error patterns — must appear at the START of a line
+  // to distinguish from conversational mentions of "error"
+  static final _realErrorPatterns = [
+    RegExp(r'^\s*(Error|TypeError|ReferenceError|SyntaxError|RangeError):', multiLine: true),
+    RegExp(r'^\s*FAILED\b', multiLine: true, caseSensitive: false),
+    RegExp(r'^\s*fatal:', multiLine: true, caseSensitive: false),
+    RegExp(r'^\s*panic:', multiLine: true, caseSensitive: false),
+    RegExp(r'^\s*Unhandled', multiLine: true),
+    RegExp(r'Process exited with code [^0]', caseSensitive: false),
+    RegExp(r'npm ERR!', caseSensitive: false),
+    RegExp(r'✗.*failed', caseSensitive: false),
+  ];
+
   void _classify(String terminalId, String output) {
     final stripped = output.replaceAll(_ansiPattern, '');
-    final lower = stripped.toLowerCase();
 
-    if (lower.contains('error') ||
-        lower.contains('exception') ||
-        lower.contains('fatal') ||
-        lower.contains('panic') ||
-        lower.contains('stack trace')) {
-      _emitDebounced(
-        terminalId,
-        'error',
-        AlfaChatEvent.alfa('💥 Error detected in $terminalId'),
-      );
-    }
+    // Skip if any false-positive pattern matches
+    if (_falsePositivePatterns.any((p) => p.hasMatch(stripped))) return;
+
+    // Only alert if a REAL error pattern matches at line start
+    final hasRealError = _realErrorPatterns.any((p) => p.hasMatch(stripped));
+    if (!hasRealError) return;
+
+    _emitDebounced(
+      terminalId,
+      'error',
+      AlfaChatEvent.alfa('💥 Error detected in $terminalId'),
+    );
   }
 
+  // Debounce: 5 minutes per terminal+classification (was 60s — too aggressive)
   void _emitDebounced(
       String terminalId, String classification, AlfaChatEvent event) {
     final key = '$terminalId:$classification';
     final last = _lastAlerts[key];
-    if (last != null && DateTime.now().difference(last).inSeconds < 60) return;
+    if (last != null && DateTime.now().difference(last).inMinutes < 5) return;
     _lastAlerts[key] = DateTime.now();
     onEvent(event);
   }
