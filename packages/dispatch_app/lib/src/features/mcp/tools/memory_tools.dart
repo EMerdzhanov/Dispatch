@@ -127,7 +127,7 @@ String _resolveCwd(Ref ref, Map<String, dynamic> params) {
 
 Future<Map<String, dynamic>> _readMemory(
     Ref ref, Map<String, dynamic> params) async {
-  final content = await loadFile('${alfaDir()}/memory.md');
+  final content = await loadFile('${graceDir()}/memory.md');
   return {
     'content': content,
     'exists': content.isNotEmpty,
@@ -140,7 +140,7 @@ Future<Map<String, dynamic>> _updateMemory(
   if (content == null || content.isEmpty) {
     throw ArgumentError('content is required');
   }
-  final path = '${alfaDir()}/memory.md';
+  final path = '${graceDir()}/memory.md';
   await writeFile(path, content);
   return {'status': 'updated', 'path': path};
 }
@@ -148,7 +148,7 @@ Future<Map<String, dynamic>> _updateMemory(
 Future<Map<String, dynamic>> _readProjectKnowledge(
     Ref ref, Map<String, dynamic> params) async {
   final cwd = _resolveCwd(ref, params);
-  final path = '${alfaDir()}/projects/${slugifyPath(cwd)}.md';
+  final path = '${graceDir()}/projects/${slugifyPath(cwd)}.md';
   final content = await loadFile(path);
   return {
     'content': content,
@@ -164,7 +164,7 @@ Future<Map<String, dynamic>> _updateProjectKnowledge(
     throw ArgumentError('content is required');
   }
   final cwd = _resolveCwd(ref, params);
-  final path = '${alfaDir()}/projects/${slugifyPath(cwd)}.md';
+  final path = '${graceDir()}/projects/${slugifyPath(cwd)}.md';
   await writeFile(path, content);
   return {'status': 'updated', 'path': path, 'projectCwd': cwd};
 }
@@ -176,7 +176,7 @@ Future<Map<String, dynamic>> _appendLog(
     throw ArgumentError('entry is required');
   }
 
-  final logPath = '${alfaDir()}/log.md';
+  final logPath = '${graceDir()}/log.md';
   final timestamp = DateTime.now().toUtc().toIso8601String();
   final line = '- [$timestamp] $entry\n';
 
@@ -199,7 +199,7 @@ Future<Map<String, dynamic>> _appendLog(
 Future<Map<String, dynamic>> _readLog(
     Ref ref, Map<String, dynamic> params) async {
   final lineCount = (params['lines'] as int?) ?? 20;
-  final logPath = '${alfaDir()}/log.md';
+  final logPath = '${graceDir()}/log.md';
   final content = await loadFile(logPath);
 
   if (content.isEmpty) {
