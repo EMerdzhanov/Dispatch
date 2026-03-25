@@ -295,8 +295,15 @@ class McpServerNotifier extends Notifier<McpServerState> {
 
   /// Start a cloudflare tunnel to expose the MCP server publicly.
   /// Uses named tunnel if configured, otherwise quick tunnel.
+  /// Disables relay if active — only one public URL method at a time.
   Future<void> startTunnel() async {
     if (_tunnelProcess != null || !state.running) return;
+
+    // Mutual exclusion: disable relay
+    if (state.relayEnabled || state.relayConnected) {
+      await disconnectRelay();
+      state = state.copyWith(relayEnabled: false);
+    }
 
     state = state.copyWith(tunnelStarting: true);
 
@@ -432,7 +439,11 @@ class McpServerNotifier extends Notifier<McpServerState> {
   }
 
   /// Toggle relay mode on/off.
+  /// Disables tunnel if active — only one public URL method at a time.
   Future<void> setRelayEnabled(bool enabled) async {
+    if (enabled && state.tunnelRunning) {
+      await stopTunnel();
+    }
     state = state.copyWith(relayEnabled: enabled);
     if (enabled && state.running && state.relayHost.isNotEmpty) {
       await connectRelay();
