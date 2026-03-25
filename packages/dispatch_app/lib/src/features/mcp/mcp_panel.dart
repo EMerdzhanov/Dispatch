@@ -150,12 +150,16 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                           Row(
                             children: [
                               Text('Token', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-                              const Spacer(),
-                              GestureDetector(
-                                onTap: () => setState(() => _tokenVisible = !_tokenVisible),
-                                child: Text(
-                                  _tokenVisible ? mcpState.authToken! : '\u2022' * 16,
-                                  style: TextStyle(color: theme.textPrimary, fontSize: 11, fontFamily: 'Menlo'),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _tokenVisible = !_tokenVisible),
+                                  child: Text(
+                                    _tokenVisible ? mcpState.authToken! : '\u2022' * 16,
+                                    style: TextStyle(color: theme.textPrimary, fontSize: 11, fontFamily: 'Menlo'),
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.right,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 6),
