@@ -299,7 +299,7 @@ class _TerminalListItemState extends State<_TerminalListItem> {
                             maxLines: 1,
                           ),
                         ),
-                        if (widget.terminal.id.endsWith('-alfa'))
+                        if (widget.terminal.id.endsWith('-grace'))
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                             decoration: BoxDecoration(

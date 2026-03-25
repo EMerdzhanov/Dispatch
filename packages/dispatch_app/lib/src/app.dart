@@ -23,7 +23,7 @@ import 'features/settings/settings_panel.dart';
 import 'features/shortcuts/shortcuts_panel.dart';
 import 'features/mcp/mcp_panel.dart';
 import 'features/mcp/mcp_provider.dart';
-import 'features/alfa/alfa_provider.dart';
+import 'features/grace/grace_provider.dart';
 import 'features/terminal/approval_watcher.dart';
 import 'persistence/auto_save.dart';
 import 'core/models/terminal_entry.dart';
@@ -57,7 +57,7 @@ class _DispatchAppState extends ConsumerState<DispatchApp> {
       ref.read(autoSaveProvider);
       ref.read(approvalWatcherProvider); // mechanical badge — no AI needed
       ref.read(mcpServerProvider);
-      ref.read(alfaProvider.notifier).initialize();
+      ref.read(graceProvider.notifier).initialize();
       setState(() => _loaded = true);
     });
   }

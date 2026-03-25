@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'alfa_types.dart';
+import 'grace_types.dart';
 import 'agents_state.dart';
 import '../terminal/terminal_provider.dart';
 
@@ -12,7 +12,7 @@ import '../terminal/terminal_provider.dart';
 class MonitorSkill {
   final Ref ref;
   final AgentsState agentsState;
-  final void Function(AlfaChatEvent event) onEvent;
+  final void Function(GraceChatEvent event) onEvent;
 
   Timer? _pollTimer;
   final Map<String, DateTime> _lastAlerts = {};
@@ -46,7 +46,7 @@ class MonitorSkill {
       if (agent['status'] != 'working') continue;
 
       final isAgent = (agent['is_agent'] as bool?) ??
-          entry.key.endsWith('-alfa') ||
+          entry.key.endsWith('-grace') ||
           entry.key.endsWith('-grace') ||
           entry.key.endsWith('-mcp');
       if (!isAgent) continue;
@@ -58,7 +58,7 @@ class MonitorSkill {
         _emitDebounced(
           entry.key,
           'stuck',
-          AlfaChatEvent.alfa(
+          GraceChatEvent.grace(
               '⚠️ ${entry.key} appears stuck — no output for 2+ minutes.'),
         );
       }
@@ -155,7 +155,7 @@ class MonitorSkill {
       _emitDebounced(
         terminalId,
         'approval',
-        AlfaChatEvent.alfa(
+        GraceChatEvent.grace(
           '⏸ $terminalId is waiting for your approval'
           '${hint.isNotEmpty ? ' — $hint' : ''}. '
           'Switch to that terminal and approve.',
@@ -183,12 +183,12 @@ class MonitorSkill {
     _emitDebounced(
       terminalId,
       'error',
-      AlfaChatEvent.alfa('💥 Error detected in $terminalId'),
+      GraceChatEvent.grace('💥 Error detected in $terminalId'),
     );
   }
 
   void _emitDebounced(
-      String terminalId, String classification, AlfaChatEvent event) {
+      String terminalId, String classification, GraceChatEvent event) {
     final key = '$terminalId:$classification';
     final last = _lastAlerts[key];
     if (last != null && DateTime.now().difference(last).inMinutes < 5) return;

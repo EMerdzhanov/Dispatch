@@ -3,19 +3,19 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'alfa_types.dart';
+import 'grace_types.dart';
 
-typedef AlfaToolHandler = Future<Map<String, dynamic>> Function(
+typedef GraceToolHandler = Future<Map<String, dynamic>> Function(
   Ref ref,
   Map<String, dynamic> params,
 );
 
-class AlfaToolEntry {
-  final AlfaToolDefinition definition;
-  final AlfaToolHandler handler;
+class GraceToolEntry {
+  final GraceToolDefinition definition;
+  final GraceToolHandler handler;
   final Duration timeout;
 
-  const AlfaToolEntry({
+  const GraceToolEntry({
     required this.definition,
     required this.handler,
     this.timeout = const Duration(seconds: 5),
@@ -24,27 +24,27 @@ class AlfaToolEntry {
 
 class ToolExecutor {
   final Ref ref;
-  final Map<String, AlfaToolEntry> _tools = {};
+  final Map<String, GraceToolEntry> _tools = {};
 
   ToolExecutor(this.ref);
 
-  void register(AlfaToolEntry entry) {
+  void register(GraceToolEntry entry) {
     _tools[entry.definition.name] = entry;
   }
 
-  void registerAll(List<AlfaToolEntry> entries) {
+  void registerAll(List<GraceToolEntry> entries) {
     for (final entry in entries) {
       _tools[entry.definition.name] = entry;
     }
   }
 
-  List<AlfaToolDefinition> get definitions =>
+  List<GraceToolDefinition> get definitions =>
       _tools.values.map((e) => e.definition).toList();
 
-  Future<AlfaToolResult> execute(AlfaToolUse toolUse) async {
+  Future<GraceToolResult> execute(GraceToolUse toolUse) async {
     final entry = _tools[toolUse.name];
     if (entry == null) {
-      return AlfaToolResult(
+      return GraceToolResult(
         toolUseId: toolUse.id,
         content: 'Unknown tool: ${toolUse.name}',
         isError: true,
@@ -54,18 +54,18 @@ class ToolExecutor {
     try {
       final result = await entry.handler(ref, toolUse.input)
           .timeout(entry.timeout);
-      return AlfaToolResult(
+      return GraceToolResult(
         toolUseId: toolUse.id,
         content: _encodeResult(result),
       );
     } on TimeoutException {
-      return AlfaToolResult(
+      return GraceToolResult(
         toolUseId: toolUse.id,
         content: 'Tool ${toolUse.name} timed out after ${entry.timeout.inSeconds}s',
         isError: true,
       );
     } catch (e) {
-      return AlfaToolResult(
+      return GraceToolResult(
         toolUseId: toolUse.id,
         content: 'Error: $e',
         isError: true,
@@ -73,7 +73,7 @@ class ToolExecutor {
     }
   }
 
-  Future<List<AlfaToolResult>> executeAll(List<AlfaToolUse> toolUses) {
+  Future<List<GraceToolResult>> executeAll(List<GraceToolUse> toolUses) {
     return Future.wait(toolUses.map(execute));
   }
 

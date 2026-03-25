@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'alfa_provider.dart';
-import 'alfa_types.dart';
+import 'grace_provider.dart';
+import 'grace_types.dart';
 import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 
-class AlfaPanel extends ConsumerStatefulWidget {
-  const AlfaPanel({super.key});
+class GracePanel extends ConsumerStatefulWidget {
+  const GracePanel({super.key});
 
   @override
-  ConsumerState<AlfaPanel> createState() => _AlfaPanelState();
+  ConsumerState<GracePanel> createState() => _GracePanelState();
 }
 
-class _AlfaPanelState extends ConsumerState<AlfaPanel> {
+class _GracePanelState extends ConsumerState<GracePanel> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
@@ -23,7 +23,7 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
   @override
   void initState() {
     super.initState();
-    ref.listenManual(alfaProvider, (prev, next) {
+    ref.listenManual(graceProvider, (prev, next) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
@@ -36,9 +36,9 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
 
       if (next.messages.isNotEmpty) {
         final last = next.messages.last;
-        if (last is AlfaDeltaEvent) {
+        if (last is GraceDeltaEvent) {
           setState(() => _streamingText += last.text);
-        } else if (last is AlfaDoneEvent || last is AlfaMessageEvent) {
+        } else if (last is GraceDoneEvent || last is GraceMessageEvent) {
           setState(() => _streamingText = '');
         }
       }
@@ -58,13 +58,13 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
     if (text.isEmpty) return;
     _controller.clear();
     _streamingText = '';
-    ref.read(alfaProvider.notifier).sendMessage(text);
+    ref.read(graceProvider.notifier).sendMessage(text);
     _focusNode.requestFocus();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(alfaProvider);
+    final state = ref.watch(graceProvider);
     final theme = ref.watch(appThemeProvider);
 
     return Column(
@@ -87,7 +87,7 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
                 letterSpacing: 1.2,
               )),
               const Spacer(),
-              if (state.status != AlfaStatus.idle)
+              if (state.status != GraceStatus.idle)
                 SizedBox(
                   width: 12, height: 12,
                   child: CircularProgressIndicator(
@@ -148,7 +148,7 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
               const SizedBox(width: 8),
               IconButton(
                 icon: Icon(Icons.send, size: 18, color: theme.accentBlue),
-                onPressed: state.status == AlfaStatus.idle && state.configured ? _send : null,
+                onPressed: state.status == GraceStatus.idle && state.configured ? _send : null,
               ),
             ],
           ),
@@ -157,20 +157,20 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
     );
   }
 
-  List<Widget> _buildDisplayItems(List<AlfaChatEvent> events) {
+  List<Widget> _buildDisplayItems(List<GraceChatEvent> events) {
     final widgets = <Widget>[];
     final theme = ref.read(appThemeProvider);
     for (final event in events) {
       switch (event) {
         case HumanMessageEvent(:final text):
           widgets.add(_MessageBubble(role: 'human', text: text, theme: theme));
-        case AlfaMessageEvent(:final text):
+        case GraceMessageEvent(:final text):
           widgets.add(_MessageBubble(role: 'grace', text: text, theme: theme));
-        case AlfaDoneEvent(:final text):
+        case GraceDoneEvent(:final text):
           widgets.add(_MessageBubble(role: 'grace', text: text, theme: theme));
         case ToolCallEvent(:final name, :final isError):
           widgets.add(_ToolCallCard(name: name, isError: isError, theme: theme));
-        case AlfaDeltaEvent():
+        case GraceDeltaEvent():
           break;
       }
     }
@@ -179,16 +179,16 @@ class _AlfaPanelState extends ConsumerState<AlfaPanel> {
 }
 
 class _StatusDot extends StatelessWidget {
-  final AlfaStatus status;
+  final GraceStatus status;
   final AppTheme theme;
   const _StatusDot({required this.status, required this.theme});
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      AlfaStatus.idle => Colors.grey,
-      AlfaStatus.thinking => Colors.blue,
-      AlfaStatus.executing => Colors.orange,
-      AlfaStatus.error => Colors.red,
+      GraceStatus.idle => Colors.grey,
+      GraceStatus.thinking => Colors.blue,
+      GraceStatus.executing => Colors.orange,
+      GraceStatus.error => Colors.red,
     };
     return Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: color));
   }

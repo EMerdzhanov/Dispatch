@@ -54,7 +54,10 @@ class ProjectGroups extends Table {
   IntColumn get displayOrder => integer().withDefault(const Constant(0))();
 }
 
-class AlfaDecisions extends Table {
+class GraceDecisions extends Table {
+  @override
+  String get tableName => 'alfa_decisions';
+
   IntColumn get id => integer().autoIncrement()();
   TextColumn get projectCwd => text()();
   TextColumn get summary => text()();
@@ -64,10 +67,13 @@ class AlfaDecisions extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-class AlfaConversations extends Table {
+class GraceConversations extends Table {
+  @override
+  String get tableName => 'alfa_conversations';
+
   IntColumn get id => integer().autoIncrement()();
   TextColumn get projectCwd => text().nullable()();
-  TextColumn get role => text()(); // 'human', 'alfa'
+  TextColumn get role => text()(); // 'human', 'grace'
   TextColumn get content => text()();
   TextColumn get toolCalls => text().nullable()(); // JSON
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

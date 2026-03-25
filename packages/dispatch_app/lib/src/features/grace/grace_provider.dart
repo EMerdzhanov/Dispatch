@@ -1,25 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'alfa_orchestrator.dart';
-import 'alfa_types.dart';
+import 'grace_orchestrator.dart';
+import 'grace_types.dart';
 
-class AlfaState {
-  final AlfaStatus status;
-  final List<AlfaChatEvent> messages;
+class GraceState {
+  final GraceStatus status;
+  final List<GraceChatEvent> messages;
   final bool configured;
 
-  const AlfaState({
-    this.status = AlfaStatus.idle,
+  const GraceState({
+    this.status = GraceStatus.idle,
     this.messages = const [],
     this.configured = false,
   });
 
-  AlfaState copyWith({
-    AlfaStatus? status,
-    List<AlfaChatEvent>? messages,
+  GraceState copyWith({
+    GraceStatus? status,
+    List<GraceChatEvent>? messages,
     bool? configured,
   }) {
-    return AlfaState(
+    return GraceState(
       status: status ?? this.status,
       messages: messages ?? this.messages,
       configured: configured ?? this.configured,
@@ -27,20 +27,20 @@ class AlfaState {
   }
 }
 
-class AlfaNotifier extends Notifier<AlfaState> {
-  AlfaOrchestrator? _orchestrator;
+class GraceNotifier extends Notifier<GraceState> {
+  GraceOrchestrator? _orchestrator;
 
   @override
-  AlfaState build() {
+  GraceState build() {
     ref.onDispose(() => _orchestrator?.dispose());
-    return const AlfaState();
+    return const GraceState();
   }
 
   Future<void> initialize() async {
-    _orchestrator = AlfaOrchestrator(ref);
+    _orchestrator = GraceOrchestrator(ref);
     await _orchestrator!.initialize();
 
-    final configured = _orchestrator!.status != AlfaStatus.error;
+    final configured = _orchestrator!.status != GraceStatus.error;
 
     _orchestrator!.statusStream.listen((s) {
       state = state.copyWith(status: s);
@@ -64,8 +64,8 @@ class AlfaNotifier extends Notifier<AlfaState> {
     state = state.copyWith(messages: []);
   }
 
-  /// Inject a task-triggered message into the Alfa orchestrator.
-  /// Used when a task with [ALFA] prefix is created.
+  /// Inject a task-triggered message into the Grace orchestrator.
+  /// Used when a task with [GRACE] prefix is created.
   Future<void> injectTask(String title, String description) async {
     if (_orchestrator == null) return;
     final message = 'New task assigned: $title'
@@ -75,5 +75,5 @@ class AlfaNotifier extends Notifier<AlfaState> {
   }
 }
 
-final alfaProvider =
-    NotifierProvider<AlfaNotifier, AlfaState>(AlfaNotifier.new);
+final graceProvider =
+    NotifierProvider<GraceNotifier, GraceState>(GraceNotifier.new);

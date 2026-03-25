@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'alfa_types.dart';
+import 'grace_types.dart';
 import 'claude_client.dart';
 import 'tool_executor.dart';
 import 'agents_state.dart';
@@ -29,7 +29,7 @@ import '../../persistence/auto_save.dart';
 import '../../core/database/database.dart';
 import '../terminal/session_registry.dart';
 
-class AlfaOrchestrator {
+class GraceOrchestrator {
   final Ref ref;
   late final ToolExecutor _tools;
   ClaudeClient? _client;
@@ -41,18 +41,18 @@ class AlfaOrchestrator {
 
   final Map<String, TestTracker> _testTrackers = {};
 
-  AlfaStatus _status = AlfaStatus.idle;
+  GraceStatus _status = GraceStatus.idle;
   int _turnCount = 0;
   int _maxTurns = 50;
 
-  final _statusController = StreamController<AlfaStatus>.broadcast();
-  final _messageController = StreamController<AlfaChatEvent>.broadcast();
+  final _statusController = StreamController<GraceStatus>.broadcast();
+  final _messageController = StreamController<GraceChatEvent>.broadcast();
 
-  Stream<AlfaStatus> get statusStream => _statusController.stream;
-  Stream<AlfaChatEvent> get messageStream => _messageController.stream;
-  AlfaStatus get status => _status;
+  Stream<GraceStatus> get statusStream => _statusController.stream;
+  Stream<GraceChatEvent> get messageStream => _messageController.stream;
+  GraceStatus get status => _status;
 
-  AlfaOrchestrator(this.ref) {
+  GraceOrchestrator(this.ref) {
     _agentsState = AgentsState();
     _playbookLoader = PlaybookLoader();
 
@@ -76,12 +76,12 @@ class AlfaOrchestrator {
   Future<void> initialize() async {
     final db = ref.read(databaseProvider);
     final apiKey = await db.settingsDao.getValue('grace.api_key')
-        ?? await db.settingsDao.getValue('alfa.api_key');
+        ?? await db.settingsDao.getValue('grace.api_key');
     final model = await db.settingsDao.getValue('grace.model')
-        ?? await db.settingsDao.getValue('alfa.model')
+        ?? await db.settingsDao.getValue('grace.model')
         ?? 'claude-sonnet-4-6';
     final maxTurns = await db.settingsDao.getValue('grace.max_turns')
-        ?? await db.settingsDao.getValue('alfa.max_turns');
+        ?? await db.settingsDao.getValue('grace.max_turns');
 
     if (apiKey == null || apiKey.isEmpty) return;
 
@@ -90,7 +90,7 @@ class AlfaOrchestrator {
 
     await ensureGraceDirs();
     await migrateFromV1(ref);
-    await _migrateAlfaToGrace();
+    await _migrateOldAlfaToGrace();
 
     final identityFile = File('${graceDir()}/identity.md');
     if (!await identityFile.exists()) {
@@ -132,7 +132,7 @@ class AlfaOrchestrator {
     _backgroundLoop!.start();
   }
 
-  static Future<void> _migrateAlfaToGrace() async {
+  static Future<void> _migrateOldAlfaToGrace() async {
     final home = Platform.environment['HOME'] ?? '/tmp';
     final oldDir = Directory('$home/.config/dispatch/alfa');
     final newDir = Directory('$home/.config/dispatch/grace');
@@ -168,81 +168,81 @@ class AlfaOrchestrator {
 
   Future<void> sendMessage(String userMessage) async {
     if (_client == null) {
-      _emit(AlfaChatEvent.alfa(
+      _emit(GraceChatEvent.grace(
           'Grace is not configured. Set your API key in settings (grace.api_key).'));
       return;
     }
 
     _backgroundLoop?.pause();
-    _setStatus(AlfaStatus.thinking);
+    _setStatus(GraceStatus.thinking);
     _turnCount = 0;
 
     final db = ref.read(databaseProvider);
     final activeCwd = _getActiveCwd();
-    await db.alfaConversationsDao.insertMessage(
-      AlfaConversationsCompanion.insert(
+    await db.graceConversationsDao.insertMessage(
+      GraceConversationsCompanion.insert(
         projectCwd: Value(activeCwd),
         role: 'human',
         content: userMessage,
       ),
     );
-    _emit(AlfaChatEvent.human(userMessage));
+    _emit(GraceChatEvent.human(userMessage));
 
     final systemPrompt = await _buildSystemPrompt(activeCwd);
-    final messages = <AlfaMessage>[
-      AlfaMessage(role: MessageRole.user, text: userMessage),
+    final messages = <GraceMessage>[
+      GraceMessage(role: MessageRole.user, text: userMessage),
     ];
 
     try {
       await _runLoop(systemPrompt, messages, activeCwd);
     } catch (e) {
-      _setStatus(AlfaStatus.error);
-      _emit(AlfaChatEvent.alfa('Error: $e'));
+      _setStatus(GraceStatus.error);
+      _emit(GraceChatEvent.grace('Error: $e'));
     } finally {
-      _setStatus(AlfaStatus.idle);
+      _setStatus(GraceStatus.idle);
       _backgroundLoop?.resume();
     }
   }
 
   Future<void> _runLoop(
     String systemPrompt,
-    List<AlfaMessage> messages,
+    List<GraceMessage> messages,
     String? activeCwd,
   ) async {
     while (_turnCount < _maxTurns) {
       _turnCount++;
 
       if (_turnCount == _maxTurns - 5) {
-        messages.add(AlfaMessage(
+        messages.add(GraceMessage(
           role: MessageRole.user,
           text:
               '[System: You have ${_maxTurns - _turnCount} tool turns remaining. Wrap up and summarize progress.]',
         ));
       }
 
-      _setStatus(AlfaStatus.thinking);
+      _setStatus(GraceStatus.thinking);
 
       final response = await _client!.sendMessage(
         systemPrompt: systemPrompt,
         messages: messages,
         tools: _tools.definitions,
-        onTextDelta: (delta) => _emit(AlfaChatEvent.delta(delta)),
+        onTextDelta: (delta) => _emit(GraceChatEvent.delta(delta)),
       );
 
       if (response.hasToolUse) {
-        if (response.text.isNotEmpty) _emit(AlfaChatEvent.alfa(response.text));
+        if (response.text.isNotEmpty) _emit(GraceChatEvent.grace(response.text));
 
-        messages.add(AlfaMessage(
+        messages.add(GraceMessage(
           role: MessageRole.assistant,
           text: response.text.isNotEmpty ? response.text : null,
           toolUses: response.toolUses,
         ));
 
-        _setStatus(AlfaStatus.executing);
+        _setStatus(GraceStatus.executing);
         final results = await _tools.executeAll(response.toolUses);
 
         for (var i = 0; i < response.toolUses.length; i++) {
-          _emit(AlfaChatEvent.toolCall(
+          _emit(GraceChatEvent.toolCall(
             response.toolUses[i].name,
             response.toolUses[i].input,
             results[i].content,
@@ -250,27 +250,27 @@ class AlfaOrchestrator {
           ));
         }
 
-        messages.add(AlfaMessage(role: MessageRole.user, toolResults: results));
+        messages.add(GraceMessage(role: MessageRole.user, toolResults: results));
         continue;
       }
 
       if (response.text.isNotEmpty) {
         final db = ref.read(databaseProvider);
-        await db.alfaConversationsDao.insertMessage(
-          AlfaConversationsCompanion.insert(
+        await db.graceConversationsDao.insertMessage(
+          GraceConversationsCompanion.insert(
             projectCwd: Value(activeCwd),
             role: 'grace',
             content: response.text,
           ),
         );
-        _emit(AlfaChatEvent.alfaDone(response.text));
+        _emit(GraceChatEvent.graceDone(response.text));
       }
 
       break;
     }
 
     if (_turnCount >= _maxTurns) {
-      _emit(AlfaChatEvent.alfa('[Reached $_maxTurns turn limit. Stopping.]'));
+      _emit(GraceChatEvent.grace('[Reached $_maxTurns turn limit. Stopping.]'));
     }
   }
 
@@ -352,7 +352,7 @@ class AlfaOrchestrator {
     }
 
     final recentMessages =
-        await db.alfaConversationsDao.getForProject(activeCwd, limit: 20);
+        await db.graceConversationsDao.getForProject(activeCwd, limit: 20);
     if (recentMessages.isNotEmpty) {
       final lines = recentMessages.reversed.map((m) {
         final prefix = m.role == 'human' ? 'Human' : 'Grace';
@@ -381,15 +381,15 @@ class AlfaOrchestrator {
         ?.cwd;
   }
 
-  void _setStatus(AlfaStatus s) {
+  void _setStatus(GraceStatus s) {
     _status = s;
     _statusController.add(s);
   }
 
-  void _emit(AlfaChatEvent event) => _messageController.add(event);
+  void _emit(GraceChatEvent event) => _messageController.add(event);
 
-  AlfaToolEntry _loopStatusTool() => AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+  GraceToolEntry _loopStatusTool() => GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'get_loop_status',
           description:
               'Returns background loop status: running/paused, last tick, active alerts.',
@@ -403,8 +403,8 @@ class AlfaOrchestrator {
   // generate_grace_md — smart GRACE.md that adapts to CLAUDE.md presence
   // ---------------------------------------------------------------------------
 
-  AlfaToolEntry _generateGraceMdTool() => AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+  GraceToolEntry _generateGraceMdTool() => GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'generate_grace_md',
           description:
               'Generate or update GRACE.md in the project root. '
@@ -576,5 +576,5 @@ class AlfaOrchestrator {
   }
 }
 
-AlfaToolEntry _scanProjectEntry() =>
+GraceToolEntry _scanProjectEntry() =>
     knowledgeTools().firstWhere((t) => t.definition.name == 'scan_project');

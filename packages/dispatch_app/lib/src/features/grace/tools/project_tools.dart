@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 import '../../projects/projects_provider.dart';
 import '../../terminal/terminal_provider.dart';
 import '../../terminal/session_registry.dart';
 
-List<AlfaToolEntry> projectTools() => [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+List<GraceToolEntry> projectTools() => [
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'create_project',
           description: 'Creates a new project group. Idempotent: returns existing group if one with the same cwd exists.',
           inputSchema: {
@@ -22,8 +22,8 @@ List<AlfaToolEntry> projectTools() => [
         ),
         handler: _createProject,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'close_project',
           description: 'Closes a project group and kills all its terminals.',
           inputSchema: {
@@ -36,8 +36,8 @@ List<AlfaToolEntry> projectTools() => [
         ),
         handler: _closeProject,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'list_projects',
           description: 'Lists all project groups with terminal counts and CWDs.',
           inputSchema: {

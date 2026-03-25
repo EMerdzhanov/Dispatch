@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 import '../../projects/projects_provider.dart';
 import '../default_identity.dart';
@@ -286,19 +286,19 @@ class TestRunner {
 }
 
 // ---------------------------------------------------------------------------
-// Alfa tool entries
+// Grace tool entries
 // ---------------------------------------------------------------------------
 
-/// testTools() returns tools for the Alfa tool registry.
-/// [trackers] is a shared map maintained by AlfaOrchestrator.
+/// testTools() returns tools for the Grace tool registry.
+/// [trackers] is a shared map maintained by GraceOrchestrator.
 /// [onEvent] is used to emit regression alerts.
-List<AlfaToolEntry> testTools(
+List<GraceToolEntry> testTools(
   Map<String, TestTracker> trackers,
-  void Function(AlfaChatEvent) onEvent,
+  void Function(GraceChatEvent) onEvent,
 ) =>
     [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'run_tests',
           description:
               'Run the test suite for the active project. '
@@ -316,8 +316,8 @@ List<AlfaToolEntry> testTools(
         ),
         handler: (ref, params) => _runTests(ref, params, trackers, onEvent),
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'get_test_status',
           description:
               'Returns latest test run result, trend (stable/improving/regressing), '
@@ -338,7 +338,7 @@ Future<Map<String, dynamic>> _runTests(
   Ref ref,
   Map<String, dynamic> params,
   Map<String, TestTracker> trackers,
-  void Function(AlfaChatEvent) onEvent,
+  void Function(GraceChatEvent) onEvent,
 ) async {
   final cwd = (params['cwd'] as String?) ?? _activeCwd(ref);
   if (cwd == null) return {'error': 'No active project'};
@@ -355,7 +355,7 @@ Future<Map<String, dynamic>> _runTests(
   final regression = await tracker.record(result);
 
   if (regression != null) {
-    onEvent(AlfaChatEvent.alfa(
+    onEvent(GraceChatEvent.grace(
       '[Tests] Regression: ${regression.currentFailed} failing '
       '(was ${regression.previousFailed}). '
       '${regression.newlyFailing.isNotEmpty ? 'New: ${regression.newlyFailing.join(', ')}' : ''}',

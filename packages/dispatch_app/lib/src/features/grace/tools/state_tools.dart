@@ -1,13 +1,13 @@
 import 'dart:io';
 
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 import '../agents_state.dart';
 import '../default_identity.dart';
 
-List<AlfaToolEntry> stateTools(AgentsState agentsState) => [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+List<GraceToolEntry> stateTools(AgentsState agentsState) => [
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'update_agents',
           description: 'Read or modify agents.json. Actions: read, register, update, remove, cleanup_stale.',
           inputSchema: {
@@ -27,8 +27,8 @@ List<AlfaToolEntry> stateTools(AgentsState agentsState) => [
         ),
         handler: (ref, params) => _updateAgents(agentsState, params),
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'append_log',
           description: 'Append an entry to log.md with timestamp. Auto-prunes at 500 entries.',
           inputSchema: {
@@ -41,16 +41,16 @@ List<AlfaToolEntry> stateTools(AgentsState agentsState) => [
         ),
         handler: (ref, params) => _appendLog(params),
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'read_memory',
           description: 'Read memory.md — long-term user preferences and observations.',
           inputSchema: {'type': 'object', 'properties': {}},
         ),
         handler: (ref, params) => _readMemory(),
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'update_memory',
           description: 'Overwrite memory.md. Read first, modify, write back. If over 1500 tokens, propose summarization to human first.',
           inputSchema: {

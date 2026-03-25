@@ -7,7 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../projects/projects_provider.dart';
-import '../alfa/alfa_provider.dart';
+import '../grace/grace_provider.dart';
 
 class TasksPanel extends ConsumerStatefulWidget {
   const TasksPanel({super.key});
@@ -72,9 +72,9 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
         await db.tasksDao.insertTask(projectCwd: cwd, title: text);
         await _loadTasks();
 
-        // [ALFA] prefix detection — notify Alfa orchestrator
-        if (text.toLowerCase().startsWith('[alfa]')) {
-          ref.read(alfaProvider.notifier).injectTask(text, '');
+        // [GRACE] prefix detection — notify Grace orchestrator
+        if (text.toLowerCase().startsWith('[grace]')) {
+          ref.read(graceProvider.notifier).injectTask(text, '');
         }
       }
     }

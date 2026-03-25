@@ -7,11 +7,11 @@ part 'database.g.dart';
 @DriftDatabase(
   tables: [
     Presets, Settings, Notes, Tasks, VaultEntries, Templates, ProjectGroups,
-    AlfaDecisions, AlfaConversations,
+    GraceDecisions, GraceConversations,
   ],
   daos: [
     PresetsDao, SettingsDao, NotesDao, TasksDao, VaultDao, TemplatesDao,
-    AlfaDecisionsDao, AlfaConversationsDao,
+    GraceDecisionsDao, GraceConversationsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -25,8 +25,8 @@ class AppDatabase extends _$AppDatabase {
         onCreate: (m) => m.createAll(),
         onUpgrade: (m, from, to) async {
           if (from < 2) {
-            await m.createTable(alfaDecisions);
-            await m.createTable(alfaConversations);
+            await m.createTable(graceDecisions);
+            await m.createTable(graceConversations);
           }
         },
       );

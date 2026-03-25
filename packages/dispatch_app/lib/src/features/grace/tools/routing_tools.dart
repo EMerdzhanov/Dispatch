@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 
 // ---------------------------------------------------------------------------
@@ -213,12 +213,12 @@ class TaskRouter {
 }
 
 // ---------------------------------------------------------------------------
-// Alfa tool entry
+// Grace tool entry
 // ---------------------------------------------------------------------------
 
-List<AlfaToolEntry> routingTools() => [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+List<GraceToolEntry> routingTools() => [
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'route_task',
           description:
               'Decide which AI agent is best for a task. '

@@ -160,21 +160,21 @@ class TemplatesDao extends DatabaseAccessor<AppDatabase>
 
 }
 
-@DriftAccessor(tables: [AlfaDecisions])
-class AlfaDecisionsDao extends DatabaseAccessor<AppDatabase>
-    with _$AlfaDecisionsDaoMixin {
-  AlfaDecisionsDao(super.db);
+@DriftAccessor(tables: [GraceDecisions])
+class GraceDecisionsDao extends DatabaseAccessor<AppDatabase>
+    with _$GraceDecisionsDaoMixin {
+  GraceDecisionsDao(super.db);
 
-  Future<List<AlfaDecision>> getForProject(String cwd) {
-    return (select(alfaDecisions)
+  Future<List<GraceDecision>> getForProject(String cwd) {
+    return (select(graceDecisions)
           ..where((d) => d.projectCwd.equals(cwd))
           ..orderBy([(d) => OrderingTerm.desc(d.createdAt)])
           ..limit(50))
         .get();
   }
 
-  Future<List<AlfaDecision>> getRecent({int limit = 10}) {
-    return (select(alfaDecisions)
+  Future<List<GraceDecision>> getRecent({int limit = 10}) {
+    return (select(graceDecisions)
           ..orderBy([(d) => OrderingTerm.desc(d.createdAt)])
           ..limit(limit))
         .get();
@@ -182,14 +182,14 @@ class AlfaDecisionsDao extends DatabaseAccessor<AppDatabase>
 
 }
 
-@DriftAccessor(tables: [AlfaConversations])
-class AlfaConversationsDao extends DatabaseAccessor<AppDatabase>
-    with _$AlfaConversationsDaoMixin {
-  AlfaConversationsDao(super.db);
+@DriftAccessor(tables: [GraceConversations])
+class GraceConversationsDao extends DatabaseAccessor<AppDatabase>
+    with _$GraceConversationsDaoMixin {
+  GraceConversationsDao(super.db);
 
-  Future<List<AlfaConversation>> getForProject(String? cwd,
+  Future<List<GraceConversation>> getForProject(String? cwd,
       {int limit = 100}) {
-    final q = select(alfaConversations);
+    final q = select(graceConversations);
     if (cwd != null) {
       q.where((c) => c.projectCwd.equals(cwd));
     }
@@ -199,8 +199,8 @@ class AlfaConversationsDao extends DatabaseAccessor<AppDatabase>
     return q.get();
   }
 
-  Future<int> insertMessage(AlfaConversationsCompanion entry) {
-    return into(alfaConversations).insert(entry);
+  Future<int> insertMessage(GraceConversationsCompanion entry) {
+    return into(graceConversations).insert(entry);
   }
 
 }

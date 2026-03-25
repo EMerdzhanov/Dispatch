@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'default_identity.dart';
 import '../../persistence/auto_save.dart';
 
-/// Migrate from Alfa v1 (sha256-hashed project files, Drift decisions) to v2
+/// Migrate from Grace v1 (sha256-hashed project files, Drift decisions) to v2
 /// (slugified paths, file-based log). Only runs if old data exists and new doesn't.
 Future<void> migrateFromV1(Ref ref) async {
   final base = graceDir();
@@ -39,7 +39,7 @@ Future<void> migrateFromV1(Ref ref) async {
   final logFile = File(logPath);
   if (!await logFile.exists() || (await logFile.readAsString()).isEmpty) {
     try {
-      final decisions = await db.alfaDecisionsDao.getRecent(limit: 100);
+      final decisions = await db.graceDecisionsDao.getRecent(limit: 100);
       if (decisions.isNotEmpty) {
         final entries = decisions.map((d) {
           final ts = d.createdAt.toUtc().toIso8601String();

@@ -5,8 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/terminal_provider.dart';
-import '../alfa/alfa_provider.dart';
-import '../alfa/alfa_types.dart';
+import '../grace/grace_provider.dart';
+import '../grace/grace_types.dart';
 
 class StatusBar extends ConsumerWidget {
   const StatusBar({super.key});
@@ -21,7 +21,7 @@ class StatusBar extends ConsumerWidget {
     final theme = ref.watch(appThemeProvider);
     final projectsState = ref.watch(projectsProvider);
     final terminalsState = ref.watch(terminalsProvider);
-    final alfaState = ref.watch(alfaProvider);
+    final graceState = ref.watch(graceProvider);
 
     final activeGroup = projectsState.groups
         .where((g) => g.id == projectsState.activeGroupId)
@@ -65,11 +65,11 @@ class StatusBar extends ConsumerWidget {
                 width: 6, height: 6,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: switch (alfaState.status) {
-                    AlfaStatus.idle => Colors.grey,
-                    AlfaStatus.thinking => Colors.blue,
-                    AlfaStatus.executing => Colors.orange,
-                    AlfaStatus.error => Colors.red,
+                  color: switch (graceState.status) {
+                    GraceStatus.idle => Colors.grey,
+                    GraceStatus.thinking => Colors.blue,
+                    GraceStatus.executing => Colors.orange,
+                    GraceStatus.error => Colors.red,
                   },
                 ),
               ),

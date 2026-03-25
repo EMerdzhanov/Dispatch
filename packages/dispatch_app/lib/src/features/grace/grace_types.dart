@@ -2,13 +2,13 @@
 
 enum MessageRole { user, assistant }
 
-class AlfaMessage {
+class GraceMessage {
   final MessageRole role;
   final String? text;
-  final List<AlfaToolUse>? toolUses;
-  final List<AlfaToolResult>? toolResults;
+  final List<GraceToolUse>? toolUses;
+  final List<GraceToolResult>? toolResults;
 
-  const AlfaMessage({
+  const GraceMessage({
     required this.role,
     this.text,
     this.toolUses,
@@ -34,12 +34,12 @@ class AlfaMessage {
   }
 }
 
-class AlfaToolUse {
+class GraceToolUse {
   final String id;
   final String name;
   final Map<String, dynamic> input;
 
-  const AlfaToolUse({
+  const GraceToolUse({
     required this.id,
     required this.name,
     required this.input,
@@ -52,19 +52,19 @@ class AlfaToolUse {
         'input': input,
       };
 
-  factory AlfaToolUse.fromApi(Map<String, dynamic> json) => AlfaToolUse(
+  factory GraceToolUse.fromApi(Map<String, dynamic> json) => GraceToolUse(
         id: json['id'] as String,
         name: json['name'] as String,
         input: (json['input'] as Map<String, dynamic>?) ?? {},
       );
 }
 
-class AlfaToolResult {
+class GraceToolResult {
   final String toolUseId;
   final String content;
   final bool isError;
 
-  const AlfaToolResult({
+  const GraceToolResult({
     required this.toolUseId,
     required this.content,
     this.isError = false,
@@ -78,12 +78,12 @@ class AlfaToolResult {
       };
 }
 
-class AlfaToolDefinition {
+class GraceToolDefinition {
   final String name;
   final String description;
   final Map<String, dynamic> inputSchema;
 
-  const AlfaToolDefinition({
+  const GraceToolDefinition({
     required this.name,
     required this.description,
     required this.inputSchema,
@@ -96,21 +96,21 @@ class AlfaToolDefinition {
       };
 }
 
-enum AlfaStatus { idle, thinking, executing, error }
+enum GraceStatus { idle, thinking, executing, error }
 
 // ---------------------------------------------------------------------------
-// Chat events — defined here (not in alfa_orchestrator.dart) so that tools
+// Chat events — defined here (not in grace_orchestrator.dart) so that tools
 // can import and emit them without creating circular dependencies.
 // ---------------------------------------------------------------------------
 
-sealed class AlfaChatEvent {
-  const AlfaChatEvent();
+sealed class GraceChatEvent {
+  const GraceChatEvent();
 
-  factory AlfaChatEvent.human(String text) = HumanMessageEvent;
-  factory AlfaChatEvent.alfa(String text) = AlfaMessageEvent;
-  factory AlfaChatEvent.alfaDone(String text) = AlfaDoneEvent;
-  factory AlfaChatEvent.delta(String text) = AlfaDeltaEvent;
-  factory AlfaChatEvent.toolCall(
+  factory GraceChatEvent.human(String text) = HumanMessageEvent;
+  factory GraceChatEvent.grace(String text) = GraceMessageEvent;
+  factory GraceChatEvent.graceDone(String text) = GraceDoneEvent;
+  factory GraceChatEvent.delta(String text) = GraceDeltaEvent;
+  factory GraceChatEvent.toolCall(
     String name,
     Map<String, dynamic> input,
     String result,
@@ -118,27 +118,27 @@ sealed class AlfaChatEvent {
   ) = ToolCallEvent;
 }
 
-class HumanMessageEvent extends AlfaChatEvent {
+class HumanMessageEvent extends GraceChatEvent {
   final String text;
   const HumanMessageEvent(this.text);
 }
 
-class AlfaMessageEvent extends AlfaChatEvent {
+class GraceMessageEvent extends GraceChatEvent {
   final String text;
-  const AlfaMessageEvent(this.text);
+  const GraceMessageEvent(this.text);
 }
 
-class AlfaDoneEvent extends AlfaChatEvent {
+class GraceDoneEvent extends GraceChatEvent {
   final String text;
-  const AlfaDoneEvent(this.text);
+  const GraceDoneEvent(this.text);
 }
 
-class AlfaDeltaEvent extends AlfaChatEvent {
+class GraceDeltaEvent extends GraceChatEvent {
   final String text;
-  const AlfaDeltaEvent(this.text);
+  const GraceDeltaEvent(this.text);
 }
 
-class ToolCallEvent extends AlfaChatEvent {
+class ToolCallEvent extends GraceChatEvent {
   final String name;
   final Map<String, dynamic> input;
   final String result;

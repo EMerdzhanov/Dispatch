@@ -2201,12 +2201,12 @@ class ProjectGroupsCompanion extends UpdateCompanion<ProjectGroup> {
   }
 }
 
-class $AlfaDecisionsTable extends AlfaDecisions
-    with TableInfo<$AlfaDecisionsTable, AlfaDecision> {
+class $GraceDecisionsTable extends GraceDecisions
+    with TableInfo<$GraceDecisionsTable, GraceDecision> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $AlfaDecisionsTable(this.attachedDatabase, [this._alias]);
+  $GraceDecisionsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -2301,7 +2301,7 @@ class $AlfaDecisionsTable extends AlfaDecisions
   static const String $name = 'alfa_decisions';
   @override
   VerificationContext validateIntegrity(
-    Insertable<AlfaDecision> instance, {
+    Insertable<GraceDecision> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -2357,9 +2357,9 @@ class $AlfaDecisionsTable extends AlfaDecisions
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  AlfaDecision map(Map<String, dynamic> data, {String? tablePrefix}) {
+  GraceDecision map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return AlfaDecision(
+    return GraceDecision(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -2392,12 +2392,12 @@ class $AlfaDecisionsTable extends AlfaDecisions
   }
 
   @override
-  $AlfaDecisionsTable createAlias(String alias) {
-    return $AlfaDecisionsTable(attachedDatabase, alias);
+  $GraceDecisionsTable createAlias(String alias) {
+    return $GraceDecisionsTable(attachedDatabase, alias);
   }
 }
 
-class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
+class GraceDecision extends DataClass implements Insertable<GraceDecision> {
   final int id;
   final String projectCwd;
   final String summary;
@@ -2405,7 +2405,7 @@ class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
   final String? detail;
   final String tags;
   final DateTime createdAt;
-  const AlfaDecision({
+  const GraceDecision({
     required this.id,
     required this.projectCwd,
     required this.summary,
@@ -2429,8 +2429,8 @@ class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
     return map;
   }
 
-  AlfaDecisionsCompanion toCompanion(bool nullToAbsent) {
-    return AlfaDecisionsCompanion(
+  GraceDecisionsCompanion toCompanion(bool nullToAbsent) {
+    return GraceDecisionsCompanion(
       id: Value(id),
       projectCwd: Value(projectCwd),
       summary: Value(summary),
@@ -2443,12 +2443,12 @@ class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
     );
   }
 
-  factory AlfaDecision.fromJson(
+  factory GraceDecision.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return AlfaDecision(
+    return GraceDecision(
       id: serializer.fromJson<int>(json['id']),
       projectCwd: serializer.fromJson<String>(json['projectCwd']),
       summary: serializer.fromJson<String>(json['summary']),
@@ -2472,7 +2472,7 @@ class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
     };
   }
 
-  AlfaDecision copyWith({
+  GraceDecision copyWith({
     int? id,
     String? projectCwd,
     String? summary,
@@ -2480,7 +2480,7 @@ class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
     Value<String?> detail = const Value.absent(),
     String? tags,
     DateTime? createdAt,
-  }) => AlfaDecision(
+  }) => GraceDecision(
     id: id ?? this.id,
     projectCwd: projectCwd ?? this.projectCwd,
     summary: summary ?? this.summary,
@@ -2489,8 +2489,8 @@ class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
     tags: tags ?? this.tags,
     createdAt: createdAt ?? this.createdAt,
   );
-  AlfaDecision copyWithCompanion(AlfaDecisionsCompanion data) {
-    return AlfaDecision(
+  GraceDecision copyWithCompanion(GraceDecisionsCompanion data) {
+    return GraceDecision(
       id: data.id.present ? data.id.value : this.id,
       projectCwd: data.projectCwd.present
           ? data.projectCwd.value
@@ -2505,7 +2505,7 @@ class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
 
   @override
   String toString() {
-    return (StringBuffer('AlfaDecision(')
+    return (StringBuffer('GraceDecision(')
           ..write('id: $id, ')
           ..write('projectCwd: $projectCwd, ')
           ..write('summary: $summary, ')
@@ -2523,7 +2523,7 @@ class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is AlfaDecision &&
+      (other is GraceDecision &&
           other.id == this.id &&
           other.projectCwd == this.projectCwd &&
           other.summary == this.summary &&
@@ -2533,7 +2533,7 @@ class AlfaDecision extends DataClass implements Insertable<AlfaDecision> {
           other.createdAt == this.createdAt);
 }
 
-class AlfaDecisionsCompanion extends UpdateCompanion<AlfaDecision> {
+class GraceDecisionsCompanion extends UpdateCompanion<GraceDecision> {
   final Value<int> id;
   final Value<String> projectCwd;
   final Value<String> summary;
@@ -2541,7 +2541,7 @@ class AlfaDecisionsCompanion extends UpdateCompanion<AlfaDecision> {
   final Value<String?> detail;
   final Value<String> tags;
   final Value<DateTime> createdAt;
-  const AlfaDecisionsCompanion({
+  const GraceDecisionsCompanion({
     this.id = const Value.absent(),
     this.projectCwd = const Value.absent(),
     this.summary = const Value.absent(),
@@ -2550,7 +2550,7 @@ class AlfaDecisionsCompanion extends UpdateCompanion<AlfaDecision> {
     this.tags = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
-  AlfaDecisionsCompanion.insert({
+  GraceDecisionsCompanion.insert({
     this.id = const Value.absent(),
     required String projectCwd,
     required String summary,
@@ -2561,7 +2561,7 @@ class AlfaDecisionsCompanion extends UpdateCompanion<AlfaDecision> {
   }) : projectCwd = Value(projectCwd),
        summary = Value(summary),
        outcome = Value(outcome);
-  static Insertable<AlfaDecision> custom({
+  static Insertable<GraceDecision> custom({
     Expression<int>? id,
     Expression<String>? projectCwd,
     Expression<String>? summary,
@@ -2581,7 +2581,7 @@ class AlfaDecisionsCompanion extends UpdateCompanion<AlfaDecision> {
     });
   }
 
-  AlfaDecisionsCompanion copyWith({
+  GraceDecisionsCompanion copyWith({
     Value<int>? id,
     Value<String>? projectCwd,
     Value<String>? summary,
@@ -2590,7 +2590,7 @@ class AlfaDecisionsCompanion extends UpdateCompanion<AlfaDecision> {
     Value<String>? tags,
     Value<DateTime>? createdAt,
   }) {
-    return AlfaDecisionsCompanion(
+    return GraceDecisionsCompanion(
       id: id ?? this.id,
       projectCwd: projectCwd ?? this.projectCwd,
       summary: summary ?? this.summary,
@@ -2630,7 +2630,7 @@ class AlfaDecisionsCompanion extends UpdateCompanion<AlfaDecision> {
 
   @override
   String toString() {
-    return (StringBuffer('AlfaDecisionsCompanion(')
+    return (StringBuffer('GraceDecisionsCompanion(')
           ..write('id: $id, ')
           ..write('projectCwd: $projectCwd, ')
           ..write('summary: $summary, ')
@@ -2643,12 +2643,12 @@ class AlfaDecisionsCompanion extends UpdateCompanion<AlfaDecision> {
   }
 }
 
-class $AlfaConversationsTable extends AlfaConversations
-    with TableInfo<$AlfaConversationsTable, AlfaConversation> {
+class $GraceConversationsTable extends GraceConversations
+    with TableInfo<$GraceConversationsTable, GraceConversation> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $AlfaConversationsTable(this.attachedDatabase, [this._alias]);
+  $GraceConversationsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -2732,7 +2732,7 @@ class $AlfaConversationsTable extends AlfaConversations
   static const String $name = 'alfa_conversations';
   @override
   VerificationContext validateIntegrity(
-    Insertable<AlfaConversation> instance, {
+    Insertable<GraceConversation> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -2780,9 +2780,9 @@ class $AlfaConversationsTable extends AlfaConversations
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  AlfaConversation map(Map<String, dynamic> data, {String? tablePrefix}) {
+  GraceConversation map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return AlfaConversation(
+    return GraceConversation(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -2811,20 +2811,20 @@ class $AlfaConversationsTable extends AlfaConversations
   }
 
   @override
-  $AlfaConversationsTable createAlias(String alias) {
-    return $AlfaConversationsTable(attachedDatabase, alias);
+  $GraceConversationsTable createAlias(String alias) {
+    return $GraceConversationsTable(attachedDatabase, alias);
   }
 }
 
-class AlfaConversation extends DataClass
-    implements Insertable<AlfaConversation> {
+class GraceConversation extends DataClass
+    implements Insertable<GraceConversation> {
   final int id;
   final String? projectCwd;
   final String role;
   final String content;
   final String? toolCalls;
   final DateTime createdAt;
-  const AlfaConversation({
+  const GraceConversation({
     required this.id,
     this.projectCwd,
     required this.role,
@@ -2848,8 +2848,8 @@ class AlfaConversation extends DataClass
     return map;
   }
 
-  AlfaConversationsCompanion toCompanion(bool nullToAbsent) {
-    return AlfaConversationsCompanion(
+  GraceConversationsCompanion toCompanion(bool nullToAbsent) {
+    return GraceConversationsCompanion(
       id: Value(id),
       projectCwd: projectCwd == null && nullToAbsent
           ? const Value.absent()
@@ -2863,12 +2863,12 @@ class AlfaConversation extends DataClass
     );
   }
 
-  factory AlfaConversation.fromJson(
+  factory GraceConversation.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return AlfaConversation(
+    return GraceConversation(
       id: serializer.fromJson<int>(json['id']),
       projectCwd: serializer.fromJson<String?>(json['projectCwd']),
       role: serializer.fromJson<String>(json['role']),
@@ -2890,14 +2890,14 @@ class AlfaConversation extends DataClass
     };
   }
 
-  AlfaConversation copyWith({
+  GraceConversation copyWith({
     int? id,
     Value<String?> projectCwd = const Value.absent(),
     String? role,
     String? content,
     Value<String?> toolCalls = const Value.absent(),
     DateTime? createdAt,
-  }) => AlfaConversation(
+  }) => GraceConversation(
     id: id ?? this.id,
     projectCwd: projectCwd.present ? projectCwd.value : this.projectCwd,
     role: role ?? this.role,
@@ -2905,8 +2905,8 @@ class AlfaConversation extends DataClass
     toolCalls: toolCalls.present ? toolCalls.value : this.toolCalls,
     createdAt: createdAt ?? this.createdAt,
   );
-  AlfaConversation copyWithCompanion(AlfaConversationsCompanion data) {
-    return AlfaConversation(
+  GraceConversation copyWithCompanion(GraceConversationsCompanion data) {
+    return GraceConversation(
       id: data.id.present ? data.id.value : this.id,
       projectCwd: data.projectCwd.present
           ? data.projectCwd.value
@@ -2920,7 +2920,7 @@ class AlfaConversation extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('AlfaConversation(')
+    return (StringBuffer('GraceConversation(')
           ..write('id: $id, ')
           ..write('projectCwd: $projectCwd, ')
           ..write('role: $role, ')
@@ -2937,7 +2937,7 @@ class AlfaConversation extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is AlfaConversation &&
+      (other is GraceConversation &&
           other.id == this.id &&
           other.projectCwd == this.projectCwd &&
           other.role == this.role &&
@@ -2946,14 +2946,14 @@ class AlfaConversation extends DataClass
           other.createdAt == this.createdAt);
 }
 
-class AlfaConversationsCompanion extends UpdateCompanion<AlfaConversation> {
+class GraceConversationsCompanion extends UpdateCompanion<GraceConversation> {
   final Value<int> id;
   final Value<String?> projectCwd;
   final Value<String> role;
   final Value<String> content;
   final Value<String?> toolCalls;
   final Value<DateTime> createdAt;
-  const AlfaConversationsCompanion({
+  const GraceConversationsCompanion({
     this.id = const Value.absent(),
     this.projectCwd = const Value.absent(),
     this.role = const Value.absent(),
@@ -2961,7 +2961,7 @@ class AlfaConversationsCompanion extends UpdateCompanion<AlfaConversation> {
     this.toolCalls = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
-  AlfaConversationsCompanion.insert({
+  GraceConversationsCompanion.insert({
     this.id = const Value.absent(),
     this.projectCwd = const Value.absent(),
     required String role,
@@ -2970,7 +2970,7 @@ class AlfaConversationsCompanion extends UpdateCompanion<AlfaConversation> {
     this.createdAt = const Value.absent(),
   }) : role = Value(role),
        content = Value(content);
-  static Insertable<AlfaConversation> custom({
+  static Insertable<GraceConversation> custom({
     Expression<int>? id,
     Expression<String>? projectCwd,
     Expression<String>? role,
@@ -2988,7 +2988,7 @@ class AlfaConversationsCompanion extends UpdateCompanion<AlfaConversation> {
     });
   }
 
-  AlfaConversationsCompanion copyWith({
+  GraceConversationsCompanion copyWith({
     Value<int>? id,
     Value<String?>? projectCwd,
     Value<String>? role,
@@ -2996,7 +2996,7 @@ class AlfaConversationsCompanion extends UpdateCompanion<AlfaConversation> {
     Value<String?>? toolCalls,
     Value<DateTime>? createdAt,
   }) {
-    return AlfaConversationsCompanion(
+    return GraceConversationsCompanion(
       id: id ?? this.id,
       projectCwd: projectCwd ?? this.projectCwd,
       role: role ?? this.role,
@@ -3032,7 +3032,7 @@ class AlfaConversationsCompanion extends UpdateCompanion<AlfaConversation> {
 
   @override
   String toString() {
-    return (StringBuffer('AlfaConversationsCompanion(')
+    return (StringBuffer('GraceConversationsCompanion(')
           ..write('id: $id, ')
           ..write('projectCwd: $projectCwd, ')
           ..write('role: $role, ')
@@ -3054,21 +3054,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $VaultEntriesTable vaultEntries = $VaultEntriesTable(this);
   late final $TemplatesTable templates = $TemplatesTable(this);
   late final $ProjectGroupsTable projectGroups = $ProjectGroupsTable(this);
-  late final $AlfaDecisionsTable alfaDecisions = $AlfaDecisionsTable(this);
-  late final $AlfaConversationsTable alfaConversations =
-      $AlfaConversationsTable(this);
+  late final $GraceDecisionsTable graceDecisions = $GraceDecisionsTable(this);
+  late final $GraceConversationsTable graceConversations =
+      $GraceConversationsTable(this);
   late final PresetsDao presetsDao = PresetsDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
   late final NotesDao notesDao = NotesDao(this as AppDatabase);
   late final TasksDao tasksDao = TasksDao(this as AppDatabase);
   late final VaultDao vaultDao = VaultDao(this as AppDatabase);
   late final TemplatesDao templatesDao = TemplatesDao(this as AppDatabase);
-  late final AlfaDecisionsDao alfaDecisionsDao = AlfaDecisionsDao(
+  late final GraceDecisionsDao graceDecisionsDao = GraceDecisionsDao(
     this as AppDatabase,
   );
-  late final AlfaConversationsDao alfaConversationsDao = AlfaConversationsDao(
-    this as AppDatabase,
-  );
+  late final GraceConversationsDao graceConversationsDao =
+      GraceConversationsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3081,8 +3080,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     vaultEntries,
     templates,
     projectGroups,
-    alfaDecisions,
-    alfaConversations,
+    graceDecisions,
+    graceConversations,
   ];
 }
 
@@ -4333,8 +4332,8 @@ typedef $$ProjectGroupsTableProcessedTableManager =
       ProjectGroup,
       PrefetchHooks Function()
     >;
-typedef $$AlfaDecisionsTableCreateCompanionBuilder =
-    AlfaDecisionsCompanion Function({
+typedef $$GraceDecisionsTableCreateCompanionBuilder =
+    GraceDecisionsCompanion Function({
       Value<int> id,
       required String projectCwd,
       required String summary,
@@ -4343,8 +4342,8 @@ typedef $$AlfaDecisionsTableCreateCompanionBuilder =
       Value<String> tags,
       Value<DateTime> createdAt,
     });
-typedef $$AlfaDecisionsTableUpdateCompanionBuilder =
-    AlfaDecisionsCompanion Function({
+typedef $$GraceDecisionsTableUpdateCompanionBuilder =
+    GraceDecisionsCompanion Function({
       Value<int> id,
       Value<String> projectCwd,
       Value<String> summary,
@@ -4354,9 +4353,9 @@ typedef $$AlfaDecisionsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
     });
 
-class $$AlfaDecisionsTableFilterComposer
-    extends Composer<_$AppDatabase, $AlfaDecisionsTable> {
-  $$AlfaDecisionsTableFilterComposer({
+class $$GraceDecisionsTableFilterComposer
+    extends Composer<_$AppDatabase, $GraceDecisionsTable> {
+  $$GraceDecisionsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4399,9 +4398,9 @@ class $$AlfaDecisionsTableFilterComposer
   );
 }
 
-class $$AlfaDecisionsTableOrderingComposer
-    extends Composer<_$AppDatabase, $AlfaDecisionsTable> {
-  $$AlfaDecisionsTableOrderingComposer({
+class $$GraceDecisionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GraceDecisionsTable> {
+  $$GraceDecisionsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4444,9 +4443,9 @@ class $$AlfaDecisionsTableOrderingComposer
   );
 }
 
-class $$AlfaDecisionsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $AlfaDecisionsTable> {
-  $$AlfaDecisionsTableAnnotationComposer({
+class $$GraceDecisionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GraceDecisionsTable> {
+  $$GraceDecisionsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4477,35 +4476,37 @@ class $$AlfaDecisionsTableAnnotationComposer
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
 
-class $$AlfaDecisionsTableTableManager
+class $$GraceDecisionsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $AlfaDecisionsTable,
-          AlfaDecision,
-          $$AlfaDecisionsTableFilterComposer,
-          $$AlfaDecisionsTableOrderingComposer,
-          $$AlfaDecisionsTableAnnotationComposer,
-          $$AlfaDecisionsTableCreateCompanionBuilder,
-          $$AlfaDecisionsTableUpdateCompanionBuilder,
+          $GraceDecisionsTable,
+          GraceDecision,
+          $$GraceDecisionsTableFilterComposer,
+          $$GraceDecisionsTableOrderingComposer,
+          $$GraceDecisionsTableAnnotationComposer,
+          $$GraceDecisionsTableCreateCompanionBuilder,
+          $$GraceDecisionsTableUpdateCompanionBuilder,
           (
-            AlfaDecision,
-            BaseReferences<_$AppDatabase, $AlfaDecisionsTable, AlfaDecision>,
+            GraceDecision,
+            BaseReferences<_$AppDatabase, $GraceDecisionsTable, GraceDecision>,
           ),
-          AlfaDecision,
+          GraceDecision,
           PrefetchHooks Function()
         > {
-  $$AlfaDecisionsTableTableManager(_$AppDatabase db, $AlfaDecisionsTable table)
-    : super(
+  $$GraceDecisionsTableTableManager(
+    _$AppDatabase db,
+    $GraceDecisionsTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$AlfaDecisionsTableFilterComposer($db: db, $table: table),
+              $$GraceDecisionsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$AlfaDecisionsTableOrderingComposer($db: db, $table: table),
+              $$GraceDecisionsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$AlfaDecisionsTableAnnotationComposer($db: db, $table: table),
+              $$GraceDecisionsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -4515,7 +4516,7 @@ class $$AlfaDecisionsTableTableManager
                 Value<String?> detail = const Value.absent(),
                 Value<String> tags = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
-              }) => AlfaDecisionsCompanion(
+              }) => GraceDecisionsCompanion(
                 id: id,
                 projectCwd: projectCwd,
                 summary: summary,
@@ -4533,7 +4534,7 @@ class $$AlfaDecisionsTableTableManager
                 Value<String?> detail = const Value.absent(),
                 Value<String> tags = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
-              }) => AlfaDecisionsCompanion.insert(
+              }) => GraceDecisionsCompanion.insert(
                 id: id,
                 projectCwd: projectCwd,
                 summary: summary,
@@ -4550,25 +4551,25 @@ class $$AlfaDecisionsTableTableManager
       );
 }
 
-typedef $$AlfaDecisionsTableProcessedTableManager =
+typedef $$GraceDecisionsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $AlfaDecisionsTable,
-      AlfaDecision,
-      $$AlfaDecisionsTableFilterComposer,
-      $$AlfaDecisionsTableOrderingComposer,
-      $$AlfaDecisionsTableAnnotationComposer,
-      $$AlfaDecisionsTableCreateCompanionBuilder,
-      $$AlfaDecisionsTableUpdateCompanionBuilder,
+      $GraceDecisionsTable,
+      GraceDecision,
+      $$GraceDecisionsTableFilterComposer,
+      $$GraceDecisionsTableOrderingComposer,
+      $$GraceDecisionsTableAnnotationComposer,
+      $$GraceDecisionsTableCreateCompanionBuilder,
+      $$GraceDecisionsTableUpdateCompanionBuilder,
       (
-        AlfaDecision,
-        BaseReferences<_$AppDatabase, $AlfaDecisionsTable, AlfaDecision>,
+        GraceDecision,
+        BaseReferences<_$AppDatabase, $GraceDecisionsTable, GraceDecision>,
       ),
-      AlfaDecision,
+      GraceDecision,
       PrefetchHooks Function()
     >;
-typedef $$AlfaConversationsTableCreateCompanionBuilder =
-    AlfaConversationsCompanion Function({
+typedef $$GraceConversationsTableCreateCompanionBuilder =
+    GraceConversationsCompanion Function({
       Value<int> id,
       Value<String?> projectCwd,
       required String role,
@@ -4576,8 +4577,8 @@ typedef $$AlfaConversationsTableCreateCompanionBuilder =
       Value<String?> toolCalls,
       Value<DateTime> createdAt,
     });
-typedef $$AlfaConversationsTableUpdateCompanionBuilder =
-    AlfaConversationsCompanion Function({
+typedef $$GraceConversationsTableUpdateCompanionBuilder =
+    GraceConversationsCompanion Function({
       Value<int> id,
       Value<String?> projectCwd,
       Value<String> role,
@@ -4586,9 +4587,9 @@ typedef $$AlfaConversationsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
     });
 
-class $$AlfaConversationsTableFilterComposer
-    extends Composer<_$AppDatabase, $AlfaConversationsTable> {
-  $$AlfaConversationsTableFilterComposer({
+class $$GraceConversationsTableFilterComposer
+    extends Composer<_$AppDatabase, $GraceConversationsTable> {
+  $$GraceConversationsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4626,9 +4627,9 @@ class $$AlfaConversationsTableFilterComposer
   );
 }
 
-class $$AlfaConversationsTableOrderingComposer
-    extends Composer<_$AppDatabase, $AlfaConversationsTable> {
-  $$AlfaConversationsTableOrderingComposer({
+class $$GraceConversationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GraceConversationsTable> {
+  $$GraceConversationsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4666,9 +4667,9 @@ class $$AlfaConversationsTableOrderingComposer
   );
 }
 
-class $$AlfaConversationsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $AlfaConversationsTable> {
-  $$AlfaConversationsTableAnnotationComposer({
+class $$GraceConversationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GraceConversationsTable> {
+  $$GraceConversationsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4696,41 +4697,41 @@ class $$AlfaConversationsTableAnnotationComposer
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
 
-class $$AlfaConversationsTableTableManager
+class $$GraceConversationsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $AlfaConversationsTable,
-          AlfaConversation,
-          $$AlfaConversationsTableFilterComposer,
-          $$AlfaConversationsTableOrderingComposer,
-          $$AlfaConversationsTableAnnotationComposer,
-          $$AlfaConversationsTableCreateCompanionBuilder,
-          $$AlfaConversationsTableUpdateCompanionBuilder,
+          $GraceConversationsTable,
+          GraceConversation,
+          $$GraceConversationsTableFilterComposer,
+          $$GraceConversationsTableOrderingComposer,
+          $$GraceConversationsTableAnnotationComposer,
+          $$GraceConversationsTableCreateCompanionBuilder,
+          $$GraceConversationsTableUpdateCompanionBuilder,
           (
-            AlfaConversation,
+            GraceConversation,
             BaseReferences<
               _$AppDatabase,
-              $AlfaConversationsTable,
-              AlfaConversation
+              $GraceConversationsTable,
+              GraceConversation
             >,
           ),
-          AlfaConversation,
+          GraceConversation,
           PrefetchHooks Function()
         > {
-  $$AlfaConversationsTableTableManager(
+  $$GraceConversationsTableTableManager(
     _$AppDatabase db,
-    $AlfaConversationsTable table,
+    $GraceConversationsTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$AlfaConversationsTableFilterComposer($db: db, $table: table),
+              $$GraceConversationsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$AlfaConversationsTableOrderingComposer($db: db, $table: table),
+              $$GraceConversationsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$AlfaConversationsTableAnnotationComposer(
+              $$GraceConversationsTableAnnotationComposer(
                 $db: db,
                 $table: table,
               ),
@@ -4742,7 +4743,7 @@ class $$AlfaConversationsTableTableManager
                 Value<String> content = const Value.absent(),
                 Value<String?> toolCalls = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
-              }) => AlfaConversationsCompanion(
+              }) => GraceConversationsCompanion(
                 id: id,
                 projectCwd: projectCwd,
                 role: role,
@@ -4758,7 +4759,7 @@ class $$AlfaConversationsTableTableManager
                 required String content,
                 Value<String?> toolCalls = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
-              }) => AlfaConversationsCompanion.insert(
+              }) => GraceConversationsCompanion.insert(
                 id: id,
                 projectCwd: projectCwd,
                 role: role,
@@ -4774,25 +4775,25 @@ class $$AlfaConversationsTableTableManager
       );
 }
 
-typedef $$AlfaConversationsTableProcessedTableManager =
+typedef $$GraceConversationsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $AlfaConversationsTable,
-      AlfaConversation,
-      $$AlfaConversationsTableFilterComposer,
-      $$AlfaConversationsTableOrderingComposer,
-      $$AlfaConversationsTableAnnotationComposer,
-      $$AlfaConversationsTableCreateCompanionBuilder,
-      $$AlfaConversationsTableUpdateCompanionBuilder,
+      $GraceConversationsTable,
+      GraceConversation,
+      $$GraceConversationsTableFilterComposer,
+      $$GraceConversationsTableOrderingComposer,
+      $$GraceConversationsTableAnnotationComposer,
+      $$GraceConversationsTableCreateCompanionBuilder,
+      $$GraceConversationsTableUpdateCompanionBuilder,
       (
-        AlfaConversation,
+        GraceConversation,
         BaseReferences<
           _$AppDatabase,
-          $AlfaConversationsTable,
-          AlfaConversation
+          $GraceConversationsTable,
+          GraceConversation
         >,
       ),
-      AlfaConversation,
+      GraceConversation,
       PrefetchHooks Function()
     >;
 
@@ -4813,8 +4814,8 @@ class $AppDatabaseManager {
       $$TemplatesTableTableManager(_db, _db.templates);
   $$ProjectGroupsTableTableManager get projectGroups =>
       $$ProjectGroupsTableTableManager(_db, _db.projectGroups);
-  $$AlfaDecisionsTableTableManager get alfaDecisions =>
-      $$AlfaDecisionsTableTableManager(_db, _db.alfaDecisions);
-  $$AlfaConversationsTableTableManager get alfaConversations =>
-      $$AlfaConversationsTableTableManager(_db, _db.alfaConversations);
+  $$GraceDecisionsTableTableManager get graceDecisions =>
+      $$GraceDecisionsTableTableManager(_db, _db.graceDecisions);
+  $$GraceConversationsTableTableManager get graceConversations =>
+      $$GraceConversationsTableTableManager(_db, _db.graceConversations);
 }

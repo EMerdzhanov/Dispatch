@@ -2,15 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 import '../../terminal/terminal_provider.dart';
 import '../../terminal/session_registry.dart';
 import '../../../core/models/terminal_entry.dart';
 
-List<AlfaToolEntry> terminalTools() => [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+List<GraceToolEntry> terminalTools() => [
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'spawn_terminal',
           description: 'Spawns a new terminal with a command in a project group. Returns the terminal ID.',
           inputSchema: {
@@ -26,8 +26,8 @@ List<AlfaToolEntry> terminalTools() => [
         ),
         handler: _spawnTerminal,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'write_to_terminal',
           description: 'Sends raw bytes to a terminal PTY without appending a newline.',
           inputSchema: {
@@ -41,8 +41,8 @@ List<AlfaToolEntry> terminalTools() => [
         ),
         handler: _writeToTerminal,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'run_command',
           description: 'Sends a command to a terminal followed by Enter.',
           inputSchema: {
@@ -56,8 +56,8 @@ List<AlfaToolEntry> terminalTools() => [
         ),
         handler: _runCommand,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'read_terminal',
           description: 'Returns the last N lines from a terminal output buffer.',
           inputSchema: {
@@ -71,8 +71,8 @@ List<AlfaToolEntry> terminalTools() => [
         ),
         handler: _readTerminal,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'send_key',
           description:
               'Sends a named key to a terminal PTY. '
@@ -91,8 +91,8 @@ List<AlfaToolEntry> terminalTools() => [
         ),
         handler: _sendKey,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'kill_terminal',
           description: 'Kills a terminal process and removes it from the UI.',
           inputSchema: {
@@ -105,8 +105,8 @@ List<AlfaToolEntry> terminalTools() => [
         ),
         handler: _killTerminal,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'list_terminals',
           description: 'Lists all terminals with their ID, label, status, cwd, and last activity.',
           inputSchema: {
@@ -123,7 +123,7 @@ Future<Map<String, dynamic>> _spawnTerminal(Ref ref, Map<String, dynamic> params
   final command = params['command'] as String;
   final cwd = params['cwd'] as String;
   final label = params['label'] as String?;
-  final id = 'term-${DateTime.now().millisecondsSinceEpoch}-alfa';
+  final id = 'term-${DateTime.now().millisecondsSinceEpoch}-grace';
   await Future.delayed(Duration.zero);
   ref.read(terminalsProvider.notifier).addTerminal(
         projectId,
@@ -214,7 +214,7 @@ Future<Map<String, dynamic>> _listTerminals(Ref ref, Map<String, dynamic> params
       if (t.exitCode != null) 'exit_code': t.exitCode,
       if (meta != null) 'idle_ms': meta.idleDurationMs,
       if (meta != null) 'activity': meta.activityStatus,
-      'is_alfa': t.id.endsWith('-alfa'),
+      'is_grace': t.id.endsWith('-grace'),
     };
   }).toList();
   return {'terminals': list, 'count': list.length};

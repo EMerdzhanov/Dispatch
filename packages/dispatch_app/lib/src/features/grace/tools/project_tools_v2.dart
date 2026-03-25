@@ -1,10 +1,10 @@
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 import '../default_identity.dart';
 
-List<AlfaToolEntry> projectToolsV2() => [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+List<GraceToolEntry> projectToolsV2() => [
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'read_project',
           description: 'Read the project context file for a given CWD. Path is auto-slugified.',
           inputSchema: {
@@ -17,8 +17,8 @@ List<AlfaToolEntry> projectToolsV2() => [
         ),
         handler: (ref, params) => _readProject(params),
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'update_project',
           description: 'Overwrite the project context file. Read first, modify, write back.',
           inputSchema: {

@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 import '../../projects/projects_provider.dart';
 
-List<AlfaToolEntry> codeTools() => [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+List<GraceToolEntry> codeTools() => [
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'search_codebase',
           description:
               'Search all code files in the active project for a text pattern. '
@@ -44,8 +44,8 @@ List<AlfaToolEntry> codeTools() => [
         ),
         handler: _searchCodebase,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'get_symbol',
           description:
               'Find where a function, class, or variable is defined in the codebase. '
@@ -69,8 +69,8 @@ List<AlfaToolEntry> codeTools() => [
         ),
         handler: _getSymbol,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'get_references',
           description:
               'Find all places in the codebase that reference (call or import) a symbol. '

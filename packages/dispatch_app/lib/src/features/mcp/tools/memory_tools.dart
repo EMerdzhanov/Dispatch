@@ -5,13 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../mcp_tools.dart';
 import '../../projects/projects_provider.dart';
-import '../../alfa/default_identity.dart';
+import '../../grace/default_identity.dart';
 
 List<McpToolDefinition> memoryTools() => [
       McpToolDefinition(
         name: 'read_memory',
         description:
-            'Reads Alfa\'s persistent memory file (~/.config/dispatch/alfa/memory.md). '
+            'Reads Grace\'s persistent memory file (~/.config/dispatch/grace/memory.md). '
             'Contains user preferences, communication style, technical preferences, '
             'and known context that persists across sessions.',
         inputSchema: {'type': 'object', 'properties': {}},
@@ -20,7 +20,7 @@ List<McpToolDefinition> memoryTools() => [
       McpToolDefinition(
         name: 'update_memory',
         description:
-            'Overwrites Alfa\'s persistent memory file. Read first with read_memory, '
+            'Overwrites Grace\'s persistent memory file. Read first with read_memory, '
             'modify the content, then write back the full content. '
             'Use this to record user preferences, corrections, and learned context.',
         inputSchema: {
@@ -79,7 +79,7 @@ List<McpToolDefinition> memoryTools() => [
       McpToolDefinition(
         name: 'append_log',
         description:
-            'Appends a timestamped entry to Alfa\'s log file. '
+            'Appends a timestamped entry to Grace\'s log file. '
             'Use for decisions, task completions, errors, and significant events. '
             'Automatically prunes oldest entries when file exceeds 500 lines.',
         inputSchema: {
@@ -97,7 +97,7 @@ List<McpToolDefinition> memoryTools() => [
       McpToolDefinition(
         name: 'read_log',
         description:
-            'Reads the last N entries from Alfa\'s log file. '
+            'Reads the last N entries from Grace\'s log file. '
             'Default: 20 lines.',
         inputSchema: {
           'type': 'object',

@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'alfa_types.dart';
+import 'grace_types.dart';
 import 'agents_state.dart';
 import 'default_identity.dart';
 import '../../persistence/auto_save.dart';
@@ -14,24 +14,24 @@ import '../terminal/terminal_provider.dart';
 
 /// Persistent loop state written to loop_state.json.
 class LoopState {
-  final Set<int> handledAlfaTasks;
+  final Set<int> handledGraceTasks;
   final Set<String> flaggedTerminals;
   final DateTime? lastGitCheck;
   final DateTime? lastTick;
   final List<String> activeAlerts;
 
   LoopState({
-    Set<int>? handledAlfaTasks,
+    Set<int>? handledGraceTasks,
     Set<String>? flaggedTerminals,
     this.lastGitCheck,
     this.lastTick,
     List<String>? activeAlerts,
-  })  : handledAlfaTasks = handledAlfaTasks ?? {},
+  })  : handledGraceTasks = handledGraceTasks ?? {},
         flaggedTerminals = flaggedTerminals ?? {},
         activeAlerts = activeAlerts ?? [];
 
   Map<String, dynamic> toJson() => {
-        'handled_alfa_tasks': handledAlfaTasks.toList(),
+        'handled_grace_tasks': handledGraceTasks.toList(),
         'flagged_terminals': flaggedTerminals.toList(),
         'last_git_check': lastGitCheck?.toIso8601String(),
         'last_tick': lastTick?.toIso8601String(),
@@ -39,8 +39,8 @@ class LoopState {
       };
 
   factory LoopState.fromJson(Map<String, dynamic> json) => LoopState(
-        handledAlfaTasks:
-            (json['handled_alfa_tasks'] as List<dynamic>?)?.map((e) => e as int).toSet(),
+        handledGraceTasks:
+            (json['handled_grace_tasks'] as List<dynamic>?)?.map((e) => e as int).toSet(),
         flaggedTerminals:
             (json['flagged_terminals'] as List<dynamic>?)?.map((e) => e as String).toSet(),
         lastGitCheck: json['last_git_check'] != null
@@ -59,7 +59,7 @@ class LoopState {
 class BackgroundLoop {
   final Ref ref;
   final AgentsState agentsState;
-  final void Function(AlfaChatEvent event) onEvent;
+  final void Function(GraceChatEvent event) onEvent;
   final Duration interval;
 
   Timer? _timer;
@@ -132,7 +132,7 @@ class BackgroundLoop {
 
     _tickCount++;
     _state = LoopState(
-      handledAlfaTasks: _state.handledAlfaTasks,
+      handledGraceTasks: _state.handledGraceTasks,
       flaggedTerminals: _state.flaggedTerminals,
       lastGitCheck: _state.lastGitCheck,
       lastTick: DateTime.now().toUtc(),
@@ -140,18 +140,18 @@ class BackgroundLoop {
     );
 
     try {
-      await _checkAlfaTasks();
+      await _checkGraceTasks();
       await _checkServerHealth();
       await _checkBuildErrors();
       await _checkApprovalWaiting();
       if (_tickCount % 5 == 0) await _checkGitStatus();
-      await _checkAlfaTaskCompletion();
+      await _checkGraceTaskCompletion();
     } catch (_) {}
 
     await _saveState();
   }
 
-  Future<void> _checkAlfaTasks() async {
+  Future<void> _checkGraceTasks() async {
     final cwd = _getActiveCwd();
     if (cwd == null) return;
 
@@ -161,7 +161,7 @@ class BackgroundLoop {
     for (final task in tasks) {
       if (task.done) continue;
       if (!task.title.toLowerCase().startsWith('[grace]')) continue;
-      if (_state.handledAlfaTasks.contains(task.id)) continue;
+      if (_state.handledGraceTasks.contains(task.id)) continue;
 
       final agentState = await agentsState.readState();
       final agents = (agentState['agents'] as Map<String, dynamic>?) ?? {};
@@ -172,14 +172,14 @@ class BackgroundLoop {
       });
 
       if (!alreadyHandled) {
-        _state.handledAlfaTasks.add(task.id);
-        onEvent(AlfaChatEvent.alfa(
+        _state.handledGraceTasks.add(task.id);
+        onEvent(GraceChatEvent.grace(
           '[Background] New [GRACE] task: "${task.title}". Injecting.',
         ));
         final message = 'New task assigned: ${task.title}'
             '${task.description.isNotEmpty ? '. Details: ${task.description}' : ''}. '
             'Handle this now.';
-        onEvent(AlfaChatEvent.human(message));
+        onEvent(GraceChatEvent.human(message));
       }
     }
   }
@@ -213,7 +213,7 @@ class BackgroundLoop {
           _state.flaggedTerminals.add(key);
           _state.activeAlerts
               .add('Server in $id may have crashed — no output for 5+ minutes');
-          onEvent(AlfaChatEvent.alfa(
+          onEvent(GraceChatEvent.grace(
             '[Background] Dev server in $id may have crashed — '
             'no output for ${idleSeconds ~/ 60} minutes.',
           ));
@@ -229,7 +229,7 @@ class BackgroundLoop {
       final id = entry.key;
       final record = entry.value;
 
-      if (id.endsWith('-alfa') || id.endsWith('-mcp')) continue;
+      if (id.endsWith('-grace') || id.endsWith('-mcp')) continue;
 
       final output = record.outputBuffer.toList();
       if (output.isEmpty) continue;
@@ -245,7 +245,7 @@ class BackgroundLoop {
       if (hasError && !_state.flaggedTerminals.contains(flagKey)) {
         _state.flaggedTerminals.add(flagKey);
         _state.activeAlerts.add('Build/test error detected in $id');
-        onEvent(AlfaChatEvent.alfa(
+        onEvent(GraceChatEvent.grace(
           '[Background] Build/test error detected in terminal $id.',
         ));
       } else if (!hasError && _state.flaggedTerminals.contains(flagKey)) {
@@ -293,7 +293,7 @@ class BackgroundLoop {
 
       final output = (result.stdout as String).trim();
       _state = LoopState(
-        handledAlfaTasks: _state.handledAlfaTasks,
+        handledGraceTasks: _state.handledGraceTasks,
         flaggedTerminals: _state.flaggedTerminals,
         lastGitCheck: DateTime.now().toUtc(),
         lastTick: _state.lastTick,
@@ -325,7 +325,7 @@ class BackgroundLoop {
             _state.flaggedTerminals.add(flagKey);
             _state.activeAlerts
                 .add('Uncommitted changes older than ${age.inHours} hours');
-            onEvent(AlfaChatEvent.alfa(
+            onEvent(GraceChatEvent.grace(
               '[Background] Uncommitted changes older than ${age.inHours} hours. '
               '${files.length} file(s) modified.',
             ));
@@ -335,7 +335,7 @@ class BackgroundLoop {
     } catch (_) {}
   }
 
-  Future<void> _checkAlfaTaskCompletion() async {
+  Future<void> _checkGraceTaskCompletion() async {
     final cwd = _getActiveCwd();
     if (cwd == null) return;
 
@@ -348,7 +348,7 @@ class BackgroundLoop {
     for (final task in tasks) {
       if (task.done) continue;
       if (!task.title.toLowerCase().startsWith('[grace]')) continue;
-      if (!_state.handledAlfaTasks.contains(task.id)) continue;
+      if (!_state.handledGraceTasks.contains(task.id)) continue;
 
       final handlingAgent = agents.entries.where((e) {
         final agent = e.value as Map<String, dynamic>;
@@ -362,8 +362,8 @@ class BackgroundLoop {
 
       if (status == 'done' || status == 'completed') {
         await db.tasksDao.markDone(task.id);
-        _state.handledAlfaTasks.remove(task.id);
-        onEvent(AlfaChatEvent.alfa(
+        _state.handledGraceTasks.remove(task.id);
+        onEvent(GraceChatEvent.grace(
           '[Background] [GRACE] task "${task.title}" completed by ${handlingAgent.key}.',
         ));
       }
@@ -407,7 +407,7 @@ class BackgroundLoop {
         'tick_count': _tickCount,
         'last_tick': _state.lastTick?.toIso8601String(),
         'last_git_check': _state.lastGitCheck?.toIso8601String(),
-        'handled_alfa_tasks': _state.handledAlfaTasks.toList(),
+        'handled_grace_tasks': _state.handledGraceTasks.toList(),
         'flagged_terminals': _state.flaggedTerminals.toList(),
         'active_alerts': _state.activeAlerts,
       };

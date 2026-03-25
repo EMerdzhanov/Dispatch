@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../mcp_tools.dart';
 import '../../projects/projects_provider.dart';
 
-/// MCP-exposed code search tools — mirrors the Alfa tools but accessible
+/// MCP-exposed code search tools — mirrors the Grace tools but accessible
 /// from external agents via the MCP server.
 List<McpToolDefinition> codeSearchTools() => [
       McpToolDefinition(
@@ -70,7 +70,7 @@ List<McpToolDefinition> codeSearchTools() => [
     ];
 
 // ---------------------------------------------------------------------------
-// Handlers (duplicated from alfa/tools/code_tools.dart to avoid circular deps)
+// Handlers (duplicated from grace/tools/code_tools.dart to avoid circular deps)
 // ---------------------------------------------------------------------------
 
 Future<Map<String, dynamic>> _searchCodebase(

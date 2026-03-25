@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../settings/settings_provider.dart';
 import '../projects/project_panel.dart';
-import '../alfa/alfa_panel.dart';
+import '../grace/grace_panel.dart';
 import 'file_tree.dart';
 
 /// Collapsible right panel containing File Tree and Tasks/Notes/Vault.
@@ -17,7 +17,7 @@ class RightPanel extends ConsumerStatefulWidget {
 
 class _RightPanelState extends ConsumerState<RightPanel> {
   bool _collapsed = false;
-  String _tab = 'alfa'; // 'files' | 'project' | 'alfa'
+  String _tab = 'grace'; // 'files' | 'project' | 'grace'
 
   @override
   Widget build(BuildContext context) {
@@ -71,8 +71,8 @@ class _RightPanelState extends ConsumerState<RightPanel> {
                       children: [
                         _PanelTab(
                           label: 'GRACE',
-                          active: _tab == 'alfa',
-                          onTap: () => setState(() => _tab = 'alfa'),
+                          active: _tab == 'grace',
+                          onTap: () => setState(() => _tab = 'grace'),
                           theme: theme,
                         ),
                         _PanelTab(
@@ -112,11 +112,11 @@ class _RightPanelState extends ConsumerState<RightPanel> {
             child: switch (_tab) {
               'files' => const FileTree(),
               'project' => const ProjectPanel(),
-              'alfa' => Navigator(
+              'grace' => Navigator(
                 onGenerateRoute: (_) => MaterialPageRoute(
                   builder: (_) => const Material(
                     type: MaterialType.transparency,
-                    child: AlfaPanel(),
+                    child: GracePanel(),
                   ),
                 ),
               ),
@@ -124,7 +124,7 @@ class _RightPanelState extends ConsumerState<RightPanel> {
                 onGenerateRoute: (_) => MaterialPageRoute(
                   builder: (_) => const Material(
                     type: MaterialType.transparency,
-                    child: AlfaPanel(),
+                    child: GracePanel(),
                   ),
                 ),
               ),

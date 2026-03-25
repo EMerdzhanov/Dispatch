@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 
-List<AlfaToolEntry> filesystemTools() => [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+List<GraceToolEntry> filesystemTools() => [
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'read_file',
           description: 'Reads a file contents. Path must be within a known project CWD.',
           inputSchema: {
@@ -18,8 +18,8 @@ List<AlfaToolEntry> filesystemTools() => [
         ),
         handler: _readFile,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'list_directory',
           description: 'Lists directory contents.',
           inputSchema: {
@@ -33,8 +33,8 @@ List<AlfaToolEntry> filesystemTools() => [
         ),
         handler: _listDirectory,
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'run_shell_command',
           description: 'Runs a shell command and returns stdout/stderr. 30-second default timeout. For quick operations only — use spawn_terminal for long-running processes.',
           inputSchema: {

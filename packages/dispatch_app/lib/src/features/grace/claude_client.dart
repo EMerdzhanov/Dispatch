@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'alfa_types.dart';
+import 'grace_types.dart';
 
 /// HTTP client for Claude Messages API with streaming support.
 class ClaudeClient {
@@ -22,8 +22,8 @@ class ClaudeClient {
   /// Returns the stop reason.
   Future<ClaudeResponse> sendMessage({
     required String systemPrompt,
-    required List<AlfaMessage> messages,
-    required List<AlfaToolDefinition> tools,
+    required List<GraceMessage> messages,
+    required List<GraceToolDefinition> tools,
     int maxTokens = 8096,
     void Function(String delta)? onTextDelta,
   }) async {
@@ -54,7 +54,7 @@ class ClaudeClient {
 
     // Parse SSE stream
     final textBuffer = StringBuffer();
-    final toolUses = <AlfaToolUse>[];
+    final toolUses = <GraceToolUse>[];
     String stopReason = 'end_turn';
 
     // Track tool_use blocks being built
@@ -104,7 +104,7 @@ class ClaudeClient {
                 input = jsonDecode(inputStr) as Map<String, dynamic>;
               } catch (_) {}
             }
-            toolUses.add(AlfaToolUse(
+            toolUses.add(GraceToolUse(
               id: currentToolId,
               name: currentToolName,
               input: input,
@@ -132,7 +132,7 @@ class ClaudeClient {
 
 class ClaudeResponse {
   final String text;
-  final List<AlfaToolUse> toolUses;
+  final List<GraceToolUse> toolUses;
   final String stopReason;
 
   const ClaudeResponse({

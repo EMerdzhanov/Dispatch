@@ -9,7 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/color_theme.dart';
 import '../../core/models/preset.dart' as preset_model;
 import '../../persistence/auto_save.dart';
-import '../alfa/alfa_provider.dart';
+import '../grace/grace_provider.dart';
 import '../presets/presets_provider.dart';
 import '../terminal/templates_provider.dart';
 import 'settings_provider.dart';
@@ -43,11 +43,11 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
   late bool _notificationsEnabled;
   late bool _soundEnabled;
 
-  // Alfa settings
-  late TextEditingController _alfaApiKeyCtrl;
-  late TextEditingController _alfaModelCtrl;
-  bool _alfaLoaded = false;
-  String? _alfaStatus; // null = no status, 'saving', 'connected', 'error: ...'
+  // Grace settings
+  late TextEditingController _graceApiKeyCtrl;
+  late TextEditingController _graceModelCtrl;
+  bool _graceLoaded = false;
+  String? _graceStatus; // null = no status, 'saving', 'connected', 'error: ...'
 
   // Settings tab
   int _tabIndex = 0; // 0 = General, 1 = Agents
@@ -67,8 +67,8 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     _fontFamilyCtrl = TextEditingController();
     _fontSizeCtrl = TextEditingController();
     _lineHeightCtrl = TextEditingController();
-    _alfaApiKeyCtrl = TextEditingController();
-    _alfaModelCtrl = TextEditingController(text: 'claude-sonnet-4-6');
+    _graceApiKeyCtrl = TextEditingController();
+    _graceModelCtrl = TextEditingController(text: 'claude-sonnet-4-6');
   }
 
   @override
@@ -77,8 +77,8 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     _fontFamilyCtrl.dispose();
     _fontSizeCtrl.dispose();
     _lineHeightCtrl.dispose();
-    _alfaApiKeyCtrl.dispose();
-    _alfaModelCtrl.dispose();
+    _graceApiKeyCtrl.dispose();
+    _graceModelCtrl.dispose();
     super.dispose();
   }
 
@@ -93,34 +93,34 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
     _soundEnabled = s.soundEnabled;
     _initialized = true;
 
-    if (!_alfaLoaded) {
-      _alfaLoaded = true;
-      _loadAlfaSettings();
+    if (!_graceLoaded) {
+      _graceLoaded = true;
+      _loadGraceSettings();
     }
   }
 
-  Future<void> _loadAlfaSettings() async {
+  Future<void> _loadGraceSettings() async {
     final db = ref.read(databaseProvider);
     final apiKey = await db.settingsDao.getValue('grace.api_key');
     final model = await db.settingsDao.getValue('grace.model');
     if (mounted) {
       setState(() {
-        if (apiKey != null) _alfaApiKeyCtrl.text = apiKey;
-        if (model != null) _alfaModelCtrl.text = model;
+        if (apiKey != null) _graceApiKeyCtrl.text = apiKey;
+        if (model != null) _graceModelCtrl.text = model;
       });
     }
   }
 
-  Future<void> _saveAlfaAndTest() async {
-    final apiKey = _alfaApiKeyCtrl.text.trim();
-    final model = _alfaModelCtrl.text.trim();
+  Future<void> _saveGraceAndTest() async {
+    final apiKey = _graceApiKeyCtrl.text.trim();
+    final model = _graceModelCtrl.text.trim();
 
     if (apiKey.isEmpty) {
-      setState(() => _alfaStatus = 'error: API key is required');
+      setState(() => _graceStatus = 'error: API key is required');
       return;
     }
 
-    setState(() => _alfaStatus = 'saving');
+    setState(() => _graceStatus = 'saving');
 
     final db = ref.read(databaseProvider);
     await db.settingsDao.setValue('grace.api_key', apiKey);
@@ -148,19 +148,19 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
         if (response.statusCode == 200) {
           // Obscure the key after successful save
           final masked = '${apiKey.substring(0, 7)}..${apiKey.substring(apiKey.length - 4)}';
-          _alfaApiKeyCtrl.text = masked;
-          setState(() => _alfaStatus = 'connected');
+          _graceApiKeyCtrl.text = masked;
+          setState(() => _graceStatus = 'connected');
           // Re-initialize Grace with the new key
-          ref.read(alfaProvider.notifier).initialize();
+          ref.read(graceProvider.notifier).initialize();
         } else if (response.statusCode == 401) {
-          setState(() => _alfaStatus = 'error: Invalid API key');
+          setState(() => _graceStatus = 'error: Invalid API key');
         } else {
-          setState(() => _alfaStatus = 'error: HTTP ${response.statusCode}');
+          setState(() => _graceStatus = 'error: HTTP ${response.statusCode}');
         }
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _alfaStatus = 'error: $e');
+        setState(() => _graceStatus = 'error: $e');
       }
     }
   }
@@ -191,7 +191,7 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
   @override
   void didUpdateWidget(SettingsPanel old) {
     super.didUpdateWidget(old);
-    if (widget.open && !old.open) { _initialized = false; _alfaLoaded = false; }
+    if (widget.open && !old.open) { _initialized = false; _graceLoaded = false; }
   }
 
   @override
@@ -381,13 +381,13 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
 
                           // === Grace Section ===
                           _sectionTitle(theme, 'Grace'),
-                          _settingsRow(theme, 'API Key', _alfaApiKeyCtrl, wide: true),
-                          _settingsRow(theme, 'Model', _alfaModelCtrl, wide: true),
+                          _settingsRow(theme, 'API Key', _graceApiKeyCtrl, wide: true),
+                          _settingsRow(theme, 'Model', _graceModelCtrl, wide: true),
                           const SizedBox(height: 8),
                           Row(
                             children: [
                               GestureDetector(
-                                onTap: _alfaStatus == 'saving' ? null : _saveAlfaAndTest,
+                                onTap: _graceStatus == 'saving' ? null : _saveGraceAndTest,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                                   decoration: BoxDecoration(
@@ -395,13 +395,13 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    _alfaStatus == 'saving' ? 'Saving...' : 'Save & Connect',
+                                    _graceStatus == 'saving' ? 'Saving...' : 'Save & Connect',
                                     style: const TextStyle(color: Colors.white, fontSize: 12),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              if (_alfaStatus == 'connected')
+                              if (_graceStatus == 'connected')
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -413,10 +413,10 @@ class _SettingsPanelState extends ConsumerState<SettingsPanel> {
                                     Text('Connected', style: TextStyle(color: Colors.green, fontSize: 12)),
                                   ],
                                 )
-                              else if (_alfaStatus != null && _alfaStatus!.startsWith('error:'))
+                              else if (_graceStatus != null && _graceStatus!.startsWith('error:'))
                                 Flexible(
                                   child: Text(
-                                    _alfaStatus!.substring(7),
+                                    _graceStatus!.substring(7),
                                     style: TextStyle(color: theme.accentRed, fontSize: 11),
                                     overflow: TextOverflow.ellipsis,
                                   ),

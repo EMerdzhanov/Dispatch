@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 
-List<AlfaToolEntry> knowledgeTools() => [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+List<GraceToolEntry> knowledgeTools() => [
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'scan_project',
           description: 'Quick filesystem scan of a project directory. Detects language, framework, build files, entry points, test commands.',
           inputSchema: {

@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../mcp_tools.dart';
 import '../../projects/projects_provider.dart';
-import '../../alfa/alfa_provider.dart';
+import '../../grace/grace_provider.dart';
 import '../../../persistence/auto_save.dart';
 
 List<McpToolDefinition> tasksTools() => [
@@ -127,9 +127,9 @@ Future<Map<String, dynamic>> _addTask(
     description: description,
   );
 
-  // [ALFA] prefix detection — notify Alfa orchestrator
-  if (title.toLowerCase().startsWith('[alfa]')) {
-    ref.read(alfaProvider.notifier).injectTask(title, description);
+  // [GRACE] prefix detection — notify Grace orchestrator
+  if (title.toLowerCase().startsWith('[grace]')) {
+    ref.read(graceProvider.notifier).injectTask(title, description);
   }
 
   return {'id': id, 'status': 'created'};

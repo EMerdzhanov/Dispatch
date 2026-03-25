@@ -1,10 +1,10 @@
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../tool_executor.dart';
 import '../playbook_loader.dart';
 
-List<AlfaToolEntry> playbookTools(PlaybookLoader loader) => [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+List<GraceToolEntry> playbookTools(PlaybookLoader loader) => [
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'load_playbook',
           description: 'List available playbooks or load one by name. Use action "list" or "load".',
           inputSchema: {
@@ -18,8 +18,8 @@ List<AlfaToolEntry> playbookTools(PlaybookLoader loader) => [
         ),
         handler: (ref, params) => _loadPlaybook(loader, params),
       ),
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'save_playbook',
           description: 'Create or update a playbook markdown file. Only after human approval.',
           inputSchema: {

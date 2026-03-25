@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../alfa_types.dart';
+import '../grace_types.dart';
 import '../agents_state.dart';
 import '../tool_executor.dart';
 import '../../projects/projects_provider.dart';
@@ -29,13 +29,13 @@ final _defaultCompletionSignals = [
   RegExp(r'gemini>\s*$', multiLine: true),
 ];
 
-List<AlfaToolEntry> delegateTools(
+List<GraceToolEntry> delegateTools(
   AgentsState agentsState,
-  void Function(AlfaChatEvent) onEvent,
+  void Function(GraceChatEvent) onEvent,
 ) =>
     [
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'delegate_to_agent',
           description:
               'Delegate a task to a subagent (claude, gemini, codex, or bash) '
@@ -43,7 +43,7 @@ List<AlfaToolEntry> delegateTools(
               'completed status, summary, and output preview. '
               'This is the correct way to assign work to a subagent — '
               'do NOT manually spawn + run_command + poll. '
-              'Alfa is the orchestrator; subagents do the execution. '
+              'Grace is the orchestrator; subagents do the execution. '
               'Call route_task + get_agent_status first if unsure which agent to use.',
           inputSchema: {
             'type': 'object',
@@ -87,8 +87,8 @@ List<AlfaToolEntry> delegateTools(
             _delegateToAgent(ref, params, agentsState, onEvent),
       ),
 
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'list_subagents',
           description:
               'List all active subagent terminals with ID, agent type, task, '
@@ -98,8 +98,8 @@ List<AlfaToolEntry> delegateTools(
         handler: (ref, params) => _listSubagents(ref, agentsState),
       ),
 
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'read_subagent_output',
           description:
               'Read the latest output from a running subagent without interrupting it.',
@@ -115,8 +115,8 @@ List<AlfaToolEntry> delegateTools(
         handler: (ref, params) => _readSubagentOutput(ref, params),
       ),
 
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'send_to_subagent',
           description:
               'Send a follow-up message or clarification to a running subagent. '
@@ -133,8 +133,8 @@ List<AlfaToolEntry> delegateTools(
         handler: (ref, params) => _sendToSubagent(ref, params),
       ),
 
-      AlfaToolEntry(
-        definition: const AlfaToolDefinition(
+      GraceToolEntry(
+        definition: const GraceToolDefinition(
           name: 'cancel_subagent',
           description:
               'Cancel a running subagent: sends Ctrl-C, kills terminal, removes from UI, cleans agents.json.',
@@ -155,7 +155,7 @@ Future<Map<String, dynamic>> _delegateToAgent(
   Ref ref,
   Map<String, dynamic> params,
   AgentsState agentsState,
-  void Function(AlfaChatEvent) onEvent,
+  void Function(GraceChatEvent) onEvent,
 ) async {
   final agent = params['agent'] as String;
   final task = params['task'] as String;
@@ -170,7 +170,7 @@ Future<Map<String, dynamic>> _delegateToAgent(
   final command = _agentCommands[agent];
   if (command == null) return {'error': 'Unknown agent: $agent'};
 
-  final terminalId = 'term-${DateTime.now().millisecondsSinceEpoch}-alfa';
+  final terminalId = 'term-${DateTime.now().millisecondsSinceEpoch}-grace';
   final projectId = _activeProjectId(ref) ?? '';
   final label =
       '[$agent] ${task.length > 40 ? '${task.substring(0, 40)}...' : task}';
@@ -196,7 +196,7 @@ Future<Map<String, dynamic>> _delegateToAgent(
   );
 
   final shortTask = task.length > 80 ? '${task.substring(0, 80)}...' : task;
-  onEvent(AlfaChatEvent.alfa(
+  onEvent(GraceChatEvent.grace(
       '[Delegate] Spawned $agent → $terminalId\nTask: "$shortTask"'));
 
   // Wait for PTY (up to 5s)
@@ -275,7 +275,7 @@ Future<Map<String, dynamic>> _delegateToAgent(
   await agentsState.updateAgent(terminalId,
       status: completed ? 'done' : 'timeout');
 
-  onEvent(AlfaChatEvent.alfa(
+  onEvent(GraceChatEvent.grace(
       '[Delegate] $agent $terminalId ${completed ? "✓ done" : "✗ timeout"}: ${result['summary']}'));
 
   return {
@@ -408,7 +408,7 @@ Future<Map<String, dynamic>> _cancelSubagent(
   AgentsState agentsState,
 ) async {
   final terminalId = params['terminal_id'] as String;
-  final reason = (params['reason'] as String?) ?? 'Cancelled by Alfa';
+  final reason = (params['reason'] as String?) ?? 'Cancelled by Grace';
 
   final pty = ref.read(sessionRegistryProvider.notifier).getPty(terminalId);
   if (pty != null) {
