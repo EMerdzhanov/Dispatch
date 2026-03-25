@@ -6,8 +6,9 @@ import '../settings/settings_provider.dart';
 import '../notes/notes_panel.dart';
 import '../tasks/tasks_panel.dart';
 import '../vault/vault_panel.dart';
+import '../sidebar/memory_panel.dart';
 
-enum _ProjectTab { tasks, notes, vault }
+enum _ProjectTab { tasks, notes, vault, memory }
 
 class ProjectPanel extends ConsumerStatefulWidget {
   const ProjectPanel({super.key});
@@ -47,6 +48,8 @@ class _ProjectPanelState extends ConsumerState<ProjectPanel> {
         return const NotesPanel();
       case _ProjectTab.vault:
         return const VaultPanel();
+      case _ProjectTab.memory:
+        return const MemoryPanel();
     }
   }
 }
@@ -76,6 +79,7 @@ class _TabBar extends StatelessWidget {
               _ProjectTab.tasks => '\u2611',  // ☑
               _ProjectTab.notes => '\u{1F4DD}', // 📝
               _ProjectTab.vault => '\u{1F511}', // 🔑
+              _ProjectTab.memory => '\u{1F9E0}', // 🧠
             };
             final label = tab.name[0].toUpperCase() + tab.name.substring(1);
             return _TabButton(
