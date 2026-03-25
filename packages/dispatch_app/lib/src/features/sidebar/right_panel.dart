@@ -16,7 +16,12 @@ class RightPanel extends ConsumerStatefulWidget {
 }
 
 class _RightPanelState extends ConsumerState<RightPanel> {
+  static const _minWidth = 220.0;
+  static const _maxWidth = 500.0;
+  static const _defaultWidth = 320.0;
+
   bool _collapsed = false;
+  double _width = _defaultWidth;
   String _tab = 'grace'; // 'files' | 'project' | 'grace'
 
   @override
@@ -45,12 +50,29 @@ class _RightPanelState extends ConsumerState<RightPanel> {
       );
     }
 
-    return Container(
-      width: 260,
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border(left: BorderSide(color: theme.border, width: AppTheme.borderWidth)),
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MouseRegion(
+          cursor: SystemMouseCursors.resizeColumn,
+          child: GestureDetector(
+            onHorizontalDragUpdate: (details) {
+              setState(() {
+                _width = (_width - details.delta.dx).clamp(_minWidth, _maxWidth);
+              });
+            },
+            child: Container(
+              width: 4,
+              color: theme.border.withValues(alpha: 0.3),
+            ),
+          ),
+        ),
+        Container(
+          width: _width,
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border(left: BorderSide(color: theme.border, width: AppTheme.borderWidth)),
+          ),
       child: Column(
         children: [
           // Header with tabs and collapse button
@@ -132,6 +154,8 @@ class _RightPanelState extends ConsumerState<RightPanel> {
           ),
         ],
       ),
+    ),
+      ],
     );
   }
 }
