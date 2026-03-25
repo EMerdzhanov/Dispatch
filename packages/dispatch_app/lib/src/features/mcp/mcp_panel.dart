@@ -267,201 +267,264 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                           ),
                         ),
                         if (_publicAccessOpen) ...[
-                          // ── Named Cloudflare Tunnel ──
-                          if (mcpState.cloudflaredAvailable) ...[
-                            const SizedBox(height: 12),
-                            _sectionLabel('NAMED TUNNEL', theme),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Permanent URL using your own domain.\n'
-                              'Requires a Cloudflare account.',
-                              style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
-                            ),
-                            const SizedBox(height: 10),
-                            GestureDetector(
-                              onTap: () => setState(() => _namedTunnelOpen = !_namedTunnelOpen),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    _namedTunnelOpen ? Icons.expand_less : Icons.expand_more,
-                                    size: 12,
-                                    color: theme.textSecondary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text('Setup instructions', style: TextStyle(color: theme.accentBlue, fontSize: 10)),
-                                ],
-                              ),
-                            ),
-                            if (_namedTunnelOpen) ...[
-                              const SizedBox(height: 8),
-                              _stepHeader('1. Install cloudflared', theme),
-                              const SizedBox(height: 4),
-                              _codeBlock('brew install cloudflared', theme),
-                              const SizedBox(height: 10),
-                              _stepHeader('2. Log in to Cloudflare', theme),
-                              const SizedBox(height: 4),
-                              _codeBlock('cloudflared tunnel login', theme),
-                              const SizedBox(height: 10),
-                              _stepHeader('3. Create a named tunnel', theme),
-                              const SizedBox(height: 4),
-                              _codeBlock('cloudflared tunnel create dispatch', theme),
-                              const SizedBox(height: 10),
-                              _stepHeader('4. Point a subdomain to it', theme),
-                              const SizedBox(height: 4),
-                              _codeBlock('cloudflared tunnel route dns dispatch \\\n  dispatch.yourdomain.com', theme),
-                              const SizedBox(height: 10),
-                              _stepHeader('5. Fill in below and hit Save', theme),
-                            ],
-                            const SizedBox(height: 8),
-                            _settingRow('Tunnel name', theme, child: SizedBox(
-                              width: 140,
-                              height: 28,
-                              child: TextField(
-                                controller: _tunnelNameCtrl,
-                                style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  hintText: 'e.g. dispatch',
-                                  hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 12),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                                ),
-                                onChanged: (_) => setState(() {}),
-                              ),
-                            )),
-                            const SizedBox(height: 6),
-                            _settingRow('Tunnel URL', theme, child: SizedBox(
-                              width: 220,
-                              height: 28,
-                              child: TextField(
-                                controller: _tunnelUrlCtrl,
-                                style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  hintText: 'https://dispatch.yourdomain.com',
-                                  hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                                ),
-                                onChanged: (_) => setState(() {}),
-                              ),
-                            )),
-                            if (tunnelDirty) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      ref.read(mcpServerProvider.notifier).setTunnelConfig(
-                                        name: _tunnelNameCtrl.text,
-                                        customUrl: _tunnelUrlCtrl.text,
-                                      );
-                                      setState(() {});
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: theme.accentGreen,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text('Save', style: TextStyle(color: theme.background, fontSize: 11, fontWeight: FontWeight.w600)),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () {
-                                      _tunnelNameCtrl.text = mcpState.tunnelName ?? '';
-                                      _tunnelUrlCtrl.text = mcpState.tunnelCustomUrl ?? '';
-                                      setState(() {});
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: theme.border),
-                                      ),
-                                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
+                          const SizedBox(height: 12),
 
-                          // ── Relay Server ──
-                          const SizedBox(height: 14),
-                          _sectionLabel('RELAY SERVER', theme),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Relay', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+                          // ── Card 1: Permanent Cloudflare Tunnel ──
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: theme.background,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: mcpState.tunnelRunning && mcpState.hasNamedTunnel ? theme.accentGreen : theme.border),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.cloud_outlined, size: 16, color: theme.textPrimary),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Permanent Tunnel', style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+                                          Text(
+                                            'Cloudflare \u2022 your own domain',
+                                            style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (mcpState.tunnelRunning) {
+                                          ref.read(mcpServerProvider.notifier).stopTunnel();
+                                        } else if (!mcpState.tunnelStarting) {
+                                          ref.read(mcpServerProvider.notifier).startTunnel();
+                                        }
+                                      },
+                                      child: _Toggle(
+                                        value: mcpState.tunnelRunning && mcpState.hasNamedTunnel,
+                                        pending: mcpState.tunnelStarting,
+                                        theme: theme,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (!mcpState.cloudflaredAvailable) ...[
+                                  const SizedBox(height: 10),
                                   Text(
-                                    mcpState.relayConnected
-                                        ? '\u2022 Connected'
-                                        : mcpState.relayEnabled
-                                            ? '\u2022 Connecting...'
-                                            : 'Self-hosted WebSocket relay',
-                                    style: TextStyle(
-                                      color: mcpState.relayConnected
-                                          ? theme.accentGreen
-                                          : theme.textSecondary,
-                                      fontSize: 10,
+                                    'Requires cloudflared: brew install cloudflared',
+                                    style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  GestureDetector(
+                                    onTap: () => ref.read(mcpServerProvider.notifier).checkCloudflared(),
+                                    child: Text('Re-check', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
+                                  ),
+                                ] else ...[
+                                  const SizedBox(height: 10),
+                                  GestureDetector(
+                                    onTap: () => setState(() => _namedTunnelOpen = !_namedTunnelOpen),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          _namedTunnelOpen ? Icons.expand_less : Icons.expand_more,
+                                          size: 12,
+                                          color: theme.textSecondary,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text('Setup instructions', style: TextStyle(color: theme.accentBlue, fontSize: 10)),
+                                      ],
                                     ),
                                   ),
+                                  if (_namedTunnelOpen) ...[
+                                    const SizedBox(height: 8),
+                                    _stepHeader('1. Install cloudflared', theme),
+                                    const SizedBox(height: 4),
+                                    _codeBlock('brew install cloudflared', theme),
+                                    const SizedBox(height: 10),
+                                    _stepHeader('2. Log in to Cloudflare', theme),
+                                    const SizedBox(height: 4),
+                                    _codeBlock('cloudflared tunnel login', theme),
+                                    const SizedBox(height: 10),
+                                    _stepHeader('3. Create a named tunnel', theme),
+                                    const SizedBox(height: 4),
+                                    _codeBlock('cloudflared tunnel create dispatch', theme),
+                                    const SizedBox(height: 10),
+                                    _stepHeader('4. Point a subdomain to it', theme),
+                                    const SizedBox(height: 4),
+                                    _codeBlock('cloudflared tunnel route dns dispatch \\\n  dispatch.yourdomain.com', theme),
+                                    const SizedBox(height: 10),
+                                    _stepHeader('5. Fill in below and hit Save', theme),
+                                  ],
+                                  const SizedBox(height: 10),
+                                  _settingRow('Tunnel name', theme, child: SizedBox(
+                                    width: 140,
+                                    height: 28,
+                                    child: TextField(
+                                      controller: _tunnelNameCtrl,
+                                      style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        hintText: 'e.g. dispatch',
+                                        hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 12),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                  )),
+                                  const SizedBox(height: 6),
+                                  _settingRow('Tunnel URL', theme, child: SizedBox(
+                                    width: 220,
+                                    height: 28,
+                                    child: TextField(
+                                      controller: _tunnelUrlCtrl,
+                                      style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        hintText: 'https://dispatch.yourdomain.com',
+                                        hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                  )),
+                                  if (tunnelDirty) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () {
+                                            ref.read(mcpServerProvider.notifier).setTunnelConfig(
+                                              name: _tunnelNameCtrl.text,
+                                              customUrl: _tunnelUrlCtrl.text,
+                                            );
+                                            setState(() {});
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: theme.accentGreen,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text('Save', style: TextStyle(color: theme.background, fontSize: 11, fontWeight: FontWeight.w600)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        GestureDetector(
+                                          onTap: () {
+                                            _tunnelNameCtrl.text = mcpState.tunnelName ?? '';
+                                            _tunnelUrlCtrl.text = mcpState.tunnelCustomUrl ?? '';
+                                            setState(() {});
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: theme.border),
+                                            ),
+                                            child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
-                              ),
-                              const Spacer(),
-                              GestureDetector(
-                                onTap: () => ref.read(mcpServerProvider.notifier)
-                                    .setRelayEnabled(!mcpState.relayEnabled),
-                                child: _Toggle(
-                                  value: mcpState.relayEnabled,
-                                  pending: mcpState.relayEnabled && !mcpState.relayConnected,
-                                  theme: theme,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          _settingRow('Host', theme, child: SizedBox(
-                            width: 220,
-                            height: 28,
-                            child: TextField(
-                              controller: _relayHostCtrl,
-                              style: TextStyle(color: theme.textPrimary, fontSize: 11),
-                              decoration: InputDecoration(
-                                isDense: true,
-                                hintText: 'wss://relay.example.com:3901',
-                                hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                              ),
-                              onSubmitted: (value) {
-                                ref.read(mcpServerProvider.notifier).setRelayHost(value.trim());
-                              },
+
+                          const SizedBox(height: 10),
+
+                          // ── Card 2: Relay Server ──
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: theme.background,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: mcpState.relayConnected ? theme.accentGreen : theme.border),
                             ),
-                          )),
-                          if (mcpState.relayHost.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                'Enter your relay server WebSocket URL.',
-                                style: TextStyle(color: theme.textSecondary, fontSize: 10),
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.swap_horiz, size: 16, color: theme.textPrimary),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Relay Server', style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+                                          Text(
+                                            mcpState.relayConnected
+                                                ? '\u2022 Connected'
+                                                : 'Self-hosted WebSocket relay',
+                                            style: TextStyle(
+                                              color: mcpState.relayConnected ? theme.accentGreen : theme.textSecondary,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => ref.read(mcpServerProvider.notifier)
+                                          .setRelayEnabled(!mcpState.relayEnabled),
+                                      child: _Toggle(
+                                        value: mcpState.relayEnabled,
+                                        pending: mcpState.relayEnabled && !mcpState.relayConnected,
+                                        theme: theme,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                _settingRow('Host', theme, child: SizedBox(
+                                  width: 220,
+                                  height: 28,
+                                  child: TextField(
+                                    controller: _relayHostCtrl,
+                                    style: TextStyle(color: theme.textPrimary, fontSize: 11),
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      hintText: 'wss://relay.example.com:3901',
+                                      hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                    ),
+                                    onSubmitted: (value) {
+                                      ref.read(mcpServerProvider.notifier).setRelayHost(value.trim());
+                                    },
+                                  ),
+                                )),
+                                if (mcpState.relayHost.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      'Enter your relay server WebSocket URL.',
+                                      style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                                    ),
+                                  ),
+                                if (mcpState.relayConnected && mcpState.relayClientId != null) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Permanent URL — survives restarts.',
+                                    style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                                  ),
+                                ],
+                              ],
                             ),
-                          if (mcpState.relayConnected && mcpState.relayClientId != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Permanent URL — survives restarts.',
-                              style: TextStyle(color: theme.textSecondary, fontSize: 10),
-                            ),
-                          ],
+                          ),
                         ],
                       ],
 
