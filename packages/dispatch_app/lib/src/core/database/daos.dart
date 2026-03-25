@@ -26,8 +26,6 @@ class PresetsDao extends DatabaseAccessor<AppDatabase> with _$PresetsDaoMixin {
     ));
   }
 
-  Future<void> deletePreset(int id) =>
-      (delete(presets)..where((t) => t.id.equals(id))).go();
 }
 
 @DriftAccessor(tables: [Settings])
@@ -160,22 +158,6 @@ class TemplatesDao extends DatabaseAccessor<AppDatabase>
     with _$TemplatesDaoMixin {
   TemplatesDao(super.db);
 
-  Future<List<Template>> getAllTemplates() => select(templates).get();
-
-  Future<int> insertTemplate({
-    required String name,
-    required String cwd,
-    String? layoutJson,
-  }) {
-    return into(templates).insert(TemplatesCompanion.insert(
-      name: name,
-      cwd: cwd,
-      layoutJson: Value(layoutJson),
-    ));
-  }
-
-  Future<void> deleteTemplate(int id) =>
-      (delete(templates)..where((t) => t.id.equals(id))).go();
 }
 
 @DriftAccessor(tables: [AlfaDecisions])
@@ -191,18 +173,6 @@ class AlfaDecisionsDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
-  Future<List<AlfaDecision>> search(String query, {String? projectCwd}) {
-    final q = select(alfaDecisions)
-      ..where((d) =>
-          d.summary.like('%$query%') | d.tags.like('%$query%'))
-      ..orderBy([(d) => OrderingTerm.desc(d.createdAt)])
-      ..limit(20);
-    if (projectCwd != null) {
-      q.where((d) => d.projectCwd.equals(projectCwd));
-    }
-    return q.get();
-  }
-
   Future<List<AlfaDecision>> getRecent({int limit = 10}) {
     return (select(alfaDecisions)
           ..orderBy([(d) => OrderingTerm.desc(d.createdAt)])
@@ -210,9 +180,6 @@ class AlfaDecisionsDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
-  Future<int> insertDecision(AlfaDecisionsCompanion entry) {
-    return into(alfaDecisions).insert(entry);
-  }
 }
 
 @DriftAccessor(tables: [AlfaConversations])
@@ -236,10 +203,4 @@ class AlfaConversationsDao extends DatabaseAccessor<AppDatabase>
     return into(alfaConversations).insert(entry);
   }
 
-  Future<void> clearForProject(String? cwd) {
-    if (cwd == null) return Future.value();
-    return (delete(alfaConversations)
-          ..where((c) => c.projectCwd.equals(cwd)))
-        .go();
-  }
 }

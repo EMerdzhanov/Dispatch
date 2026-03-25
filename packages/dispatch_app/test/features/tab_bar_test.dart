@@ -25,6 +25,7 @@ void main() {
             onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
+            onOpenIntegrations: () {},
           ),
         ),
       );
@@ -49,6 +50,7 @@ void main() {
             onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
+            onOpenIntegrations: () {},
           ),
         ),
       );
@@ -75,6 +77,7 @@ void main() {
             onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
+            onOpenIntegrations: () {},
           ),
         ),
       );
@@ -91,6 +94,7 @@ void main() {
             onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
+            onOpenIntegrations: () {},
           ),
         ),
       );
@@ -109,6 +113,7 @@ void main() {
             onNewTab: () {},
             onOpenSettings: () {},
             onOpenShortcuts: () {},
+            onOpenIntegrations: () {},
           ),
         ),
       );

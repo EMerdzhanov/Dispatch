@@ -31,17 +31,7 @@ void main() {
       expect(presets[0].name, 'Test');
     });
 
-    test('delete preset', () async {
-      final id = await db.presetsDao.insertPreset(
-        name: 'Del',
-        command: 'rm',
-        color: '#000',
-        icon: 'x',
-      );
-      await db.presetsDao.deletePreset(id);
-      expect(await db.presetsDao.getAllPresets(), isEmpty);
-    });
-  });
+});
 
   group('SettingsDao', () {
     test('returns null for missing key', () async {
@@ -107,16 +97,4 @@ void main() {
     });
   });
 
-  group('TemplatesDao', () {
-    test('insert and list', () async {
-      await db.templatesDao.insertTemplate(
-        name: 'Dev Setup',
-        cwd: '/code/foo',
-        layoutJson: '{"type":"leaf","terminalId":"t1"}',
-      );
-      final templates = await db.templatesDao.getAllTemplates();
-      expect(templates.length, 1);
-      expect(templates[0].name, 'Dev Setup');
-    });
-  });
 }
