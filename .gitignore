@@ -1,12 +1,8 @@
-node_modules/
-dist/
-out/
-release/
-.superpowers/
-.worktrees/
-.DS_Store
-*.log
 .dart_tool/
 .idea/
 *.iml
 build/
+.superpowers/
+.worktrees/
+.DS_Store
+*.log
