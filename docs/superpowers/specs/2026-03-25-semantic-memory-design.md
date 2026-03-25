@@ -250,7 +250,7 @@ On first launch after update (in `GraceOrchestrator.initialize()`):
 New tab in the Project panel (right sidebar), alongside Tasks / Notes / Vault.
 
 **Layout:**
-- Tab label: "Memory" with brain icon (Icons.psychology)
+- Tab label: "Memory" with brain emoji (\u{1F9E0}), consistent with other tabs using Unicode emojis
 - Grouped sections: Pinned → Project Memories → Global Memories
 - Global section collapsed by default
 - Count badge on tab when memories exist
