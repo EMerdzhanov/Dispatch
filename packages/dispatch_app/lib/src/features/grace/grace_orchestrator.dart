@@ -197,6 +197,18 @@ class GraceOrchestrator {
     );
     _emit(GraceChatEvent.human(displayText));
 
+    // Check for stale memories (once per session)
+    if (!_staleFlagged) {
+      final stale = await db.graceMemoriesDao.getStale();
+      if (stale.isNotEmpty) {
+        _emit(GraceChatEvent.grace(
+          'I have ${stale.length} old memories that haven\'t been relevant in 90+ days. '
+          'You can review them in the Memory panel.',
+        ));
+        _staleFlagged = true;
+      }
+    }
+
     final systemPrompt = await _buildSystemPrompt(activeCwd);
     final messages = <GraceMessage>[
       GraceMessage(
