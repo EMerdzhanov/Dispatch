@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -75,6 +76,37 @@ class _GracePanelState extends ConsumerState<GracePanel> {
     _focusNode.requestFocus();
   }
 
+  void _copyAll() {
+    final state = ref.read(graceProvider);
+    final buffer = StringBuffer();
+    for (final event in state.messages) {
+      switch (event) {
+        case HumanMessageEvent(:final text):
+          buffer.writeln('You: $text\n');
+        case GraceMessageEvent(:final text):
+          buffer.writeln('Grace: $text\n');
+        case GraceDoneEvent(:final text):
+          buffer.writeln('Grace: $text\n');
+        case ToolCallEvent(:final name, :final isError):
+          buffer.writeln('[Tool: $name${isError ? ' (error)' : ''}]\n');
+        case GraceDeltaEvent():
+          break;
+      }
+    }
+    if (_streamingText.isNotEmpty) {
+      buffer.writeln('Grace: $_streamingText\n');
+    }
+    Clipboard.setData(ClipboardData(text: buffer.toString().trimRight()));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Conversation copied'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        width: 180,
+      ),
+    );
+  }
+
   Future<void> _pickFiles() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
@@ -131,6 +163,15 @@ class _GracePanelState extends ConsumerState<GracePanel> {
                 letterSpacing: 1.2,
               )),
               const Spacer(),
+              if (state.messages.isNotEmpty)
+                GestureDetector(
+                  onTap: _copyAll,
+                  child: Tooltip(
+                    message: 'Copy conversation',
+                    child: Icon(Icons.copy_all, size: 14, color: theme.textSecondary),
+                  ),
+                ),
+              const SizedBox(width: 8),
               if (state.status != GraceStatus.idle)
                 SizedBox(
                   width: 12, height: 12,
