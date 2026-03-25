@@ -204,3 +204,85 @@ class GraceConversationsDao extends DatabaseAccessor<AppDatabase>
   }
 
 }
+
+@DriftAccessor(tables: [GraceMemories])
+class GraceMemoriesDao extends DatabaseAccessor<AppDatabase>
+    with _$GraceMemoriesDaoMixin {
+  GraceMemoriesDao(super.db);
+
+  Future<List<GraceMemory>> getAll() => select(graceMemories).get();
+
+  Future<List<GraceMemory>> getPinned() =>
+      (select(graceMemories)..where((m) => m.pinned.equals(true))).get();
+
+  Future<List<GraceMemory>> getForProject(String? cwd) {
+    final q = select(graceMemories)
+      ..orderBy([(m) => OrderingTerm.desc(m.createdAt)]);
+    if (cwd != null) {
+      q.where((m) => m.projectCwd.isNull() | m.projectCwd.equals(cwd));
+    } else {
+      q.where((m) => m.projectCwd.isNull());
+    }
+    return q.get();
+  }
+
+  Future<List<GraceMemory>> getCandidates(String? cwd, {int limit = 50}) {
+    final q = select(graceMemories)
+      ..orderBy([(m) => OrderingTerm.desc(m.createdAt)])
+      ..limit(limit);
+    if (cwd != null) {
+      q.where((m) => m.projectCwd.isNull() | m.projectCwd.equals(cwd));
+    } else {
+      q.where((m) => m.projectCwd.isNull());
+    }
+    return q.get();
+  }
+
+  Future<int> insertMemory(GraceMemoriesCompanion entry) {
+    return into(graceMemories).insert(entry);
+  }
+
+  Future<void> updateMemory(int id, {String? content, String? tags, String? category}) {
+    return (update(graceMemories)..where((m) => m.id.equals(id))).write(
+      GraceMemoriesCompanion(
+        content: content != null ? Value(content) : const Value.absent(),
+        tags: tags != null ? Value(tags) : const Value.absent(),
+        category: category != null ? Value(category) : const Value.absent(),
+      ),
+    );
+  }
+
+  Future<void> setPinned(int id, bool pinned) {
+    return (update(graceMemories)..where((m) => m.id.equals(id)))
+        .write(GraceMemoriesCompanion(pinned: Value(pinned)));
+  }
+
+  Future<void> touchRetrieved(List<int> ids) {
+    if (ids.isEmpty) return Future.value();
+    return (update(graceMemories)..where((m) => m.id.isIn(ids)))
+        .write(GraceMemoriesCompanion(lastRetrievedAt: Value(DateTime.now())));
+  }
+
+  Future<void> deleteMemory(int id) =>
+      (delete(graceMemories)..where((m) => m.id.equals(id))).go();
+
+  Future<List<GraceMemory>> getStale({int thresholdDays = 90}) {
+    final cutoff = DateTime.now().subtract(Duration(days: thresholdDays));
+    return (select(graceMemories)
+          ..where((m) =>
+              m.lastRetrievedAt.isSmallerThanValue(cutoff) &
+              m.lastRetrievedAt.isNotNull()))
+        .get();
+  }
+
+  Future<GraceMemory?> findDuplicate(String content, String? projectCwd) {
+    final q = select(graceMemories)
+      ..where((m) => m.content.equals(content));
+    if (projectCwd != null) {
+      q.where((m) => m.projectCwd.equals(projectCwd));
+    } else {
+      q.where((m) => m.projectCwd.isNull());
+    }
+    return q.getSingleOrNull();
+  }
+}

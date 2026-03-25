@@ -78,3 +78,15 @@ class GraceConversations extends Table {
   TextColumn get toolCalls => text().nullable()(); // JSON
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
+
+class GraceMemories extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get projectCwd => text().nullable()();
+  TextColumn get category => text()(); // preference, decision, correction, context, workflow
+  TextColumn get content => text()();
+  TextColumn get tags => text().withDefault(const Constant(''))();
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+  TextColumn get source => text()(); // user_explicit, grace_suggested, correction
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get lastRetrievedAt => dateTime().nullable()();
+}

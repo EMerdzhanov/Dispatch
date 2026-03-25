@@ -28,3 +28,6 @@ mixin _$GraceConversationsDaoMixin on DatabaseAccessor<AppDatabase> {
   $GraceConversationsTable get graceConversations =>
       attachedDatabase.graceConversations;
 }
+mixin _$GraceMemoriesDaoMixin on DatabaseAccessor<AppDatabase> {
+  $GraceMemoriesTable get graceMemories => attachedDatabase.graceMemories;
+}

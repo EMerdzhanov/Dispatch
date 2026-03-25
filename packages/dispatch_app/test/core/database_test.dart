@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:dispatch_app/src/core/database/database.dart';
@@ -94,6 +95,115 @@ void main() {
       final entries = await db.vaultDao.getEntriesForProject('/code/foo');
       expect(entries.length, 1);
       expect(entries[0].label, 'API_KEY');
+    });
+  });
+
+  group('GraceMemoriesDao', () {
+    test('insert and retrieve memory', () async {
+      await db.graceMemoriesDao.insertMemory(
+        GraceMemoriesCompanion.insert(
+          category: 'preference',
+          content: 'User prefers tabs over spaces',
+          source: 'user_explicit',
+          tags: Value('formatting,tabs'),
+        ),
+      );
+      final all = await db.graceMemoriesDao.getAll();
+      expect(all.length, 1);
+      expect(all[0].content, 'User prefers tabs over spaces');
+      expect(all[0].category, 'preference');
+      expect(all[0].pinned, false);
+      expect(all[0].projectCwd, isNull);
+    });
+
+    test('getPinned returns only pinned memories', () async {
+      await db.graceMemoriesDao.insertMemory(
+        GraceMemoriesCompanion.insert(
+          category: 'preference',
+          content: 'Pinned memory',
+          source: 'user_explicit',
+          pinned: const Value(true),
+        ),
+      );
+      await db.graceMemoriesDao.insertMemory(
+        GraceMemoriesCompanion.insert(
+          category: 'decision',
+          content: 'Not pinned',
+          source: 'grace_suggested',
+        ),
+      );
+      final pinned = await db.graceMemoriesDao.getPinned();
+      expect(pinned.length, 1);
+      expect(pinned[0].content, 'Pinned memory');
+    });
+
+    test('getCandidates filters by project scope', () async {
+      await db.graceMemoriesDao.insertMemory(
+        GraceMemoriesCompanion.insert(
+          category: 'decision',
+          content: 'Global memory',
+          source: 'user_explicit',
+        ),
+      );
+      await db.graceMemoriesDao.insertMemory(
+        GraceMemoriesCompanion.insert(
+          projectCwd: const Value('/code/foo'),
+          category: 'decision',
+          content: 'Project memory',
+          source: 'user_explicit',
+        ),
+      );
+      await db.graceMemoriesDao.insertMemory(
+        GraceMemoriesCompanion.insert(
+          projectCwd: const Value('/code/bar'),
+          category: 'decision',
+          content: 'Other project memory',
+          source: 'user_explicit',
+        ),
+      );
+      final candidates = await db.graceMemoriesDao.getCandidates('/code/foo');
+      expect(candidates.length, 2);
+    });
+
+    test('findDuplicate detects existing memory', () async {
+      await db.graceMemoriesDao.insertMemory(
+        GraceMemoriesCompanion.insert(
+          category: 'preference',
+          content: 'Prefers dark mode',
+          source: 'user_explicit',
+        ),
+      );
+      final dup = await db.graceMemoriesDao.findDuplicate('Prefers dark mode', null);
+      expect(dup, isNotNull);
+      final noDup = await db.graceMemoriesDao.findDuplicate('Something else', null);
+      expect(noDup, isNull);
+    });
+
+    test('setPinned toggles pin status', () async {
+      final id = await db.graceMemoriesDao.insertMemory(
+        GraceMemoriesCompanion.insert(
+          category: 'workflow',
+          content: 'Run tests before commit',
+          source: 'user_explicit',
+        ),
+      );
+      await db.graceMemoriesDao.setPinned(id, true);
+      final pinned = await db.graceMemoriesDao.getPinned();
+      expect(pinned.length, 1);
+      expect(pinned[0].id, id);
+    });
+
+    test('deleteMemory removes entry', () async {
+      final id = await db.graceMemoriesDao.insertMemory(
+        GraceMemoriesCompanion.insert(
+          category: 'context',
+          content: 'To be deleted',
+          source: 'user_explicit',
+        ),
+      );
+      await db.graceMemoriesDao.deleteMemory(id);
+      final all = await db.graceMemoriesDao.getAll();
+      expect(all, isEmpty);
     });
   });
 

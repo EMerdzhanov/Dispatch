@@ -3044,6 +3044,559 @@ class GraceConversationsCompanion extends UpdateCompanion<GraceConversation> {
   }
 }
 
+class $GraceMemoriesTable extends GraceMemories
+    with TableInfo<$GraceMemoriesTable, GraceMemory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GraceMemoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _projectCwdMeta = const VerificationMeta(
+    'projectCwd',
+  );
+  @override
+  late final GeneratedColumn<String> projectCwd = GeneratedColumn<String>(
+    'project_cwd',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _pinnedMeta = const VerificationMeta('pinned');
+  @override
+  late final GeneratedColumn<bool> pinned = GeneratedColumn<bool>(
+    'pinned',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("pinned" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _lastRetrievedAtMeta = const VerificationMeta(
+    'lastRetrievedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastRetrievedAt =
+      GeneratedColumn<DateTime>(
+        'last_retrieved_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    projectCwd,
+    category,
+    content,
+    tags,
+    pinned,
+    source,
+    createdAt,
+    lastRetrievedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'grace_memories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GraceMemory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('project_cwd')) {
+      context.handle(
+        _projectCwdMeta,
+        projectCwd.isAcceptableOrUnknown(data['project_cwd']!, _projectCwdMeta),
+      );
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    }
+    if (data.containsKey('pinned')) {
+      context.handle(
+        _pinnedMeta,
+        pinned.isAcceptableOrUnknown(data['pinned']!, _pinnedMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('last_retrieved_at')) {
+      context.handle(
+        _lastRetrievedAtMeta,
+        lastRetrievedAt.isAcceptableOrUnknown(
+          data['last_retrieved_at']!,
+          _lastRetrievedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GraceMemory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GraceMemory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      projectCwd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_cwd'],
+      ),
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      )!,
+      pinned: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}pinned'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      lastRetrievedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_retrieved_at'],
+      ),
+    );
+  }
+
+  @override
+  $GraceMemoriesTable createAlias(String alias) {
+    return $GraceMemoriesTable(attachedDatabase, alias);
+  }
+}
+
+class GraceMemory extends DataClass implements Insertable<GraceMemory> {
+  final int id;
+  final String? projectCwd;
+  final String category;
+  final String content;
+  final String tags;
+  final bool pinned;
+  final String source;
+  final DateTime createdAt;
+  final DateTime? lastRetrievedAt;
+  const GraceMemory({
+    required this.id,
+    this.projectCwd,
+    required this.category,
+    required this.content,
+    required this.tags,
+    required this.pinned,
+    required this.source,
+    required this.createdAt,
+    this.lastRetrievedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || projectCwd != null) {
+      map['project_cwd'] = Variable<String>(projectCwd);
+    }
+    map['category'] = Variable<String>(category);
+    map['content'] = Variable<String>(content);
+    map['tags'] = Variable<String>(tags);
+    map['pinned'] = Variable<bool>(pinned);
+    map['source'] = Variable<String>(source);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || lastRetrievedAt != null) {
+      map['last_retrieved_at'] = Variable<DateTime>(lastRetrievedAt);
+    }
+    return map;
+  }
+
+  GraceMemoriesCompanion toCompanion(bool nullToAbsent) {
+    return GraceMemoriesCompanion(
+      id: Value(id),
+      projectCwd: projectCwd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectCwd),
+      category: Value(category),
+      content: Value(content),
+      tags: Value(tags),
+      pinned: Value(pinned),
+      source: Value(source),
+      createdAt: Value(createdAt),
+      lastRetrievedAt: lastRetrievedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastRetrievedAt),
+    );
+  }
+
+  factory GraceMemory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GraceMemory(
+      id: serializer.fromJson<int>(json['id']),
+      projectCwd: serializer.fromJson<String?>(json['projectCwd']),
+      category: serializer.fromJson<String>(json['category']),
+      content: serializer.fromJson<String>(json['content']),
+      tags: serializer.fromJson<String>(json['tags']),
+      pinned: serializer.fromJson<bool>(json['pinned']),
+      source: serializer.fromJson<String>(json['source']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      lastRetrievedAt: serializer.fromJson<DateTime?>(json['lastRetrievedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'projectCwd': serializer.toJson<String?>(projectCwd),
+      'category': serializer.toJson<String>(category),
+      'content': serializer.toJson<String>(content),
+      'tags': serializer.toJson<String>(tags),
+      'pinned': serializer.toJson<bool>(pinned),
+      'source': serializer.toJson<String>(source),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'lastRetrievedAt': serializer.toJson<DateTime?>(lastRetrievedAt),
+    };
+  }
+
+  GraceMemory copyWith({
+    int? id,
+    Value<String?> projectCwd = const Value.absent(),
+    String? category,
+    String? content,
+    String? tags,
+    bool? pinned,
+    String? source,
+    DateTime? createdAt,
+    Value<DateTime?> lastRetrievedAt = const Value.absent(),
+  }) => GraceMemory(
+    id: id ?? this.id,
+    projectCwd: projectCwd.present ? projectCwd.value : this.projectCwd,
+    category: category ?? this.category,
+    content: content ?? this.content,
+    tags: tags ?? this.tags,
+    pinned: pinned ?? this.pinned,
+    source: source ?? this.source,
+    createdAt: createdAt ?? this.createdAt,
+    lastRetrievedAt: lastRetrievedAt.present
+        ? lastRetrievedAt.value
+        : this.lastRetrievedAt,
+  );
+  GraceMemory copyWithCompanion(GraceMemoriesCompanion data) {
+    return GraceMemory(
+      id: data.id.present ? data.id.value : this.id,
+      projectCwd: data.projectCwd.present
+          ? data.projectCwd.value
+          : this.projectCwd,
+      category: data.category.present ? data.category.value : this.category,
+      content: data.content.present ? data.content.value : this.content,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      pinned: data.pinned.present ? data.pinned.value : this.pinned,
+      source: data.source.present ? data.source.value : this.source,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      lastRetrievedAt: data.lastRetrievedAt.present
+          ? data.lastRetrievedAt.value
+          : this.lastRetrievedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GraceMemory(')
+          ..write('id: $id, ')
+          ..write('projectCwd: $projectCwd, ')
+          ..write('category: $category, ')
+          ..write('content: $content, ')
+          ..write('tags: $tags, ')
+          ..write('pinned: $pinned, ')
+          ..write('source: $source, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastRetrievedAt: $lastRetrievedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    projectCwd,
+    category,
+    content,
+    tags,
+    pinned,
+    source,
+    createdAt,
+    lastRetrievedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GraceMemory &&
+          other.id == this.id &&
+          other.projectCwd == this.projectCwd &&
+          other.category == this.category &&
+          other.content == this.content &&
+          other.tags == this.tags &&
+          other.pinned == this.pinned &&
+          other.source == this.source &&
+          other.createdAt == this.createdAt &&
+          other.lastRetrievedAt == this.lastRetrievedAt);
+}
+
+class GraceMemoriesCompanion extends UpdateCompanion<GraceMemory> {
+  final Value<int> id;
+  final Value<String?> projectCwd;
+  final Value<String> category;
+  final Value<String> content;
+  final Value<String> tags;
+  final Value<bool> pinned;
+  final Value<String> source;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> lastRetrievedAt;
+  const GraceMemoriesCompanion({
+    this.id = const Value.absent(),
+    this.projectCwd = const Value.absent(),
+    this.category = const Value.absent(),
+    this.content = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.pinned = const Value.absent(),
+    this.source = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.lastRetrievedAt = const Value.absent(),
+  });
+  GraceMemoriesCompanion.insert({
+    this.id = const Value.absent(),
+    this.projectCwd = const Value.absent(),
+    required String category,
+    required String content,
+    this.tags = const Value.absent(),
+    this.pinned = const Value.absent(),
+    required String source,
+    this.createdAt = const Value.absent(),
+    this.lastRetrievedAt = const Value.absent(),
+  }) : category = Value(category),
+       content = Value(content),
+       source = Value(source);
+  static Insertable<GraceMemory> custom({
+    Expression<int>? id,
+    Expression<String>? projectCwd,
+    Expression<String>? category,
+    Expression<String>? content,
+    Expression<String>? tags,
+    Expression<bool>? pinned,
+    Expression<String>? source,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? lastRetrievedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (projectCwd != null) 'project_cwd': projectCwd,
+      if (category != null) 'category': category,
+      if (content != null) 'content': content,
+      if (tags != null) 'tags': tags,
+      if (pinned != null) 'pinned': pinned,
+      if (source != null) 'source': source,
+      if (createdAt != null) 'created_at': createdAt,
+      if (lastRetrievedAt != null) 'last_retrieved_at': lastRetrievedAt,
+    });
+  }
+
+  GraceMemoriesCompanion copyWith({
+    Value<int>? id,
+    Value<String?>? projectCwd,
+    Value<String>? category,
+    Value<String>? content,
+    Value<String>? tags,
+    Value<bool>? pinned,
+    Value<String>? source,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? lastRetrievedAt,
+  }) {
+    return GraceMemoriesCompanion(
+      id: id ?? this.id,
+      projectCwd: projectCwd ?? this.projectCwd,
+      category: category ?? this.category,
+      content: content ?? this.content,
+      tags: tags ?? this.tags,
+      pinned: pinned ?? this.pinned,
+      source: source ?? this.source,
+      createdAt: createdAt ?? this.createdAt,
+      lastRetrievedAt: lastRetrievedAt ?? this.lastRetrievedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (projectCwd.present) {
+      map['project_cwd'] = Variable<String>(projectCwd.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (pinned.present) {
+      map['pinned'] = Variable<bool>(pinned.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (lastRetrievedAt.present) {
+      map['last_retrieved_at'] = Variable<DateTime>(lastRetrievedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GraceMemoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('projectCwd: $projectCwd, ')
+          ..write('category: $category, ')
+          ..write('content: $content, ')
+          ..write('tags: $tags, ')
+          ..write('pinned: $pinned, ')
+          ..write('source: $source, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastRetrievedAt: $lastRetrievedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3057,6 +3610,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GraceDecisionsTable graceDecisions = $GraceDecisionsTable(this);
   late final $GraceConversationsTable graceConversations =
       $GraceConversationsTable(this);
+  late final $GraceMemoriesTable graceMemories = $GraceMemoriesTable(this);
   late final PresetsDao presetsDao = PresetsDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
   late final NotesDao notesDao = NotesDao(this as AppDatabase);
@@ -3068,6 +3622,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final GraceConversationsDao graceConversationsDao =
       GraceConversationsDao(this as AppDatabase);
+  late final GraceMemoriesDao graceMemoriesDao = GraceMemoriesDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3082,6 +3639,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     projectGroups,
     graceDecisions,
     graceConversations,
+    graceMemories,
   ];
 }
 
@@ -4796,6 +5354,280 @@ typedef $$GraceConversationsTableProcessedTableManager =
       GraceConversation,
       PrefetchHooks Function()
     >;
+typedef $$GraceMemoriesTableCreateCompanionBuilder =
+    GraceMemoriesCompanion Function({
+      Value<int> id,
+      Value<String?> projectCwd,
+      required String category,
+      required String content,
+      Value<String> tags,
+      Value<bool> pinned,
+      required String source,
+      Value<DateTime> createdAt,
+      Value<DateTime?> lastRetrievedAt,
+    });
+typedef $$GraceMemoriesTableUpdateCompanionBuilder =
+    GraceMemoriesCompanion Function({
+      Value<int> id,
+      Value<String?> projectCwd,
+      Value<String> category,
+      Value<String> content,
+      Value<String> tags,
+      Value<bool> pinned,
+      Value<String> source,
+      Value<DateTime> createdAt,
+      Value<DateTime?> lastRetrievedAt,
+    });
+
+class $$GraceMemoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $GraceMemoriesTable> {
+  $$GraceMemoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectCwd => $composableBuilder(
+    column: $table.projectCwd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get pinned => $composableBuilder(
+    column: $table.pinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastRetrievedAt => $composableBuilder(
+    column: $table.lastRetrievedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GraceMemoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $GraceMemoriesTable> {
+  $$GraceMemoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectCwd => $composableBuilder(
+    column: $table.projectCwd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get pinned => $composableBuilder(
+    column: $table.pinned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastRetrievedAt => $composableBuilder(
+    column: $table.lastRetrievedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GraceMemoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GraceMemoriesTable> {
+  $$GraceMemoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get projectCwd => $composableBuilder(
+    column: $table.projectCwd,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<bool> get pinned =>
+      $composableBuilder(column: $table.pinned, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastRetrievedAt => $composableBuilder(
+    column: $table.lastRetrievedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$GraceMemoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GraceMemoriesTable,
+          GraceMemory,
+          $$GraceMemoriesTableFilterComposer,
+          $$GraceMemoriesTableOrderingComposer,
+          $$GraceMemoriesTableAnnotationComposer,
+          $$GraceMemoriesTableCreateCompanionBuilder,
+          $$GraceMemoriesTableUpdateCompanionBuilder,
+          (
+            GraceMemory,
+            BaseReferences<_$AppDatabase, $GraceMemoriesTable, GraceMemory>,
+          ),
+          GraceMemory,
+          PrefetchHooks Function()
+        > {
+  $$GraceMemoriesTableTableManager(_$AppDatabase db, $GraceMemoriesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GraceMemoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GraceMemoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GraceMemoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> projectCwd = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<bool> pinned = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> lastRetrievedAt = const Value.absent(),
+              }) => GraceMemoriesCompanion(
+                id: id,
+                projectCwd: projectCwd,
+                category: category,
+                content: content,
+                tags: tags,
+                pinned: pinned,
+                source: source,
+                createdAt: createdAt,
+                lastRetrievedAt: lastRetrievedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> projectCwd = const Value.absent(),
+                required String category,
+                required String content,
+                Value<String> tags = const Value.absent(),
+                Value<bool> pinned = const Value.absent(),
+                required String source,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> lastRetrievedAt = const Value.absent(),
+              }) => GraceMemoriesCompanion.insert(
+                id: id,
+                projectCwd: projectCwd,
+                category: category,
+                content: content,
+                tags: tags,
+                pinned: pinned,
+                source: source,
+                createdAt: createdAt,
+                lastRetrievedAt: lastRetrievedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GraceMemoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GraceMemoriesTable,
+      GraceMemory,
+      $$GraceMemoriesTableFilterComposer,
+      $$GraceMemoriesTableOrderingComposer,
+      $$GraceMemoriesTableAnnotationComposer,
+      $$GraceMemoriesTableCreateCompanionBuilder,
+      $$GraceMemoriesTableUpdateCompanionBuilder,
+      (
+        GraceMemory,
+        BaseReferences<_$AppDatabase, $GraceMemoriesTable, GraceMemory>,
+      ),
+      GraceMemory,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4818,4 +5650,6 @@ class $AppDatabaseManager {
       $$GraceDecisionsTableTableManager(_db, _db.graceDecisions);
   $$GraceConversationsTableTableManager get graceConversations =>
       $$GraceConversationsTableTableManager(_db, _db.graceConversations);
+  $$GraceMemoriesTableTableManager get graceMemories =>
+      $$GraceMemoriesTableTableManager(_db, _db.graceMemories);
 }

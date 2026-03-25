@@ -7,18 +7,18 @@ part 'database.g.dart';
 @DriftDatabase(
   tables: [
     Presets, Settings, Notes, Tasks, VaultEntries, Templates, ProjectGroups,
-    GraceDecisions, GraceConversations,
+    GraceDecisions, GraceConversations, GraceMemories,
   ],
   daos: [
     PresetsDao, SettingsDao, NotesDao, TasksDao, VaultDao, TemplatesDao,
-    GraceDecisionsDao, GraceConversationsDao,
+    GraceDecisionsDao, GraceConversationsDao, GraceMemoriesDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -27,6 +27,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.createTable(graceDecisions);
             await m.createTable(graceConversations);
+          }
+          if (from < 3) {
+            await m.createTable(graceMemories);
           }
         },
       );
