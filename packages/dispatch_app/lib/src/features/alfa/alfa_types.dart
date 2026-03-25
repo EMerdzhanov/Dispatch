@@ -1,4 +1,4 @@
-/// Types for Claude API messages and tool use.
+// Types for Claude API messages and tool use.
 
 enum MessageRole { user, assistant }
 

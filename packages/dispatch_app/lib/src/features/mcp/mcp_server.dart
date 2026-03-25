@@ -29,7 +29,6 @@ class McpServer {
   HttpServer? _server;
   int _port = 3900;
   String? _authToken;
-  bool _bindAll = false;
   int _requestCount = 0;
   final List<McpActivityEntry> activityLog = [];
 
@@ -56,7 +55,6 @@ class McpServer {
     bool bindAll = false,
   }) async {
     _authToken = authToken;
-    _bindAll = bindAll;
 
     final router = Router()
       ..post('/mcp', _handleRpc)

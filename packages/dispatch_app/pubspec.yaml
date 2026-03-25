@@ -3,8 +3,6 @@ description: Dispatch — terminal manager for Claude Code
 version: 0.1.0
 publish_to: none
 homepage: https://github.com/EMerdzhanov/Dispatch
-authors:
-  - Emil Merdzhanov <etmerdzhanov@gmail.com>
 
 environment:
   sdk: ^3.11.0

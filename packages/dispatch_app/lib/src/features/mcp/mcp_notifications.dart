@@ -13,7 +13,7 @@ class McpNotificationManager {
   final Ref ref;
   final McpServer server;
   Timer? _outputDebounce;
-  Map<String, int> _lastOutputLengths = {};
+  final Map<String, int> _lastOutputLengths = {};
   final List<ProviderSubscription<dynamic>> _subscriptions = [];
 
   McpNotificationManager(this.ref, this.server);

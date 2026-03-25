@@ -83,8 +83,8 @@ Future<Map<String, dynamic>> _runShellCommand(Ref ref, Map<String, dynamic> para
   final timeoutSeconds = (params['timeout_seconds'] as int?) ?? 30;
   final result = await Process.run('/bin/sh', ['-c', command], workingDirectory: cwd, environment: Platform.environment).timeout(Duration(seconds: timeoutSeconds));
   return {
-    'stdout': (result.stdout as String).length > 10000 ? (result.stdout as String).substring(0, 10000) + '\n[truncated]' : result.stdout,
-    'stderr': (result.stderr as String).length > 5000 ? (result.stderr as String).substring(0, 5000) + '\n[truncated]' : result.stderr,
+    'stdout': (result.stdout as String).length > 10000 ? '${(result.stdout as String).substring(0, 10000)}\n[truncated]' : result.stdout,
+    'stderr': (result.stderr as String).length > 5000 ? '${(result.stderr as String).substring(0, 5000)}\n[truncated]' : result.stderr,
     'exit_code': result.exitCode,
   };
 }
