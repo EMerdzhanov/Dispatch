@@ -24,6 +24,7 @@ import 'tools/code_tools.dart';
 import 'tools/test_tools.dart';
 import 'tools/routing_tools.dart';
 import 'tools/delegate_tools.dart';
+import 'tools/workspace_tools.dart';
 import '../projects/projects_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../../core/database/database.dart';
@@ -71,6 +72,7 @@ class GraceOrchestrator {
     _tools.registerAll(testTools(_testTrackers, _emit));
     _tools.registerAll(routingTools());
     _tools.registerAll(delegateTools(_agentsState, _emit));
+    _tools.registerAll(workspaceTools());
   }
 
   Future<void> initialize() async {
@@ -287,6 +289,15 @@ class GraceOrchestrator {
 
     final identity = await loadFile('${graceDir()}/identity.md');
     parts.add(identity.isNotEmpty ? identity : defaultIdentity);
+
+    parts.add(
+      '## Workspace Tools\n\n'
+      'You have access to the Tasks, Notes, and Vault panels in the Dispatch UI. '
+      'When the user mentions action items, bugs to fix, or things to do, '
+      'ask: "Want me to add these as tasks?" before creating them. '
+      'Use add_task to put items in the Tasks panel so they are visible in the UI. '
+      'Prefer the Tasks panel for trackable items over writing them only to GRACE.md.',
+    );
 
     final memory = await loadFile('${graceDir()}/memory.md');
     if (memory.isNotEmpty) {
