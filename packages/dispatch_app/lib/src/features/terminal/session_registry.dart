@@ -7,6 +7,7 @@ import 'package:flutter_pty/flutter_pty.dart';
 import 'package:xterm/xterm.dart' as xterm;
 import 'package:dispatch_terminal/dispatch_terminal.dart';
 
+import 'smart_naming.dart';
 import 'terminal_provider.dart';
 
 /// Metadata about a terminal session, updated by TerminalMonitor via callback.
@@ -74,6 +75,9 @@ bool _detectsApproval(String rawOutput) {
 /// Global registry of active PTY sessions, keyed by terminal ID.
 class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
   static const int maxOutputLines = 10000;
+
+  /// Terminal IDs that have already been auto-named (only name once).
+  final Set<String> _autoNamed = {};
 
   /// Optional callback invoked on every output chunk appended to any terminal.
   /// Grace/MonitorSkill registers here for event-driven monitoring.
@@ -210,6 +214,16 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
     final tail = newBuffer.toList().reversed.take(20).toList().reversed.join('\n');
     final waiting = _detectsApproval(tail);
     _terminalsNotifier?.setWaitingApproval(id, waiting: waiting);
+
+    // --- Smart terminal naming (once per terminal) ---
+    if (!_autoNamed.contains(id)) {
+      final stripped = data.replaceAll(_ansiStripper, '');
+      final name = detectTerminalName(stripped);
+      if (name != null) {
+        _autoNamed.add(id);
+        _terminalsNotifier?.setAutoLabel(id, name);
+      }
+    }
 
     // Fire Grace/MonitorSkill callback
     onOutputCallback?.call(id, data);

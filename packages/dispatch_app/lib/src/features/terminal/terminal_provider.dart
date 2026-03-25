@@ -92,6 +92,15 @@ class TerminalsNotifier extends Notifier<TerminalsState> {
     state = state.copyWith(waitingApproval: updated);
   }
 
+  /// Set an auto-detected label only if the terminal has no user-set label.
+  void setAutoLabel(String id, String label) {
+    final terminal = state.terminals[id];
+    if (terminal == null || terminal.label != null) return;
+    final updated = Map<String, TerminalEntry>.from(state.terminals);
+    updated[id] = terminal.copyWith(label: label);
+    state = state.copyWith(terminals: updated);
+  }
+
   void toggleZenMode() {
     state = state.copyWith(zenMode: !state.zenMode);
   }
