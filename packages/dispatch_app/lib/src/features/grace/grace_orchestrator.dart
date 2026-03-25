@@ -137,6 +137,42 @@ class GraceOrchestrator {
       onEvent: _emit,
     );
     _backgroundLoop!.start();
+
+    // Onboarding: show welcome message on first launch
+    await _maybeShowOnboarding(db);
+  }
+
+  Future<void> _maybeShowOnboarding(AppDatabase db) async {
+    // Check if this is a fresh install: no memories and no conversation history
+    final memories = await db.graceMemoriesDao.getAll();
+    if (memories.isNotEmpty) return;
+
+    final conversations = await db.graceConversationsDao.getForProject(null, limit: 1);
+    if (conversations.isNotEmpty) return;
+
+    // Check for sentinel file to avoid showing again
+    final sentinelFile = File('${graceDir()}/onboarded');
+    if (await sentinelFile.exists()) return;
+
+    _emit(GraceChatEvent.grace(
+      'Hey! I\'m **Grace**, your dev environment assistant. '
+      'I\'m here if you want me, but you don\'t need me \u2014 '
+      'Dispatch works great on its own.\n\n'
+      '**What Dispatch does:**\n'
+      '\u2022 **Terminal groups** \u2014 organize terminals by project, switch with one click\n'
+      '\u2022 **Presets** \u2014 save common commands as quick-launch buttons\n'
+      '\u2022 **Keyboard shortcuts** \u2014 Cmd+N new terminal, Cmd+W close, Cmd+1-9 switch\n'
+      '\u2022 **MCP server** \u2014 connect Claude Code and other AI tools to Dispatch\n\n'
+      '**What I can do (if you want):**\n'
+      '\u2022 Watch your terminals and catch errors before you notice them\n'
+      '\u2022 Remember your preferences and project decisions across sessions\n'
+      '\u2022 Manage tasks, notes, and secrets in the sidebar panels\n'
+      '\u2022 Run commands, read files, and help debug issues\n\n'
+      'Open a project folder to get started. I\'ll be here in the GRACE tab if you need anything.',
+    ));
+
+    // Mark as onboarded
+    await sentinelFile.writeAsString(DateTime.now().toIso8601String());
   }
 
   static Future<void> _migrateOldAlfaToGrace() async {
