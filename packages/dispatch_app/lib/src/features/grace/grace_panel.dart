@@ -29,19 +29,19 @@ class _GracePanelState extends ConsumerState<GracePanel> {
   static const _imageExtensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'};
   static const _maxFileSize = 10 * 1024 * 1024; // 10 MB
 
+  void _scrollToNewest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients && _scrollController.offset > 0) {
+        _scrollController.animateTo(0, duration: const Duration(milliseconds: 100), curve: Curves.easeOut);
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     ref.listenManual(graceProvider, (prev, next) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.easeOut,
-          );
-        }
-      });
+      _scrollToNewest();
 
       if (next.messages.isNotEmpty) {
         final last = next.messages.last;
@@ -184,20 +184,26 @@ class _GracePanelState extends ConsumerState<GracePanel> {
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(12),
-            itemCount: _buildDisplayItems(state.messages).length +
-                (_streamingText.isNotEmpty ? 1 : 0),
-            itemBuilder: (context, index) {
-              final items = _buildDisplayItems(state.messages);
-              if (index == items.length && _streamingText.isNotEmpty) {
-                return _MessageBubble(role: 'grace', text: _streamingText, theme: theme);
-              }
-              if (index >= items.length) return const SizedBox.shrink();
-              return items[index];
-            },
-          ),
+          child: () {
+            final items = _buildDisplayItems(state.messages);
+            final hasStreaming = _streamingText.isNotEmpty;
+            final totalCount = items.length + (hasStreaming ? 1 : 0);
+            return ListView.builder(
+              controller: _scrollController,
+              reverse: true,
+              padding: const EdgeInsets.all(12),
+              itemCount: totalCount,
+              itemBuilder: (context, reverseIndex) {
+                // reversed: index 0 = newest (bottom), so flip it
+                final index = totalCount - 1 - reverseIndex;
+                if (index == items.length && hasStreaming) {
+                  return _MessageBubble(role: 'grace', text: _streamingText, theme: theme);
+                }
+                if (index >= items.length) return const SizedBox.shrink();
+                return items[index];
+              },
+            );
+          }(),
         ),
         Container(
           padding: const EdgeInsets.all(8),
