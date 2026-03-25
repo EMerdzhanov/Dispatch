@@ -184,7 +184,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                     fontFamily: 'Menlo',
                     fontFamilyFallback: const ['SF Mono', 'Monaco', 'Courier New', 'monospace'],
                     fontWeight: FontWeight.normal,
-                    height: 1.2,
+                    height: 1.0,
                   ),
                   drawBoldTextInBrightColors: true,
                 ),
