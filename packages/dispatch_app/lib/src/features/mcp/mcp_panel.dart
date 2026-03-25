@@ -22,6 +22,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
   late TextEditingController _portCtrl;
   late TextEditingController _tunnelNameCtrl;
   late TextEditingController _tunnelUrlCtrl;
+  late TextEditingController _relayHostCtrl;
   bool _tokenVisible = false;
   bool _advancedOpen = false;
   Timer? _refreshTimer;
@@ -32,6 +33,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     _portCtrl = TextEditingController();
     _tunnelNameCtrl = TextEditingController();
     _tunnelUrlCtrl = TextEditingController();
+    _relayHostCtrl = TextEditingController();
     ref.read(mcpServerProvider.notifier).checkCloudflared();
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       ref.read(mcpServerProvider.notifier).refreshStatus();
@@ -43,6 +45,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
     _portCtrl.dispose();
     _tunnelNameCtrl.dispose();
     _tunnelUrlCtrl.dispose();
+    _relayHostCtrl.dispose();
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -57,6 +60,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
 
     final portStr = mcpState.port.toString();
     if (_portCtrl.text != portStr) _portCtrl.text = portStr;
+    if (_relayHostCtrl.text != mcpState.relayHost) _relayHostCtrl.text = mcpState.relayHost;
 
     final tunnelDirty =
         _tunnelNameCtrl.text != (mcpState.tunnelName ?? '') ||
@@ -261,6 +265,34 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        _settingRow('Relay host', theme, child: SizedBox(
+                          width: 220,
+                          height: 28,
+                          child: TextField(
+                            controller: _relayHostCtrl,
+                            style: TextStyle(color: theme.textPrimary, fontSize: 11),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: 'wss://relay.example.com:3901',
+                              hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                            ),
+                            onSubmitted: (value) {
+                              ref.read(mcpServerProvider.notifier).setRelayHost(value.trim());
+                            },
+                          ),
+                        )),
+                        if (mcpState.relayHost.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Enter your relay server WebSocket URL to enable relay mode.',
+                              style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                            ),
+                          ),
                         if (mcpState.relayConnected && mcpState.relayClientId != null) ...[
                           const SizedBox(height: 8),
                           _copyRow('URL', mcpState.httpUrl, theme),

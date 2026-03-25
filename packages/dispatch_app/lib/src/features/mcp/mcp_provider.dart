@@ -26,6 +26,7 @@ class McpServerState {
   final bool relayEnabled;
   final bool relayConnected;
   final String? relayClientId;
+  final String relayHost;
 
   const McpServerState({
     this.enabled = false,
@@ -45,6 +46,7 @@ class McpServerState {
     this.relayEnabled = false,
     this.relayConnected = false,
     this.relayClientId,
+    this.relayHost = '',
   });
 
   /// Whether a named tunnel is configured (persistent URL).
@@ -68,6 +70,7 @@ class McpServerState {
     bool? relayEnabled,
     bool? relayConnected,
     String? Function()? relayClientId,
+    String? relayHost,
   }) {
     return McpServerState(
       enabled: enabled ?? this.enabled,
@@ -87,13 +90,17 @@ class McpServerState {
       relayEnabled: relayEnabled ?? this.relayEnabled,
       relayConnected: relayConnected ?? this.relayConnected,
       relayClientId: relayClientId != null ? relayClientId() : this.relayClientId,
+      relayHost: relayHost ?? this.relayHost,
     );
   }
 
   /// Returns the best available public URL: relay > tunnel > localhost.
   String get httpUrl {
-    if (relayConnected && relayClientId != null) {
-      return 'https://$relayClientId.relay.osemdynamics.com/mcp';
+    if (relayConnected && relayClientId != null && relayHost.isNotEmpty) {
+      // Extract domain from wss://host:port format
+      final uri = Uri.tryParse(relayHost);
+      final domain = uri?.host ?? relayHost;
+      return 'https://$relayClientId.$domain/mcp';
     }
     if (tunnelRunning && tunnelUrl != null) return '${tunnelUrl!}/mcp';
     return 'http://localhost:$port/mcp';
@@ -146,6 +153,7 @@ class McpServerNotifier extends Notifier<McpServerState> {
     final tunnelName = await db.settingsDao.getValue('mcp_tunnel_name');
     final tunnelCustomUrl = await db.settingsDao.getValue('mcp_tunnel_custom_url');
     final relayEnabled = await db.settingsDao.getValue('mcp_relay_enabled');
+    final relayHost = await db.settingsDao.getValue('mcp_relay_host');
     final relayClientId = await _loadOrCreateRelayClientId();
 
     // Guard against disposal during async gap
@@ -160,6 +168,7 @@ class McpServerNotifier extends Notifier<McpServerState> {
       tunnelName: () => tunnelName,
       tunnelCustomUrl: () => tunnelCustomUrl,
       relayEnabled: relayEnabled == 'true',
+      relayHost: relayHost ?? '',
       relayClientId: () => relayClientId,
     );
 
@@ -168,8 +177,8 @@ class McpServerNotifier extends Notifier<McpServerState> {
       await startServer();
     }
 
-    // Auto-connect relay if enabled
-    if (state.relayEnabled && state.running) {
+    // Auto-connect relay if enabled and host is configured
+    if (state.relayEnabled && state.running && state.relayHost.isNotEmpty) {
       await connectRelay();
     }
   }
@@ -186,6 +195,7 @@ class McpServerNotifier extends Notifier<McpServerState> {
     await db.settingsDao.setValue('mcp_tunnel_name', state.tunnelName ?? '');
     await db.settingsDao.setValue('mcp_tunnel_custom_url', state.tunnelCustomUrl ?? '');
     await db.settingsDao.setValue('mcp_relay_enabled', state.relayEnabled.toString());
+    await db.settingsDao.setValue('mcp_relay_host', state.relayHost);
   }
 
   Future<void> startServer() async {
@@ -389,8 +399,6 @@ class McpServerNotifier extends Notifier<McpServerState> {
 
   // ── Relay server ────────────────────────────────────────────────────
 
-  static const _relayHost = 'wss://relay.osemdynamics.com:3901';
-
   /// Load or generate a stable relay client ID from ~/.config/dispatch/relay_id.
   static Future<String> _loadOrCreateRelayClientId() async {
     final home = Platform.environment['HOME'] ?? '/tmp';
@@ -413,10 +421,20 @@ class McpServerNotifier extends Notifier<McpServerState> {
     return id;
   }
 
+  /// Set relay host URL (e.g. wss://relay.example.com:3901).
+  Future<void> setRelayHost(String host) async {
+    state = state.copyWith(relayHost: host);
+    if (state.relayEnabled && state.running) {
+      await disconnectRelay();
+      if (host.isNotEmpty) await connectRelay();
+    }
+    await _saveSettings();
+  }
+
   /// Toggle relay mode on/off.
   Future<void> setRelayEnabled(bool enabled) async {
     state = state.copyWith(relayEnabled: enabled);
-    if (enabled && state.running) {
+    if (enabled && state.running && state.relayHost.isNotEmpty) {
       await connectRelay();
     } else if (!enabled) {
       await disconnectRelay();
@@ -428,11 +446,11 @@ class McpServerNotifier extends Notifier<McpServerState> {
   Future<void> connectRelay() async {
     if (_relaySocket != null) return;
     final clientId = state.relayClientId;
-    if (clientId == null) return;
+    if (clientId == null || state.relayHost.isEmpty) return;
 
     try {
       _relaySocket = await WebSocket.connect(
-        '$_relayHost?clientId=$clientId&localPort=${state.port}',
+        '${state.relayHost}?clientId=$clientId&localPort=${state.port}',
       );
       if (_disposed) {
         _relaySocket?.close();
