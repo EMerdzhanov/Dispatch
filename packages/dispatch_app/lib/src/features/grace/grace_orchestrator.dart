@@ -32,6 +32,7 @@ import 'tools/workspace_tools.dart';
 import 'tools/history_tools.dart';
 import 'tools/web_tools.dart';
 import 'tools/system_tools.dart';
+import 'tools/git_tools.dart';
 import '../projects/projects_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../../core/database/database.dart';
@@ -86,6 +87,8 @@ class GraceOrchestrator {
     _tools.registerAll(workspaceTools());
     _tools.registerAll(historyTools());
     _tools.registerAll(webTools());
+    _tools.registerAll(systemTools());
+    _tools.registerAll(gitTools());
   }
 
   Future<void> initialize() async {
