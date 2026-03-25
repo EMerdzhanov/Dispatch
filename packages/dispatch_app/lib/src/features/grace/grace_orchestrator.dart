@@ -19,6 +19,7 @@ import 'tools/grace_memory_tools.dart';
 import 'tools/terminal_tools.dart';
 import 'tools/project_tools.dart';
 import 'tools/knowledge_tools.dart';
+import 'tools/file_tools.dart';
 import 'tools/filesystem_tools.dart';
 import 'tools/state_tools.dart';
 import 'tools/project_tools_v2.dart';
@@ -29,6 +30,8 @@ import 'tools/routing_tools.dart';
 import 'tools/delegate_tools.dart';
 import 'tools/workspace_tools.dart';
 import 'tools/history_tools.dart';
+import 'tools/web_tools.dart';
+import 'tools/system_tools.dart';
 import '../projects/projects_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../../core/database/database.dart';
@@ -69,6 +72,7 @@ class GraceOrchestrator {
     _tools.registerAll(projectTools());
     _tools.register(_scanProjectEntry());
     _tools.registerAll(filesystemTools());
+    _tools.registerAll(fileTools());
     _tools.registerAll(stateTools(_agentsState));
     _tools.registerAll(projectToolsV2());
     _tools.registerAll(playbookTools(_playbookLoader));
@@ -81,6 +85,7 @@ class GraceOrchestrator {
     _tools.registerAll(delegateTools(_agentsState, _emit));
     _tools.registerAll(workspaceTools());
     _tools.registerAll(historyTools());
+    _tools.registerAll(webTools());
   }
 
   Future<void> initialize() async {
