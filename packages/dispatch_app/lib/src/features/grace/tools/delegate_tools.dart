@@ -216,20 +216,38 @@ Future<Map<String, dynamic>> _delegateToAgent(
     return {'error': 'PTY failed to start for $agent in $cwd'};
   }
 
-  // Wait for agent welcome screen to render
-  await Future.delayed(const Duration(seconds: 2));
+  // Wait for agent welcome screen to render — Claude Code needs time to
+  // initialize, show the welcome screen, and be ready to accept input.
+  // Poll for the prompt character (❯ or >) to confirm readiness.
+  var promptReady = false;
+  for (var i = 0; i < 15; i++) {
+    await Future.delayed(const Duration(seconds: 1));
+    final output = ref.read(sessionRegistryProvider.notifier).readOutput(terminalId, lines: 5);
+    if (output.contains('❯') || output.contains('> ') || output.contains('\$ ')) {
+      promptReady = true;
+      break;
+    }
+  }
+
+  if (!promptReady) {
+    // Still send the task even if we didn't detect the prompt — might work anyway
+    await Future.delayed(const Duration(seconds: 3));
+  }
 
   if (context != null && context.isNotEmpty) {
     _writeToPty(ref, terminalId,
         'Context from orchestrator:\n$context\n\nNow complete the following task:');
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(seconds: 1));
   }
 
   // Send the task text
   _writeToPty(ref, terminalId, task);
 
-  // FIX: Claude Code's multi-line paste detection holds the text waiting for
-  // confirmation. Send an explicit Enter 1 second later to force submission.
+  // Claude Code detects multi-line pastes and shows "[Pasted text ...]".
+  // Wait for it to process, then send Enter to confirm submission.
+  await Future.delayed(const Duration(seconds: 2));
+  _sendEnter(ref, terminalId);
+  // Send a second Enter after a short delay in case the first was too early
   await Future.delayed(const Duration(seconds: 1));
   _sendEnter(ref, terminalId);
 
