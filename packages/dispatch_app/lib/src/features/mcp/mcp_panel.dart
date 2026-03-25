@@ -172,6 +172,53 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                             child: Text('Regenerate token', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
                           ),
                         ],
+                        // Public URL toggle (always visible)
+                        const SizedBox(height: 10),
+                        if (!mcpState.cloudflaredAvailable) ...[
+                          Text(
+                            'Install cloudflared for public URLs: brew install cloudflared',
+                            style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => ref.read(mcpServerProvider.notifier).checkCloudflared(),
+                            child: Text('Re-check', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
+                          ),
+                        ] else ...[
+                          Row(
+                            children: [
+                              Text('Public URL', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: () {
+                                  if (mcpState.tunnelRunning) {
+                                    ref.read(mcpServerProvider.notifier).stopTunnel();
+                                  } else if (!mcpState.tunnelStarting) {
+                                    ref.read(mcpServerProvider.notifier).startTunnel();
+                                  }
+                                },
+                                child: _Toggle(
+                                  value: mcpState.tunnelRunning,
+                                  pending: mcpState.tunnelStarting,
+                                  theme: theme,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (mcpState.tunnelStarting)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text('Starting tunnel...', style: TextStyle(color: theme.accentYellow, fontSize: 11)),
+                            ),
+                          if (mcpState.tunnelRunning && !mcpState.tunnelStarting)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                'Temporary URL — changes on restart.',
+                                style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                              ),
+                            ),
+                        ],
                         const SizedBox(height: 16),
                       ],
 
@@ -202,7 +249,7 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                       _toggleRow('Token auth', mcpState.authEnabled, theme,
                           onChanged: (v) => ref.read(mcpServerProvider.notifier).setAuthEnabled(v)),
 
-                      // ── Public Access (collapsible) ─────────────────────
+                      // ── Advanced (collapsible) ─────────────────────────
                       if (mcpState.running) ...[
                         const SizedBox(height: 16),
                         GestureDetector(
@@ -215,74 +262,21 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                                 color: theme.textSecondary,
                               ),
                               const SizedBox(width: 4),
-                              Text('PUBLIC ACCESS', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1)),
-                              if (mcpState.tunnelRunning || mcpState.relayConnected) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  width: 6, height: 6,
-                                  decoration: BoxDecoration(shape: BoxShape.circle, color: theme.accentGreen),
-                                ),
-                              ],
+                              Text('ADVANCED', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1)),
                             ],
                           ),
                         ),
                         if (_publicAccessOpen) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            'Expose your MCP server publicly so remote agents can connect. '
-                            'Only one method can be active at a time.',
-                            style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
-                          ),
-
-                          // ── Cloudflare Tunnel ──
-                          const SizedBox(height: 14),
-                          _sectionLabel('CLOUDFLARE TUNNEL', theme),
-                          const SizedBox(height: 6),
-                          if (!mcpState.cloudflaredAvailable) ...[
+                          // ── Named Cloudflare Tunnel ──
+                          if (mcpState.cloudflaredAvailable) ...[
+                            const SizedBox(height: 12),
+                            _sectionLabel('NAMED TUNNEL', theme),
+                            const SizedBox(height: 6),
                             Text(
-                              'Install cloudflared for public URLs: brew install cloudflared',
-                              style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                              'Permanent URL using your own domain.\n'
+                              'Requires a Cloudflare account.',
+                              style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
                             ),
-                            const SizedBox(height: 4),
-                            GestureDetector(
-                              onTap: () => ref.read(mcpServerProvider.notifier).checkCloudflared(),
-                              child: Text('Re-check', style: TextStyle(color: theme.accentBlue, fontSize: 11)),
-                            ),
-                          ] else ...[
-                            Row(
-                              children: [
-                                Text('Quick tunnel', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
-                                const Spacer(),
-                                GestureDetector(
-                                  onTap: () {
-                                    if (mcpState.tunnelRunning) {
-                                      ref.read(mcpServerProvider.notifier).stopTunnel();
-                                    } else if (!mcpState.tunnelStarting) {
-                                      ref.read(mcpServerProvider.notifier).startTunnel();
-                                    }
-                                  },
-                                  child: _Toggle(
-                                    value: mcpState.tunnelRunning,
-                                    pending: mcpState.tunnelStarting,
-                                    theme: theme,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (mcpState.tunnelStarting)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text('Starting tunnel...', style: TextStyle(color: theme.accentYellow, fontSize: 11)),
-                              ),
-                            if (mcpState.tunnelRunning && !mcpState.tunnelStarting) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                'Temporary URL — changes on restart.',
-                                style: TextStyle(color: theme.textSecondary, fontSize: 10),
-                              ),
-                            ],
-
-                            // Named tunnel (sub-collapsible)
                             const SizedBox(height: 10),
                             GestureDetector(
                               onTap: () => setState(() => _namedTunnelOpen = !_namedTunnelOpen),
@@ -294,18 +288,12 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                                     color: theme.textSecondary,
                                   ),
                                   const SizedBox(width: 4),
-                                  Text('Named tunnel (permanent URL)', style: TextStyle(color: theme.textSecondary, fontSize: 10)),
+                                  Text('Setup instructions', style: TextStyle(color: theme.accentBlue, fontSize: 10)),
                                 ],
                               ),
                             ),
                             if (_namedTunnelOpen) ...[
                               const SizedBox(height: 8),
-                              Text(
-                                'Permanent URL using your own domain.\n'
-                                'Requires a Cloudflare account.',
-                                style: TextStyle(color: theme.textSecondary, fontSize: 10, height: 1.4),
-                              ),
-                              const SizedBox(height: 10),
                               _stepHeader('1. Install cloudflared', theme),
                               const SizedBox(height: 4),
                               _codeBlock('brew install cloudflared', theme),
@@ -323,82 +311,82 @@ class _McpPanelState extends ConsumerState<McpPanel> {
                               _codeBlock('cloudflared tunnel route dns dispatch \\\n  dispatch.yourdomain.com', theme),
                               const SizedBox(height: 10),
                               _stepHeader('5. Fill in below and hit Save', theme),
+                            ],
+                            const SizedBox(height: 8),
+                            _settingRow('Tunnel name', theme, child: SizedBox(
+                              width: 140,
+                              height: 28,
+                              child: TextField(
+                                controller: _tunnelNameCtrl,
+                                style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  hintText: 'e.g. dispatch',
+                                  hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 12),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            )),
+                            const SizedBox(height: 6),
+                            _settingRow('Tunnel URL', theme, child: SizedBox(
+                              width: 220,
+                              height: 28,
+                              child: TextField(
+                                controller: _tunnelUrlCtrl,
+                                style: TextStyle(color: theme.textPrimary, fontSize: 12),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  hintText: 'https://dispatch.yourdomain.com',
+                                  hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            )),
+                            if (tunnelDirty) ...[
                               const SizedBox(height: 8),
-                              _settingRow('Tunnel name', theme, child: SizedBox(
-                                width: 140,
-                                height: 28,
-                                child: TextField(
-                                  controller: _tunnelNameCtrl,
-                                  style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    hintText: 'e.g. dispatch',
-                                    hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 12),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                                  ),
-                                  onChanged: (_) => setState(() {}),
-                                ),
-                              )),
-                              const SizedBox(height: 6),
-                              _settingRow('Tunnel URL', theme, child: SizedBox(
-                                width: 220,
-                                height: 28,
-                                child: TextField(
-                                  controller: _tunnelUrlCtrl,
-                                  style: TextStyle(color: theme.textPrimary, fontSize: 12),
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    hintText: 'https://dispatch.yourdomain.com',
-                                    hintStyle: TextStyle(color: theme.textSecondary.withValues(alpha: 0.5), fontSize: 10),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: theme.border)),
-                                  ),
-                                  onChanged: (_) => setState(() {}),
-                                ),
-                              )),
-                              if (tunnelDirty) ...[
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        ref.read(mcpServerProvider.notifier).setTunnelConfig(
-                                          name: _tunnelNameCtrl.text,
-                                          customUrl: _tunnelUrlCtrl.text,
-                                        );
-                                        setState(() {});
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: theme.accentGreen,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text('Save', style: TextStyle(color: theme.background, fontSize: 11, fontWeight: FontWeight.w600)),
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      ref.read(mcpServerProvider.notifier).setTunnelConfig(
+                                        name: _tunnelNameCtrl.text,
+                                        customUrl: _tunnelUrlCtrl.text,
+                                      );
+                                      setState(() {});
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: theme.accentGreen,
+                                        borderRadius: BorderRadius.circular(4),
                                       ),
+                                      child: Text('Save', style: TextStyle(color: theme.background, fontSize: 11, fontWeight: FontWeight.w600)),
                                     ),
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () {
-                                        _tunnelNameCtrl.text = mcpState.tunnelName ?? '';
-                                        _tunnelUrlCtrl.text = mcpState.tunnelCustomUrl ?? '';
-                                        setState(() {});
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(4),
-                                          border: Border.all(color: theme.border),
-                                        ),
-                                        child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () {
+                                      _tunnelNameCtrl.text = mcpState.tunnelName ?? '';
+                                      _tunnelUrlCtrl.text = mcpState.tunnelCustomUrl ?? '';
+                                      setState(() {});
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: theme.border),
                                       ),
+                                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
                                     ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ],
                           ],
 
