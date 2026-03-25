@@ -33,6 +33,7 @@ import 'tools/history_tools.dart';
 import 'tools/web_tools.dart';
 import 'tools/system_tools.dart';
 import 'tools/git_tools.dart';
+import 'tools/custom_tools.dart';
 import '../projects/projects_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../../core/database/database.dart';
@@ -89,6 +90,9 @@ class GraceOrchestrator {
     _tools.registerAll(webTools());
     _tools.registerAll(systemTools());
     _tools.registerAll(gitTools());
+
+    // Custom tool management (always available)
+    _tools.registerAll(customToolManagement());
   }
 
   Future<void> initialize() async {
@@ -122,6 +126,10 @@ class GraceOrchestrator {
       final timestamp = DateTime.now().toUtc().toIso8601String();
       await writeFile(logFile.path, '- [$timestamp] Grace initialized.\n');
     }
+
+    // Load user-created custom tools
+    final customTools = await loadCustomTools();
+    _tools.registerAll(customTools);
 
     await _playbookLoader.ensureDefaults();
     await _agentsState.cleanupStale();
