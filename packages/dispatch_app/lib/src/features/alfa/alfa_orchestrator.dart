@@ -75,7 +75,6 @@ class AlfaOrchestrator {
 
   Future<void> initialize() async {
     final db = ref.read(databaseProvider);
-    // Support both old 'alfa.api_key' and new 'grace.api_key' settings keys
     final apiKey = await db.settingsDao.getValue('grace.api_key')
         ?? await db.settingsDao.getValue('alfa.api_key');
     final model = await db.settingsDao.getValue('grace.model')
@@ -91,8 +90,6 @@ class AlfaOrchestrator {
 
     await ensureGraceDirs();
     await migrateFromV1(ref);
-
-    // Migrate old alfa config dir if grace dir is empty
     await _migrateAlfaToGrace();
 
     final identityFile = File('${graceDir()}/identity.md');
@@ -121,11 +118,10 @@ class AlfaOrchestrator {
     );
     _monitorSkill!.start();
 
+    // Watch ALL terminals — Grace monitors everything, not just ones she spawned
     ref.read(sessionRegistryProvider.notifier).onOutputCallback =
         (terminalId, output) {
-      if (terminalId.endsWith('-alfa') || terminalId.endsWith('-grace')) {
-        _monitorSkill!.onTerminalOutput(terminalId, output);
-      }
+      _monitorSkill!.onTerminalOutput(terminalId, output);
     };
 
     _backgroundLoop = BackgroundLoop(
@@ -136,16 +132,14 @@ class AlfaOrchestrator {
     _backgroundLoop!.start();
   }
 
-  /// Migrate ~/.config/dispatch/alfa to ~/.config/dispatch/grace if needed.
   static Future<void> _migrateAlfaToGrace() async {
     final home = Platform.environment['HOME'] ?? '/tmp';
     final oldDir = Directory('$home/.config/dispatch/alfa');
     final newDir = Directory('$home/.config/dispatch/grace');
 
     if (!await oldDir.exists()) return;
-    if (await File('${newDir.path}/memory.md').exists()) return; // already migrated
+    if (await File('${newDir.path}/memory.md').exists()) return;
 
-    // Copy key files from old to new
     for (final name in ['memory.md', 'log.md', 'agents.json']) {
       final oldFile = File('${oldDir.path}/$name');
       if (await oldFile.exists()) {
@@ -157,12 +151,12 @@ class AlfaOrchestrator {
       }
     }
 
-    // Copy project knowledge files
     final oldProjects = Directory('${oldDir.path}/projects');
     if (await oldProjects.exists()) {
       await for (final entity in oldProjects.list()) {
         if (entity is File) {
-          final newFile = File('${newDir.path}/projects/${entity.uri.pathSegments.last}');
+          final newFile = File(
+              '${newDir.path}/projects/${entity.uri.pathSegments.last}');
           if (!await newFile.exists()) {
             await newFile.parent.create(recursive: true);
             await entity.copy(newFile.path);
@@ -405,18 +399,22 @@ class AlfaOrchestrator {
             _backgroundLoop?.getStatus() ?? {'status': 'not_started'},
       );
 
-  /// generate_grace_md — writes GRACE.md to the project root.
-  /// Synthesizes project knowledge, recent log, and current tasks into a
-  /// concise briefing file that Claude Code reads at session start.
+  // ---------------------------------------------------------------------------
+  // generate_grace_md — smart GRACE.md that adapts to CLAUDE.md presence
+  // ---------------------------------------------------------------------------
+
   AlfaToolEntry _generateGraceMdTool() => AlfaToolEntry(
         definition: const AlfaToolDefinition(
           name: 'generate_grace_md',
           description:
               'Generate or update GRACE.md in the project root. '
-              'GRACE.md briefs Claude Code at session start with current tech stack, '
-              'conventions, what was last worked on, what is broken, and what is next. '
-              'Call this after updating project knowledge or completing a session. '
-              'Never writes to CLAUDE.md — that is Claude Code\'s file.',
+              'Grace reads CLAUDE.md first — if it is detailed (has tech stack, '
+              'architecture, or commands), GRACE.md writes session state only '
+              '(last worked on, open tasks, recent decisions). '
+              'If CLAUDE.md is sparse or missing, GRACE.md writes the full brief. '
+              'Never duplicates what CLAUDE.md already covers. '
+              'Never writes to CLAUDE.md except to add a one-line reference. '
+              'Call after any session where meaningful work was done.',
           inputSchema: {
             'type': 'object',
             'properties': {
@@ -435,6 +433,25 @@ class AlfaOrchestrator {
     final cwd = (params['cwd'] as String?) ?? _getActiveCwd();
     if (cwd == null) return {'error': 'No active project and no cwd provided'};
 
+    final label = cwd.split('/').last;
+    final timestamp =
+        DateTime.now().toUtc().toIso8601String().split('T').first;
+    final graceMdPath = '$cwd/GRACE.md';
+    final claudeMdPath = '$cwd/CLAUDE.md';
+
+    // Read CLAUDE.md to decide what Grace needs to cover
+    final claudeMdFile = File(claudeMdPath);
+    final claudeExists = await claudeMdFile.exists();
+    final claudeContent = claudeExists ? await claudeMdFile.readAsString() : '';
+
+    // "detailed" = CLAUDE.md already covers tech stack / architecture / commands
+    final claudeIsDetailed = claudeExists &&
+        (claudeContent.toLowerCase().contains('## tech stack') ||
+            claudeContent.toLowerCase().contains('## architecture') ||
+            claudeContent.toLowerCase().contains('## commands') ||
+            claudeContent.length > 500);
+
+    // Load Grace's own data
     final projectPath =
         '${graceDir()}/projects/${slugifyPath(cwd)}.md';
     final projectContent = await loadFile(projectPath);
@@ -451,68 +468,83 @@ class AlfaOrchestrator {
     final incomplete = tasks.where((t) => !t.done).toList();
     final taskLines = incomplete.isEmpty
         ? 'No open tasks.'
-        : incomplete.map((t) => '- ${t.title}').join('\n');
+        : incomplete.map((t) {
+            final desc =
+                t.description.isNotEmpty ? ' — ${t.description}' : '';
+            return '- ${t.title}$desc';
+          }).join('\n');
 
-    final timestamp = DateTime.now().toUtc().toIso8601String();
-    final label = cwd.split('/').last;
+    final buf = StringBuffer();
 
-    final graceMd = '''# GRACE.md — $label
-Generated by Grace · $timestamp
+    // Header
+    buf.writeln('# GRACE.md — $label');
+    buf.writeln('Generated by Grace · $timestamp');
+    buf.writeln(
+        '> Maintained by Grace (Dispatch). Do not edit manually — will be regenerated.');
+    if (claudeIsDetailed) {
+      buf.writeln(
+          '> Tech stack, commands, and conventions are in CLAUDE.md — not duplicated here.');
+    }
+    buf.writeln();
+    buf.writeln('---');
+    buf.writeln();
 
-> This file is maintained by Grace (Dispatch's dev assistant).
-> Do not edit manually — it will be overwritten.
-> See GRACE.md for session context. See CLAUDE.md for project conventions.
-
----
-
-## Project Context
-
-$projectContent
-
----
-
-## Recent Activity
-
-$logLines
-
----
-
-## Open Tasks
-
-$taskLines
-
----
-
-## Instructions for Claude Code
-
-Read this file at the start of every session to understand:
-- What was last worked on
-- What is currently broken or in progress  
-- What conventions this project follows
-- What to work on next
-
-Do not modify this file. Grace maintains it.
-''';
-
-    final graceMdPath = '$cwd/GRACE.md';
-    await writeFile(graceMdPath, graceMd);
-
-    // Add a reference to GRACE.md in CLAUDE.md if it exists and doesn't already reference it
-    final claudeMdPath = '$cwd/CLAUDE.md';
-    final claudeMdFile = File(claudeMdPath);
-    if (await claudeMdFile.exists()) {
-      final claudeContent = await claudeMdFile.readAsString();
-      if (!claudeContent.contains('GRACE.md')) {
-        await claudeMdFile.writeAsString(
-          '$claudeContent\n\n---\n\nSee GRACE.md for session context and project history.\n',
-        );
-      }
+    // Full project brief — only when CLAUDE.md is sparse or missing
+    if (!claudeIsDetailed && projectContent.isNotEmpty) {
+      buf.writeln('## Project Brief');
+      buf.writeln();
+      buf.writeln(projectContent.trim());
+      buf.writeln();
+      buf.writeln('---');
+      buf.writeln();
     }
 
+    // Session state — always written
+    buf.writeln('## Last Worked On');
+    buf.writeln();
+    buf.writeln(logLines.isNotEmpty ? logLines : 'No recent session log.');
+    buf.writeln();
+    buf.writeln('---');
+    buf.writeln();
+
+    buf.writeln('## Open Tasks');
+    buf.writeln();
+    buf.writeln(taskLines);
+    buf.writeln();
+    buf.writeln('---');
+    buf.writeln();
+
+    // Instructions
+    buf.writeln('## For Claude Code');
+    buf.writeln();
+    if (claudeIsDetailed) {
+      buf.writeln('- Read **CLAUDE.md** for tech stack, commands, conventions');
+      buf.writeln(
+          '- This file has session context only — what changed, what is next');
+    } else {
+      buf.writeln('- No detailed CLAUDE.md found — all project context is above');
+    }
+    buf.writeln('- Grace maintains this file. Do not edit manually.');
+
+    await writeFile(graceMdPath, buf.toString());
+
+    // Add one-line reference in CLAUDE.md if missing
+    if (claudeExists && !claudeContent.contains('GRACE.md')) {
+      await claudeMdFile.writeAsString(
+        '$claudeContent\n\n---\n\nSee GRACE.md for session context (last worked on, open tasks).\n',
+      );
+    }
+
+    final mode = claudeIsDetailed ? 'session-state-only' : 'full-brief';
     return {
       'success': true,
       'path': graceMdPath,
-      'message': 'GRACE.md written to $graceMdPath',
+      'mode': mode,
+      'claude_md_found': claudeExists,
+      'claude_md_detailed': claudeIsDetailed,
+      'message': claudeIsDetailed
+          ? 'GRACE.md written (session state only — CLAUDE.md covers the rest)'
+          : 'GRACE.md written (full brief — CLAUDE.md is sparse or missing)',
     };
   }
 

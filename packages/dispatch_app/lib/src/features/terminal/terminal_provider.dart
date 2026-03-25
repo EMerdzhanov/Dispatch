@@ -7,23 +7,28 @@ class TerminalsState {
   final Map<String, TerminalEntry> terminals;
   final String? activeTerminalId;
   final bool zenMode;
+  /// Terminal IDs currently waiting for user approval (e.g. Claude Code y/n prompt).
+  final Set<String> waitingApproval;
 
   const TerminalsState({
     this.terminals = const {},
     this.activeTerminalId,
     this.zenMode = false,
+    this.waitingApproval = const {},
   });
 
   TerminalsState copyWith({
     Map<String, TerminalEntry>? terminals,
     String? Function()? activeTerminalId,
     bool? zenMode,
+    Set<String>? waitingApproval,
   }) {
     return TerminalsState(
       terminals: terminals ?? this.terminals,
       activeTerminalId:
           activeTerminalId != null ? activeTerminalId() : this.activeTerminalId,
       zenMode: zenMode ?? this.zenMode,
+      waitingApproval: waitingApproval ?? this.waitingApproval,
     );
   }
 }
@@ -42,15 +47,22 @@ class TerminalsNotifier extends Notifier<TerminalsState> {
   void removeTerminal(String id) {
     final updated = Map<String, TerminalEntry>.from(state.terminals)..remove(id);
     ref.read(projectsProvider.notifier).removeTerminalFromGroup(id);
+    // Clear approval state if terminal is removed
+    final updatedApproval = Set<String>.from(state.waitingApproval)..remove(id);
     state = state.copyWith(
       terminals: updated,
-      activeTerminalId:
-          state.activeTerminalId == id ? () => null : null,
+      activeTerminalId: state.activeTerminalId == id ? () => null : null,
+      waitingApproval: updatedApproval,
     );
   }
 
   void setActiveTerminal(String id) {
-    state = state.copyWith(activeTerminalId: () => id);
+    // Clicking a terminal clears its approval badge
+    final updatedApproval = Set<String>.from(state.waitingApproval)..remove(id);
+    state = state.copyWith(
+      activeTerminalId: () => id,
+      waitingApproval: updatedApproval,
+    );
   }
 
   void updateStatus(String id, TerminalStatus status, {int? exitCode}) {
@@ -67,6 +79,17 @@ class TerminalsNotifier extends Notifier<TerminalsState> {
     final updated = Map<String, TerminalEntry>.from(state.terminals);
     updated[id] = terminal.copyWith(label: label);
     state = state.copyWith(terminals: updated);
+  }
+
+  /// Mark a terminal as waiting for approval — shows badge on the tab.
+  void setWaitingApproval(String id, {required bool waiting}) {
+    final updated = Set<String>.from(state.waitingApproval);
+    if (waiting) {
+      updated.add(id);
+    } else {
+      updated.remove(id);
+    }
+    state = state.copyWith(waitingApproval: updated);
   }
 
   void toggleZenMode() {

@@ -7,10 +7,12 @@ import 'package:flutter_pty/flutter_pty.dart';
 import 'package:xterm/xterm.dart' as xterm;
 import 'package:dispatch_terminal/dispatch_terminal.dart';
 
+import 'terminal_provider.dart';
+
 /// Metadata about a terminal session, updated by TerminalMonitor via callback.
 class TerminalSessionMeta {
   final DateTime? lastActivityTime;
-  final String? activityStatus; // 'idle', 'running', 'success', 'error'
+  final String? activityStatus;
 
   const TerminalSessionMeta({this.lastActivityTime, this.activityStatus});
 
@@ -37,19 +39,60 @@ class TerminalSessionRecord {
   }) : outputBuffer = outputBuffer ?? Queue<String>();
 }
 
+// ---------------------------------------------------------------------------
+// Mechanical approval detector — no AI, no tokens, pure string matching.
+// Runs on every line of output from every terminal.
+// Detects Claude Code / Codex approval prompts and updates the UI badge.
+// ---------------------------------------------------------------------------
+final _ansiStripper = RegExp(
+    r'\x1B\[[0-9;]*[A-Za-z]|\x1B\][^\x07]*\x07|\x1B[()][A-B012]');
+
+// These strings appear ONLY when a terminal is waiting for user approval.
+// Chosen to be extremely specific — zero false positives in normal output.
+const _approvalSignals = [
+  'Esc to cancel',          // Claude Code approval prompt footer
+  'Do you want to create',  // Claude Code write prompt
+  'Do you want to edit',    // Claude Code edit prompt
+  'Do you want to delete',  // Claude Code delete prompt
+  'Do you want to run',     // Claude Code bash prompt
+  'Do you want to execute', // Codex
+  'Allow this tool call',   // Generic agent prompt
+  '(y/n)',                  // CLI prompts
+  '[Y/n]',                  // CLI prompts
+  '[y/N]',                  // CLI prompts
+  'Is this OK?',            // npm prompts
+];
+
+bool _detectsApproval(String rawOutput) {
+  final stripped = rawOutput.replaceAll(_ansiStripper, '');
+  for (final signal in _approvalSignals) {
+    if (stripped.contains(signal)) return true;
+  }
+  return false;
+}
+
 /// Global registry of active PTY sessions, keyed by terminal ID.
-/// Owns PTY and xterm.Terminal lifecycle — widgets are thin views.
 class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
   static const int maxOutputLines = 10000;
 
-  /// Optional callback invoked on every output line appended to any terminal.
-  /// MonitorSkill registers here for event-driven monitoring.
+  /// Optional callback invoked on every output chunk appended to any terminal.
+  /// Grace/MonitorSkill registers here for event-driven monitoring.
   void Function(String terminalId, String output)? onOutputCallback;
+
+  // Ref is available via the Notifier base class
+  TerminalsNotifier? get _terminalsNotifier {
+    try {
+      return ref.read(terminalsProvider.notifier);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Map<String, TerminalSessionRecord> build() => {};
 
-  void register(String id, {PtySession? session, Pty? pty, xterm.Terminal? terminal}) {
+  void register(String id,
+      {PtySession? session, Pty? pty, xterm.Terminal? terminal}) {
     final updated = Map<String, TerminalSessionRecord>.from(state);
     final existing = updated[id];
     updated[id] = TerminalSessionRecord(
@@ -62,16 +105,14 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
     state = updated;
   }
 
-  /// Spawn a PTY for a terminal and register it. If a PTY already exists
-  /// for this ID, return the existing one (idempotent).
-  Pty? spawnPty(String id, {
+  Pty? spawnPty(
+    String id, {
     required String shell,
     required String cwd,
     String? command,
     void Function(String data)? onOutput,
     void Function(int exitCode)? onExit,
   }) {
-    // If already spawned, return existing
     final existing = state[id];
     if (existing?.pty != null) return existing!.pty;
 
@@ -86,11 +127,9 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
       workingDirectory: cwd,
     );
 
-    // Ensure terminal exists
-    final terminal = existing?.terminal ?? xterm.Terminal(maxLines: 10000);
+    final terminal =
+        existing?.terminal ?? xterm.Terminal(maxLines: 10000);
 
-    // Register PTY + terminal in state BEFORE wiring listeners
-    // to avoid race where appendOutput runs before state is set.
     final updated = Map<String, TerminalSessionRecord>.from(state);
     updated[id] = TerminalSessionRecord(
       session: existing?.session,
@@ -101,30 +140,25 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
     );
     state = updated;
 
-    // Wire PTY output → terminal + callback
     pty.output.cast<List<int>>().transform(const Utf8Decoder()).listen((data) {
       terminal.write(data);
       Future.delayed(Duration.zero, () => appendOutput(id, data));
       onOutput?.call(data);
     });
 
-    // Wire terminal input → PTY
     terminal.onOutput = (data) {
       pty.write(const Utf8Encoder().convert(data));
     };
 
-    // Wire resize
     terminal.onResize = (w, h, pw, ph) {
       pty.resize(h, w);
     };
 
-    // Handle PTY exit
     pty.exitCode.then((code) {
       onExit?.call(code);
     });
 
-    // Type command into shell after brief delay
-    if (command != null && command != '\$SHELL' && command.isNotEmpty) {
+    if (command != null && command != r'$SHELL' && command.isNotEmpty) {
       Future.delayed(const Duration(milliseconds: 200), () {
         pty.write(const Utf8Encoder().convert('$command\r'));
       });
@@ -133,31 +167,26 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
     return pty;
   }
 
-  /// Get the Pty handle for a terminal (for writing commands / killing).
   Pty? getPty(String id) => state[id]?.pty;
-
-  /// Get the xterm.Terminal for a session.
   xterm.Terminal? getTerminal(String id) => state[id]?.terminal;
 
   void unregister(String id) {
     state = Map<String, TerminalSessionRecord>.from(state)..remove(id);
   }
 
-  /// Kill the PTY (if any) and remove the session entry entirely.
   void killAndUnregister(String id) {
-    final record = state[id];
-    if (record != null) {
-      record.pty?.kill();
-    }
+    state[id]?.pty?.kill();
     unregister(id);
   }
 
   PtySession? getSession(String id) => state[id]?.session;
 
-  /// Append output lines to the terminal's rolling buffer.
+  /// Append output to buffer, fire callback, and mechanically check for
+  /// approval prompts — no AI needed, pure string matching.
   void appendOutput(String id, String data) {
     final record = state[id];
     if (record == null) return;
+
     final newBuffer = Queue<String>.of(record.outputBuffer);
     for (final line in data.split('\n')) {
       newBuffer.addLast(line);
@@ -165,6 +194,7 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
         newBuffer.removeFirst();
       }
     }
+
     final updated = Map<String, TerminalSessionRecord>.from(state);
     updated[id] = TerminalSessionRecord(
       session: record.session,
@@ -174,12 +204,17 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
       meta: record.meta,
     );
     state = updated;
-    if (onOutputCallback != null) {
-      onOutputCallback!(id, data);
-    }
+
+    // --- Mechanical approval detection ---
+    // Read the last 20 lines to check for approval prompt
+    final tail = newBuffer.toList().reversed.take(20).toList().reversed.join('\n');
+    final waiting = _detectsApproval(tail);
+    _terminalsNotifier?.setWaitingApproval(id, waiting: waiting);
+
+    // Fire Grace/MonitorSkill callback
+    onOutputCallback?.call(id, data);
   }
 
-  /// Read the last N lines from a terminal's output buffer.
   String readOutput(String id, {int lines = 100}) {
     final record = state[id];
     if (record == null) return '';
@@ -188,7 +223,6 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
     return asList.sublist(start).join('\n');
   }
 
-  /// Update activity metadata for a terminal.
   void updateMeta(String id, {String? activityStatus}) {
     final record = state[id];
     if (record == null) return;
@@ -207,7 +241,6 @@ class SessionRegistry extends Notifier<Map<String, TerminalSessionRecord>> {
     state = updated;
   }
 
-  /// Get metadata for a terminal.
   TerminalSessionMeta? getMeta(String id) => state[id]?.meta;
 }
 

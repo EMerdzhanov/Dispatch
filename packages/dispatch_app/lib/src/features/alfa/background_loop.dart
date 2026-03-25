@@ -10,6 +10,7 @@ import 'default_identity.dart';
 import '../../persistence/auto_save.dart';
 import '../projects/projects_provider.dart';
 import '../terminal/session_registry.dart';
+import '../terminal/terminal_provider.dart';
 
 /// Persistent loop state written to loop_state.json.
 class LoopState {
@@ -86,6 +87,19 @@ class BackgroundLoop {
     RegExp(r'\bstarted\b', caseSensitive: false),
   ];
 
+  // Same approval patterns as MonitorSkill — used for polling
+  static final _approvalPatterns = [
+    RegExp(r'[❯›]\s*1\.\s*Yes', caseSensitive: false),
+    RegExp(r'Do you want to (create|edit|delete|write|run|execute|make)',
+        caseSensitive: false),
+    RegExp(r'Esc to cancel\s+·\s+Tab to amend', caseSensitive: false),
+    RegExp(r'Allow this tool call', caseSensitive: false),
+    RegExp(r'\(y/n\)\s*\$', multiLine: true, caseSensitive: false),
+    RegExp(r'\[y/N\]\s*\$', multiLine: true),
+    RegExp(r'\[Y/n\]\s*\$', multiLine: true),
+    RegExp(r'Is this OK\?', caseSensitive: false),
+  ];
+
   BackgroundLoop({
     required this.ref,
     required this.agentsState,
@@ -129,6 +143,7 @@ class BackgroundLoop {
       await _checkAlfaTasks();
       await _checkServerHealth();
       await _checkBuildErrors();
+      await _checkApprovalWaiting();
       if (_tickCount % 5 == 0) await _checkGitStatus();
       await _checkAlfaTaskCompletion();
     } catch (_) {}
@@ -237,6 +252,29 @@ class BackgroundLoop {
         _state.flaggedTerminals.remove(flagKey);
         _state.activeAlerts.removeWhere((a) => a.contains(id));
       }
+    }
+  }
+
+  /// Poll all terminals for approval prompts and update the UI badge.
+  /// This catches prompts that were already showing before Grace started.
+  Future<void> _checkApprovalWaiting() async {
+    final registry = ref.read(sessionRegistryProvider);
+    final notifier = ref.read(terminalsProvider.notifier);
+
+    for (final entry in registry.entries) {
+      final id = entry.key;
+      final record = entry.value;
+
+      final output = record.outputBuffer.toList();
+      if (output.isEmpty) continue;
+
+      final tail = output
+          .skip(output.length > 30 ? output.length - 30 : 0)
+          .join('\n')
+          .replaceAll(_ansiPattern, '');
+
+      final needsApproval = _approvalPatterns.any((p) => p.hasMatch(tail));
+      notifier.setWaitingApproval(id, waiting: needsApproval);
     }
   }
 

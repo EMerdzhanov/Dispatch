@@ -11,15 +11,12 @@ import '../../core/models/split_node.dart';
 import '../terminal/terminal_pane.dart';
 import '../terminal/terminal_provider.dart';
 
-/// Global keys for terminal panes — preserves state when moving between
-/// IndexedStack (single view) and Flex (split view).
 final _terminalPaneKeys = <String, GlobalKey>{};
 
 GlobalKey _getTerminalKey(String id) {
   return _terminalPaneKeys.putIfAbsent(id, () => GlobalKey());
 }
 
-/// The main content area that shows either terminals or browser panel.
 class TerminalArea extends ConsumerWidget {
   const TerminalArea({super.key});
 
@@ -56,26 +53,28 @@ class TerminalArea extends ConsumerWidget {
 
     return Column(
       children: [
-        // Sub tab bar with browser tabs
         _SubTabBar(
           group: activeGroup,
           activeTerminalId: terminalId,
           browserTabs: browserTabs,
           activeBrowserTabId: activeBrowserTabId,
           showBrowser: showBrowser,
+          waitingApproval: terminalsState.waitingApproval,
         ),
-        // Content: browser or terminals
-        // ALL terminal panes stay mounted via IndexedStack to preserve PTY sessions.
         Expanded(
           child: showBrowser
               ? BrowserPanel(
                   key: ValueKey(activeBrowserTabId),
-                  url: browserTabs.firstWhere((t) => t.id == activeBrowserTabId).url,
+                  url: browserTabs
+                      .firstWhere((t) => t.id == activeBrowserTabId)
+                      .url,
                 )
               : activeGroup.splitLayout != null
                   ? _buildSplitView(theme, activeGroup)
                   : IndexedStack(
-                      index: activeGroup.terminalIds.indexOf(terminalId).clamp(0, activeGroup.terminalIds.length - 1),
+                      index: activeGroup.terminalIds
+                          .indexOf(terminalId)
+                          .clamp(0, activeGroup.terminalIds.length - 1),
                       children: activeGroup.terminalIds.map((id) {
                         return TerminalPane(
                           key: _getTerminalKey(id),
@@ -90,13 +89,14 @@ class TerminalArea extends ConsumerWidget {
 
   Widget _buildSplitView(AppTheme theme, ProjectGroup group) {
     final layout = group.splitLayout!;
-    final direction = layout is SplitBranch ? layout.direction : SplitDirection.horizontal;
+    final direction = layout is SplitBranch
+        ? layout.direction
+        : SplitDirection.horizontal;
     final isHorizontal = direction == SplitDirection.horizontal;
 
     final children = <Widget>[];
     for (int i = 0; i < group.terminalIds.length; i++) {
       if (i > 0) {
-        // Divider between panes
         children.add(Container(
           width: isHorizontal ? 1 : null,
           height: isHorizontal ? null : 1,
@@ -118,13 +118,13 @@ class TerminalArea extends ConsumerWidget {
   }
 }
 
-/// Sub tab bar showing terminal tabs and browser tabs.
 class _SubTabBar extends ConsumerWidget {
   final ProjectGroup group;
   final String activeTerminalId;
   final List<BrowserTab> browserTabs;
   final String? activeBrowserTabId;
   final bool showBrowser;
+  final Set<String> waitingApproval;
 
   const _SubTabBar({
     required this.group,
@@ -132,6 +132,7 @@ class _SubTabBar extends ConsumerWidget {
     required this.browserTabs,
     required this.activeBrowserTabId,
     required this.showBrowser,
+    required this.waitingApproval,
   });
 
   @override
@@ -139,14 +140,19 @@ class _SubTabBar extends ConsumerWidget {
     final theme = ref.watch(appThemeProvider);
     final terminalsState = ref.watch(terminalsProvider);
     final hasBrowserTabs = browserTabs.isNotEmpty;
+    final hasMultipleTerminals = group.terminalIds.length > 1;
+    final hasAnyWaiting = group.terminalIds
+        .any((id) => waitingApproval.contains(id));
 
-    // Hide if only 1 terminal and no browser tabs
-    if (group.terminalIds.length <= 1 && !hasBrowserTabs) {
+    // Show tab bar if: multiple terminals, browser tabs exist, or any terminal
+    // is waiting for approval (so the badge is always visible)
+    if (!hasMultipleTerminals && !hasBrowserTabs && !hasAnyWaiting) {
       return const SizedBox.shrink();
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
@@ -159,41 +165,39 @@ class _SubTabBar extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // "Terminals" tab (when browser tabs exist)
-              if (hasBrowserTabs)
-                _SubTab(
-                  label: 'Terminals',
-                  isActive: !showBrowser,
-                  onTap: () => ref.read(browserProvider.notifier).setActiveTab(null),
+              // Always show individual terminal tabs so badges are visible
+              ...group.terminalIds.map((id) {
+                final isActive = id == activeTerminalId && !showBrowser;
+                final entry = terminalsState.terminals[id];
+                final label = entry?.label ??
+                    entry?.command.split(' ').first.split('/').last ??
+                    'Terminal';
+                final needsApproval = waitingApproval.contains(id);
+                return _SubTab(
+                  label: label,
+                  isActive: isActive,
+                  needsApproval: needsApproval,
+                  onTap: () {
+                    ref.read(browserProvider.notifier).setActiveTab(null);
+                    ref
+                        .read(terminalsProvider.notifier)
+                        .setActiveTerminal(id);
+                  },
                   theme: theme,
-                ),
-              // Individual terminal tabs (when no browser tabs, show terminal names)
-              if (!hasBrowserTabs)
-                ...group.terminalIds.map((id) {
-                  final isActive = id == activeTerminalId;
-                  final entry = terminalsState.terminals[id];
-                  final label = entry?.label ??
-                      entry?.command.split(' ').first.split('/').last ??
-                      'Terminal';
-                  return _SubTab(
-                    label: label,
-                    isActive: isActive,
-                    onTap: () {
-                      ref.read(browserProvider.notifier).setActiveTab(null);
-                      ref.read(terminalsProvider.notifier).setActiveTerminal(id);
-                    },
-                    theme: theme,
-                  );
-                }),
+                );
+              }),
               // Browser tabs
               ...browserTabs.map((tab) {
                 final isActive = tab.id == activeBrowserTabId;
                 return _SubTab(
                   label: '\u{1F310} ${tab.title}',
                   isActive: isActive,
-                  onTap: () => ref.read(browserProvider.notifier).setActiveTab(tab.id),
-                  onClose: () => ref.read(browserProvider.notifier).removeTab(
-                        group.id, tab.id),
+                  needsApproval: false,
+                  onTap: () =>
+                      ref.read(browserProvider.notifier).setActiveTab(tab.id),
+                  onClose: () => ref
+                      .read(browserProvider.notifier)
+                      .removeTab(group.id, tab.id),
                   theme: theme,
                 );
               }),
@@ -205,9 +209,10 @@ class _SubTabBar extends ConsumerWidget {
   }
 }
 
-class _SubTab extends StatelessWidget {
+class _SubTab extends StatefulWidget {
   final String label;
   final bool isActive;
+  final bool needsApproval;
   final VoidCallback onTap;
   final VoidCallback? onClose;
   final AppTheme theme;
@@ -215,42 +220,98 @@ class _SubTab extends StatelessWidget {
   const _SubTab({
     required this.label,
     required this.isActive,
+    required this.needsApproval,
     required this.onTap,
     this.onClose,
     required this.theme,
   });
 
   @override
+  State<_SubTab> createState() => _SubTabState();
+}
+
+class _SubTabState extends State<_SubTab> with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: AnimatedContainer(
         duration: AppTheme.animFastDuration,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
-          color: isActive ? theme.surfaceLight : Colors.transparent,
+          color: widget.needsApproval
+              ? const Color(0xFF2A1F00)
+              : widget.isActive
+                  ? widget.theme.surfaceLight
+                  : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          boxShadow: isActive
-              ? [const BoxShadow(color: Color(0x4D000000), blurRadius: 3, offset: Offset(0, 1))]
+          border: widget.needsApproval
+              ? Border.all(color: const Color(0xFFFFB300), width: 1)
+              : null,
+          boxShadow: widget.isActive && !widget.needsApproval
+              ? [
+                  const BoxShadow(
+                      color: Color(0x4D000000),
+                      blurRadius: 3,
+                      offset: Offset(0, 1))
+                ]
               : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (widget.needsApproval) ...[
+              AnimatedBuilder(
+                animation: _pulseAnim,
+                builder: (context, _) => Opacity(
+                  opacity: _pulseAnim.value,
+                  child: const Text('⏸', style: TextStyle(fontSize: 10)),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
             Text(
-              label,
+              widget.label,
               style: TextStyle(
                 fontSize: 11,
-                color: isActive ? theme.textPrimary : const Color(0xFF666666),
-                fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
+                color: widget.needsApproval
+                    ? const Color(0xFFFFB300)
+                    : widget.isActive
+                        ? widget.theme.textPrimary
+                        : const Color(0xFF666666),
+                fontWeight: widget.isActive || widget.needsApproval
+                    ? FontWeight.w500
+                    : FontWeight.normal,
               ),
             ),
-            if (onClose != null) ...[
+            if (widget.onClose != null) ...[
               const SizedBox(width: 6),
               GestureDetector(
-                onTap: onClose,
+                onTap: widget.onClose,
                 child: Text('\u2715',
-                    style: TextStyle(fontSize: 9, color: theme.textSecondary)),
+                    style: TextStyle(
+                        fontSize: 9, color: widget.theme.textSecondary)),
               ),
             ],
           ],
