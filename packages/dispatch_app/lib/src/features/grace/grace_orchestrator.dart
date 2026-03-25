@@ -28,6 +28,7 @@ import 'tools/test_tools.dart';
 import 'tools/routing_tools.dart';
 import 'tools/delegate_tools.dart';
 import 'tools/workspace_tools.dart';
+import 'tools/history_tools.dart';
 import '../projects/projects_provider.dart';
 import '../../persistence/auto_save.dart';
 import '../../core/database/database.dart';
@@ -79,6 +80,7 @@ class GraceOrchestrator {
     _tools.registerAll(routingTools());
     _tools.registerAll(delegateTools(_agentsState, _emit));
     _tools.registerAll(workspaceTools());
+    _tools.registerAll(historyTools());
   }
 
   Future<void> initialize() async {
