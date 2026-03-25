@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/database/database.dart';
+import '../../../persistence/auto_save.dart';
 import '../mcp_tools.dart';
 import '../../projects/projects_provider.dart';
 import '../../grace/default_identity.dart';
@@ -127,10 +129,24 @@ String _resolveCwd(Ref ref, Map<String, dynamic> params) {
 
 Future<Map<String, dynamic>> _readMemory(
     Ref ref, Map<String, dynamic> params) async {
-  final content = await loadFile('${graceDir()}/memory.md');
+  final db = ref.read(databaseProvider);
+  final pinned = await db.graceMemoriesDao.getPinned();
+  final recent = await db.graceMemoriesDao.getCandidates(null, limit: 20);
+
+  final sections = <String>[];
+  if (pinned.isNotEmpty) {
+    sections.add(
+        '## Pinned\n${pinned.map((m) => '- [${m.category}] ${m.content}').join('\n')}');
+  }
+  if (recent.isNotEmpty) {
+    sections.add(
+        '## Recent\n${recent.map((m) => '- [${m.category}] ${m.content}').join('\n')}');
+  }
+
   return {
-    'content': content,
-    'exists': content.isNotEmpty,
+    'content': sections.isEmpty ? 'No memories stored.' : sections.join('\n\n'),
+    'pinned_count': pinned.length,
+    'total_count': recent.length,
   };
 }
 
@@ -140,9 +156,21 @@ Future<Map<String, dynamic>> _updateMemory(
   if (content == null || content.isEmpty) {
     throw ArgumentError('content is required');
   }
-  final path = '${graceDir()}/memory.md';
-  await writeFile(path, content);
-  return {'status': 'updated', 'path': path};
+  final db = ref.read(databaseProvider);
+
+  final existing = await db.graceMemoriesDao.findDuplicate(content, null);
+  if (existing != null) {
+    return {'id': existing.id, 'status': 'already_exists'};
+  }
+
+  final id = await db.graceMemoriesDao.insertMemory(
+    GraceMemoriesCompanion.insert(
+      category: 'preference',
+      content: content,
+      source: 'user_explicit',
+    ),
+  );
+  return {'id': id, 'status': 'saved'};
 }
 
 Future<Map<String, dynamic>> _readProjectKnowledge(
