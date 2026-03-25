@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +23,10 @@ class _GracePanelState extends ConsumerState<GracePanel> {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
   String _streamingText = '';
+  final List<GraceAttachment> _attachments = [];
+
+  static const _imageExtensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'};
+  static const _maxFileSize = 10 * 1024 * 1024; // 10 MB
 
   @override
   void initState() {
@@ -55,11 +63,47 @@ class _GracePanelState extends ConsumerState<GracePanel> {
 
   void _send() {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _attachments.isEmpty) return;
     _controller.clear();
     _streamingText = '';
-    ref.read(graceProvider.notifier).sendMessage(text);
+    final attachments = _attachments.isNotEmpty ? List<GraceAttachment>.from(_attachments) : null;
+    setState(() => _attachments.clear());
+    ref.read(graceProvider.notifier).sendMessage(
+      text.isEmpty ? 'See attached files.' : text,
+      attachments: attachments,
+    );
     _focusNode.requestFocus();
+  }
+
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.any,
+    );
+    if (result == null) return;
+
+    for (final file in result.files) {
+      final path = file.path;
+      if (path == null) continue;
+
+      final f = File(path);
+      final size = await f.length();
+      if (size > _maxFileSize) continue;
+
+      final bytes = await f.readAsBytes();
+      final ext = path.split('.').last.toLowerCase();
+      final mimeType = _imageExtensions.contains(ext)
+          ? 'image/${ext == 'jpg' ? 'jpeg' : ext}'
+          : 'text/plain';
+
+      setState(() {
+        _attachments.add(GraceAttachment(
+          fileName: file.name,
+          mimeType: mimeType,
+          base64Data: base64Encode(bytes),
+        ));
+      });
+    }
   }
 
   @override
@@ -120,35 +164,96 @@ class _GracePanelState extends ConsumerState<GracePanel> {
             color: theme.surface,
             border: Border(top: BorderSide(color: theme.border)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  style: TextStyle(color: theme.textPrimary, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: state.configured
-                        ? 'Talk to Grace...'
-                        : 'Set grace.api_key in settings first',
-                    hintStyle: TextStyle(color: theme.textSecondary),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: theme.border),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    isDense: true,
+              if (_attachments.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: _attachments.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final a = entry.value;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: theme.surfaceLight,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: theme.border),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              a.isImage ? Icons.image : Icons.insert_drive_file,
+                              size: 12,
+                              color: theme.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 120),
+                              child: Text(
+                                a.fileName,
+                                style: TextStyle(color: theme.textPrimary, fontSize: 11),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => setState(() => _attachments.removeAt(i)),
+                              child: Icon(Icons.close, size: 12, color: theme.textSecondary),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ),
-                  enabled: state.configured,
-                  onSubmitted: (_) => _send(),
-                  maxLines: 3,
-                  minLines: 1,
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: Icon(Icons.send, size: 18, color: theme.accentBlue),
-                onPressed: state.status == GraceStatus.idle && state.configured ? _send : null,
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: state.configured ? _pickFiles : null,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Icon(
+                        Icons.attach_file,
+                        size: 18,
+                        color: state.configured ? theme.textSecondary : theme.border,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: state.configured
+                            ? 'Talk to Grace...'
+                            : 'Set grace.api_key in settings first',
+                        hintStyle: TextStyle(color: theme.textSecondary),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: BorderSide(color: theme.border),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        isDense: true,
+                      ),
+                      enabled: state.configured,
+                      onSubmitted: (_) => _send(),
+                      maxLines: 3,
+                      minLines: 1,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(Icons.send, size: 18, color: theme.accentBlue),
+                    onPressed: state.status == GraceStatus.idle && state.configured ? _send : null,
+                  ),
+                ],
               ),
             ],
           ),

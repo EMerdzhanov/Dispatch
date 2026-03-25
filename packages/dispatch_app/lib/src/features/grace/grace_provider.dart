@@ -55,9 +55,9 @@ class GraceNotifier extends Notifier<GraceState> {
     state = state.copyWith(configured: configured);
   }
 
-  Future<void> sendMessage(String text) async {
+  Future<void> sendMessage(String text, {List<GraceAttachment>? attachments}) async {
     if (_orchestrator == null) return;
-    await _orchestrator!.sendMessage(text);
+    await _orchestrator!.sendMessage(text, attachments: attachments);
   }
 
   void clearMessages() {

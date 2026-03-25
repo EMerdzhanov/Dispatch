@@ -1,18 +1,54 @@
 // Types for Claude API messages and tool use.
 
+import 'dart:convert';
+
 enum MessageRole { user, assistant }
+
+class GraceAttachment {
+  final String fileName;
+  final String mimeType;
+  final String base64Data;
+
+  const GraceAttachment({
+    required this.fileName,
+    required this.mimeType,
+    required this.base64Data,
+  });
+
+  bool get isImage => mimeType.startsWith('image/');
+
+  Map<String, dynamic> toApiBlock() {
+    if (isImage) {
+      return {
+        'type': 'image',
+        'source': {
+          'type': 'base64',
+          'media_type': mimeType,
+          'data': base64Data,
+        },
+      };
+    }
+    // Non-image files: send as text with filename context
+    return {
+      'type': 'text',
+      'text': '[$fileName]\n${utf8.decode(base64.decode(base64Data))}',
+    };
+  }
+}
 
 class GraceMessage {
   final MessageRole role;
   final String? text;
   final List<GraceToolUse>? toolUses;
   final List<GraceToolResult>? toolResults;
+  final List<GraceAttachment>? attachments;
 
   const GraceMessage({
     required this.role,
     this.text,
     this.toolUses,
     this.toolResults,
+    this.attachments,
   });
 
   Map<String, dynamic> toApi() {
@@ -29,6 +65,17 @@ class GraceMessage {
       }
       content.addAll(toolUses!.map((t) => t.toApi()));
       return {'role': 'assistant', 'content': content};
+    }
+    // If attachments present, use content blocks
+    if (attachments != null && attachments!.isNotEmpty) {
+      final content = <Map<String, dynamic>>[];
+      for (final a in attachments!) {
+        content.add(a.toApiBlock());
+      }
+      if (text != null && text!.isNotEmpty) {
+        content.add({'type': 'text', 'text': text});
+      }
+      return {'role': role.name, 'content': content};
     }
     return {'role': role.name, 'content': text ?? ''};
   }

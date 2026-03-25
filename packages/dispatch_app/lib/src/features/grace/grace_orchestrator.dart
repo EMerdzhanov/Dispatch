@@ -166,7 +166,7 @@ class GraceOrchestrator {
     }
   }
 
-  Future<void> sendMessage(String userMessage) async {
+  Future<void> sendMessage(String userMessage, {List<GraceAttachment>? attachments}) async {
     if (_client == null) {
       _emit(GraceChatEvent.grace(
           'Grace is not configured. Set your API key in settings (grace.api_key).'));
@@ -179,18 +179,26 @@ class GraceOrchestrator {
 
     final db = ref.read(databaseProvider);
     final activeCwd = _getActiveCwd();
+    final fileNames = attachments?.map((a) => a.fileName).toList() ?? [];
+    final displayText = fileNames.isEmpty
+        ? userMessage
+        : '$userMessage\n[Attached: ${fileNames.join(', ')}]';
     await db.graceConversationsDao.insertMessage(
       GraceConversationsCompanion.insert(
         projectCwd: Value(activeCwd),
         role: 'human',
-        content: userMessage,
+        content: displayText,
       ),
     );
-    _emit(GraceChatEvent.human(userMessage));
+    _emit(GraceChatEvent.human(displayText));
 
     final systemPrompt = await _buildSystemPrompt(activeCwd);
     final messages = <GraceMessage>[
-      GraceMessage(role: MessageRole.user, text: userMessage),
+      GraceMessage(
+        role: MessageRole.user,
+        text: userMessage,
+        attachments: attachments,
+      ),
     ];
 
     try {
