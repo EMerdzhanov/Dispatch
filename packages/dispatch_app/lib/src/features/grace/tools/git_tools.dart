@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -161,8 +162,14 @@ String _truncate(String s) =>
 Future<ProcessResult> _git(
   List<String> args,
   String cwd,
-) =>
-    Process.run('git', args, workingDirectory: cwd);
+) async {
+  try {
+    return await Process.run('git', args, workingDirectory: cwd)
+        .timeout(const Duration(seconds: 15));
+  } on TimeoutException {
+    throw StateError('git ${args.first} timed out after 15 seconds');
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Tool handlers

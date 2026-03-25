@@ -63,9 +63,23 @@ List<GraceToolEntry> fileTools() => [
     ];
 
 /// Returns true if [path] is within the user's home directory.
-bool _isSafePath(String path) {
+/// Resolves symlinks to prevent symlink traversal attacks.
+Future<bool> _isSafePath(String path) async {
   final home = Platform.environment['HOME'] ?? '/tmp';
-  final resolved = File(path).absolute.path;
+  String resolved;
+  try {
+    resolved = await File(path).resolveSymbolicLinks();
+  } on FileSystemException {
+    // File doesn't exist yet (e.g. write_file creating a new file).
+    // Resolve the parent directory instead.
+    try {
+      final parentResolved =
+          await Directory(File(path).parent.path).resolveSymbolicLinks();
+      resolved = '$parentResolved/${File(path).uri.pathSegments.last}';
+    } on FileSystemException {
+      return false;
+    }
+  }
   return resolved.startsWith(home);
 }
 
@@ -74,7 +88,7 @@ Future<Map<String, dynamic>> _writeFile(
   final path = params['path'] as String;
   final content = params['content'] as String;
 
-  if (!_isSafePath(path)) {
+  if (!await _isSafePath(path)) {
     return {'error': 'Refused: path is outside home directory.'};
   }
 
@@ -96,7 +110,7 @@ Future<Map<String, dynamic>> _editFile(
   final oldText = params['old_text'] as String;
   final newText = params['new_text'] as String;
 
-  if (!_isSafePath(path)) {
+  if (!await _isSafePath(path)) {
     return {'error': 'Refused: path is outside home directory.'};
   }
 
@@ -128,7 +142,7 @@ Future<Map<String, dynamic>> _createDirectory(
     Ref ref, Map<String, dynamic> params) async {
   final path = params['path'] as String;
 
-  if (!_isSafePath(path)) {
+  if (!await _isSafePath(path)) {
     return {'error': 'Refused: path is outside home directory.'};
   }
 

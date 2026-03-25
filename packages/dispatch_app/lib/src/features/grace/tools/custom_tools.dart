@@ -195,6 +195,18 @@ Future<Map<String, dynamic>> _handleCreateCustomTool(
   final nameError = _validateName(name);
   if (nameError != null) return {'error': nameError};
 
+  // Validate parameter names
+  if (parameters != null) {
+    final paramNameRegex = RegExp(r'^[a-z0-9_]+$');
+    for (final paramName in parameters.keys) {
+      if (!paramNameRegex.hasMatch(paramName)) {
+        throw ArgumentError(
+          'Invalid parameter name "$paramName": must match ^[a-z0-9_]+\$',
+        );
+      }
+    }
+  }
+
   // Prevent overwriting built-in tools
   const builtInNames = {
     // Management tools

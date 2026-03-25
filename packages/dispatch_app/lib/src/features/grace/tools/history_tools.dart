@@ -17,7 +17,7 @@ List<GraceToolEntry> historyTools() => [
           inputSchema: {
             'type': 'object',
             'properties': {
-              'terminalId': {
+              'terminal_id': {
                 'type': 'string',
                 'description':
                     'Terminal ID. Omit to use the active terminal.',
@@ -53,7 +53,7 @@ Future<Map<String, dynamic>> _getTerminalHistory(
   final registry = ref.read(sessionRegistryProvider.notifier);
   final terminals = ref.read(terminalsProvider);
 
-  var terminalId = params['terminalId'] as String?;
+  var terminalId = params['terminal_id'] as String?;
   terminalId ??= terminals.activeTerminalId;
   if (terminalId == null) return {'error': 'No active terminal'};
 
@@ -64,7 +64,7 @@ Future<Map<String, dynamic>> _getTerminalHistory(
   final entry = terminals.terminals[terminalId];
 
   return {
-    'terminalId': terminalId,
+    'terminal_id': terminalId,
     'label': entry?.label ?? entry?.command.split(' ').first ?? 'unknown',
     'status': entry?.status.name ?? 'unknown',
     'cwd': entry?.cwd ?? 'unknown',
