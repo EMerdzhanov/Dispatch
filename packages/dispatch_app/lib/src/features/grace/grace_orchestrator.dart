@@ -13,6 +13,9 @@ import 'monitor_skill.dart';
 import 'background_loop.dart';
 import 'default_identity.dart';
 import 'migration.dart';
+import 'memory_migration.dart';
+import 'memory_retrieval.dart';
+import 'tools/grace_memory_tools.dart';
 import 'tools/terminal_tools.dart';
 import 'tools/project_tools.dart';
 import 'tools/knowledge_tools.dart';
@@ -41,6 +44,9 @@ class GraceOrchestrator {
   BackgroundLoop? _backgroundLoop;
 
   final Map<String, TestTracker> _testTrackers = {};
+
+  // ignore: unused_field — used by Task 9 (stale memory check)
+  bool _staleFlagged = false; // ignore: prefer_final_fields
 
   GraceStatus _status = GraceStatus.idle;
   int _turnCount = 0;
@@ -88,20 +94,17 @@ class GraceOrchestrator {
     if (apiKey == null || apiKey.isEmpty) return;
 
     _client = ClaudeClient(apiKey: apiKey, model: model);
+    _tools.registerAll(graceMemoryTools(_client));
     if (maxTurns != null) _maxTurns = int.tryParse(maxTurns) ?? 50;
 
     await ensureGraceDirs();
     await migrateFromV1(ref);
     await _migrateOldAlfaToGrace();
+    await migrateMemoryToDb(ref);
 
     final identityFile = File('${graceDir()}/identity.md');
     if (!await identityFile.exists()) {
       await writeFile(identityFile.path, defaultIdentity);
-    }
-
-    final memoryFile = File('${graceDir()}/memory.md');
-    if (!await memoryFile.exists()) {
-      await writeFile(memoryFile.path, defaultMemory);
     }
 
     final logFile = File('${graceDir()}/log.md');
@@ -290,18 +293,52 @@ class GraceOrchestrator {
     final identity = await loadFile('${graceDir()}/identity.md');
     parts.add(identity.isNotEmpty ? identity : defaultIdentity);
 
+    // Memory behavior instruction
     parts.add(
-      '## Workspace Tools\n\n'
-      'You have access to the Tasks, Notes, and Vault panels in the Dispatch UI. '
-      'When the user mentions action items, bugs to fix, or things to do, '
-      'ask: "Want me to add these as tasks?" before creating them. '
-      'Use add_task to put items in the Tasks panel so they are visible in the UI. '
-      'Prefer the Tasks panel for trackable items over writing them only to GRACE.md.',
+      '## Memory Behavior\n\n'
+      'You have a persistent memory system and access to Tasks, Notes, and Vault panels. '
+      'When you notice the user:\n'
+      '- Expressing a preference ("I prefer...", "don\'t use...", "always...")\n'
+      '- Making a technical decision ("we\'re going with...", "let\'s use...")\n'
+      '- Correcting you ("no, it\'s actually...", "not X, Y")\n'
+      '- Sharing team/people context ("John handles...", "the backend team...")\n'
+      '- Describing a workflow ("before deploying, always...", "our process is...")\n\n'
+      'Ask: "Want me to remember that?" Use save_memory after they confirm. '
+      'If they ignore, do not re-ask about the same topic.\n\n'
+      'When they mention action items, ask: "Want me to add these as tasks?" '
+      'Use add_task for the Tasks panel. Prefer Tasks for trackable items over GRACE.md.',
     );
 
-    final memory = await loadFile('${graceDir()}/memory.md');
-    if (memory.isNotEmpty) {
-      parts.add('## Grace Memory\n\n${_truncate(memory, 8000)}');
+    // Pinned memories (always loaded)
+    final db = ref.read(databaseProvider);
+    final pinnedMemories = await db.graceMemoriesDao.getPinned();
+    if (pinnedMemories.isNotEmpty) {
+      final pinnedLines = pinnedMemories.map((m) =>
+          '- [${m.category}] ${m.content}').join('\n');
+      parts.add('## Pinned Memories\n\n$pinnedLines');
+    }
+
+    // Relevant memories (Claude-scored)
+    if (_client != null) {
+      final candidates = await db.graceMemoriesDao.getCandidates(activeCwd);
+      final unpinnedCandidates = candidates.where((m) => !m.pinned).toList();
+      if (unpinnedCandidates.isNotEmpty) {
+        final contextHint = activeCwd != null
+            ? 'Project: ${activeCwd.split('/').last}'
+            : 'General conversation';
+        final relevantIds = await scoreMemoryRelevance(
+            _client!, contextHint, unpinnedCandidates);
+        final relevant = unpinnedCandidates
+            .where((m) => relevantIds.contains(m.id))
+            .toList();
+        if (relevant.isNotEmpty) {
+          await db.graceMemoriesDao.touchRetrieved(
+              relevant.map((m) => m.id).toList());
+          final relevantLines = relevant.map((m) =>
+              '- [${m.category}] ${m.content}').join('\n');
+          parts.add('## Relevant Memories\n\n$relevantLines');
+        }
+      }
     }
 
     if (activeCwd != null && activeCwd.isNotEmpty) {
@@ -338,7 +375,6 @@ class GraceOrchestrator {
       if (logLines.isNotEmpty) parts.add('## Recent Log\n\n$logLines');
     }
 
-    final db = ref.read(databaseProvider);
     if (activeCwd != null && activeCwd.isNotEmpty) {
       final tasks = await db.tasksDao.getTasksForProject(activeCwd);
       final incomplete = tasks.where((t) => !t.done).toList();
