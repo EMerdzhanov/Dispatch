@@ -275,26 +275,37 @@ class _GracePanelState extends ConsumerState<GracePanel> {
                     ),
                   ),
                   Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      style: TextStyle(color: theme.textPrimary, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: state.configured
-                            ? 'Talk to Grace...'
-                            : 'Set grace.api_key in settings first',
-                        hintStyle: TextStyle(color: theme.textSecondary),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(6),
-                          borderSide: BorderSide(color: theme.border),
+                    child: Focus(
+                      skipTraversal: true,
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.enter &&
+                            !HardwareKeyboard.instance.isShiftPressed) {
+                          _send();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: state.configured
+                              ? 'Talk to Grace...'
+                              : 'Set grace.api_key in settings first',
+                          hintStyle: TextStyle(color: theme.textSecondary),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            borderSide: BorderSide(color: theme.border),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          isDense: true,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        isDense: true,
+                        enabled: state.configured,
+                        maxLines: 3,
+                        minLines: 1,
                       ),
-                      enabled: state.configured,
-                      onSubmitted: (_) => _send(),
-                      maxLines: 3,
-                      minLines: 1,
                     ),
                   ),
                   const SizedBox(width: 8),
