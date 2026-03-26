@@ -199,7 +199,13 @@ class TerminalPainter {
       }
 
       if (cellData.flags & CellFlags.faint != 0) {
-        color = color.withValues(alpha: 0.5);
+        // Reduce brightness instead of alpha — matches native terminal behavior.
+        // Alpha makes text semi-transparent (washed out); brightness reduction
+        // keeps text opaque but darker (crisp).
+        final r = (color.r * 0.5);
+        final g = (color.g * 0.5);
+        final b = (color.b * 0.5);
+        color = Color.from(alpha: color.a, red: r, green: g, blue: b);
       }
 
       final style = _textStyle.toTextStyle(
