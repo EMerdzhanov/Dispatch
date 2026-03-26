@@ -25,18 +25,19 @@ List<McpToolDefinition> notesTools() => [
       McpToolDefinition(
         name: 'update_notes',
         description:
-            'Overwrites the body of the first note for the active project. '
-            'Creates a new note if none exists.',
+            'Updates a project note. Can change title, body, or both. '
+            'Use note_id to target a specific note, otherwise updates the first.',
         inputSchema: {
           'type': 'object',
           'properties': {
-            'content': {'type': 'string', 'description': 'New note content'},
+            'note_id': {'type': 'integer', 'description': 'ID of the note to update. Defaults to first note.'},
+            'title': {'type': 'string', 'description': 'New title for the note'},
+            'content': {'type': 'string', 'description': 'New body content for the note'},
             'projectCwd': {
               'type': 'string',
               'description': 'Working directory. Defaults to active project.',
             },
           },
-          'required': ['content'],
         },
         handler: _updateNotes,
       ),
@@ -95,8 +96,12 @@ Future<Map<String, dynamic>> _getNotes(
 
 Future<Map<String, dynamic>> _updateNotes(
     Ref ref, Map<String, dynamic> params) async {
+  final title = params['title'] as String?;
   final content = params['content'] as String?;
-  if (content == null) throw ArgumentError('content is required');
+  final noteId = params['note_id'] as int?;
+  if (title == null && content == null) {
+    throw ArgumentError('At least one of title or content is required');
+  }
 
   final cwd = _resolveCwd(ref, params);
   final db = ref.read(databaseProvider);
@@ -105,14 +110,17 @@ Future<Map<String, dynamic>> _updateNotes(
   if (notes.isEmpty) {
     final id = await db.notesDao.insertNote(
       projectCwd: cwd,
-      title: 'Notes',
-      body: content,
+      title: title ?? 'Notes',
+      body: content ?? '',
     );
     return {'id': id, 'status': 'created'};
   }
 
-  await db.notesDao.updateNote(notes.first.id, body: content);
-  return {'id': notes.first.id, 'status': 'updated'};
+  final target = noteId != null
+      ? notes.firstWhere((n) => n.id == noteId, orElse: () => notes.first)
+      : notes.first;
+  await db.notesDao.updateNote(target.id, title: title, body: content);
+  return {'id': target.id, 'status': 'updated', 'title': title ?? target.title};
 }
 
 Future<Map<String, dynamic>> _appendNotes(

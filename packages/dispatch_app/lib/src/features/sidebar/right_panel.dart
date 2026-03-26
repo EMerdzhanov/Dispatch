@@ -131,26 +131,26 @@ class _RightPanelState extends ConsumerState<RightPanel> {
           Divider(color: theme.border, height: 1, thickness: AppTheme.borderWidth),
           // Content
           Expanded(
-            child: switch (_tab) {
-              'files' => const FileTree(),
-              'project' => const ProjectPanel(),
-              'grace' => Navigator(
-                onGenerateRoute: (_) => MaterialPageRoute(
-                  builder: (_) => const Material(
-                    type: MaterialType.transparency,
-                    child: GracePanel(),
+            child: IndexedStack(
+              index: switch (_tab) {
+                'grace' => 0,
+                'files' => 1,
+                'project' => 2,
+                _ => 0,
+              },
+              children: [
+                Navigator(
+                  onGenerateRoute: (_) => MaterialPageRoute(
+                    builder: (_) => const Material(
+                      type: MaterialType.transparency,
+                      child: GracePanel(),
+                    ),
                   ),
                 ),
-              ),
-              _ => Navigator(
-                onGenerateRoute: (_) => MaterialPageRoute(
-                  builder: (_) => const Material(
-                    type: MaterialType.transparency,
-                    child: GracePanel(),
-                  ),
-                ),
-              ),
-            },
+                const FileTree(),
+                const ProjectPanel(),
+              ],
+            ),
           ),
         ],
       ),
