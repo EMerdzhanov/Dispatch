@@ -188,20 +188,22 @@ class _GracePanelState extends ConsumerState<GracePanel> {
             final items = _buildDisplayItems(state.messages);
             final hasStreaming = _streamingText.isNotEmpty;
             final totalCount = items.length + (hasStreaming ? 1 : 0);
-            return ListView.builder(
-              controller: _scrollController,
-              reverse: true,
-              padding: const EdgeInsets.all(12),
-              itemCount: totalCount,
-              itemBuilder: (context, reverseIndex) {
-                // reversed: index 0 = newest (bottom), so flip it
-                final index = totalCount - 1 - reverseIndex;
-                if (index == items.length && hasStreaming) {
-                  return _MessageBubble(role: 'grace', text: _streamingText, theme: theme);
-                }
-                if (index >= items.length) return const SizedBox.shrink();
-                return items[index];
-              },
+            return SelectionArea(
+              child: ListView.builder(
+                controller: _scrollController,
+                reverse: true,
+                padding: const EdgeInsets.all(12),
+                itemCount: totalCount,
+                itemBuilder: (context, reverseIndex) {
+                  // reversed: index 0 = newest (bottom), so flip it
+                  final index = totalCount - 1 - reverseIndex;
+                  if (index == items.length && hasStreaming) {
+                    return _MessageBubble(role: 'grace', text: _streamingText, theme: theme);
+                  }
+                  if (index >= items.length) return const SizedBox.shrink();
+                  return items[index];
+                },
+              ),
             );
           }(),
         ),
@@ -367,10 +369,9 @@ class _MessageBubble extends StatelessWidget {
             border: Border.all(color: theme.border),
           ),
           child: isHuman
-              ? SelectableText(text, style: TextStyle(color: theme.textPrimary, fontSize: 13))
+              ? Text(text, style: TextStyle(color: theme.textPrimary, fontSize: 13))
               : MarkdownBody(
                   data: text,
-                  selectable: true,
                   styleSheet: MarkdownStyleSheet(
                     p: TextStyle(color: theme.textPrimary, fontSize: 13, height: 1.4),
                     h1: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
