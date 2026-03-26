@@ -282,7 +282,7 @@ Future<Map<String, dynamic>> _gitCommit(
 
   // Stage files if provided
   if (files != null && files.isNotEmpty) {
-    final addResult = await _git(['add', ...files], cwd);
+    final addResult = await _git(['add', '--', ...files], cwd);
     if (addResult.exitCode != 0) {
       return {
         'error': 'git add failed: ${(addResult.stderr as String).trim()}',
