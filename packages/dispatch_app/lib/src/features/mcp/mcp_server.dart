@@ -29,6 +29,7 @@ class McpServer {
   HttpServer? _server;
   int _port = 3900;
   String? _authToken;
+  bool _bindAll = false;
   int _requestCount = 0;
   final List<McpActivityEntry> activityLog = [];
 
@@ -55,6 +56,7 @@ class McpServer {
     bool bindAll = false,
   }) async {
     _authToken = authToken;
+    _bindAll = bindAll;
 
     final router = Router()
       ..post('/mcp', _handleRpc)
@@ -97,7 +99,26 @@ class McpServer {
   shelf.Middleware _authMiddleware() {
     return (shelf.Handler handler) {
       return (shelf.Request request) {
-        if (_authToken == null || _authToken!.isEmpty) return handler(request);
+        if (_authToken == null || _authToken!.isEmpty) {
+          // When binding to all interfaces with no auth, only allow loopback.
+          if (_bindAll) {
+            final host = request.headers['host'] ?? '';
+            final forwarded = request.headers['x-forwarded-for'];
+            final isLoopback = host.startsWith('127.') ||
+                host.startsWith('localhost') ||
+                host.startsWith('[::1]');
+            if (!isLoopback || forwarded != null) {
+              return shelf.Response.forbidden(
+                jsonEncode({
+                  'error':
+                      'Auth token required for non-loopback connections when binding to all interfaces',
+                }),
+                headers: {'content-type': 'application/json'},
+              );
+            }
+          }
+          return handler(request);
+        }
         final auth = request.headers['authorization'];
         if (auth != 'Bearer $_authToken') {
           return shelf.Response.forbidden(

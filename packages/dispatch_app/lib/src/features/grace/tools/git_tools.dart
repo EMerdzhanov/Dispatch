@@ -204,7 +204,10 @@ Future<Map<String, dynamic>> _gitDiff(
 
   final args = <String>['diff'];
   if (staged) args.add('--cached');
-  if (file != null && file.isNotEmpty) args.add(file);
+  if (file != null && file.isNotEmpty) {
+    args.add('--');
+    args.add(file);
+  }
 
   final result = await _git(args, cwd);
 
@@ -223,7 +226,7 @@ Future<Map<String, dynamic>> _gitDiff(
 Future<Map<String, dynamic>> _gitLog(
     Ref ref, Map<String, dynamic> params) async {
   final cwd = _resolveCwd(ref, params);
-  final count = (params['count'] as int?) ?? 10;
+  final count = ((params['count'] as int?) ?? 10).clamp(1, 100);
 
   final result = await _git(['log', '--oneline', '-$count'], cwd);
 

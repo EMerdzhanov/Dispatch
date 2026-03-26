@@ -67,6 +67,20 @@ Future<Map<String, dynamic>> _webFetch(
     };
   }
 
+  // SSRF protection: resolve and block private/loopback addresses
+  final host = uri.host;
+  if (host.isEmpty) return {'error': 'URL has no host'};
+  try {
+    final addresses = await InternetAddress.lookup(host);
+    for (final addr in addresses) {
+      if (_isPrivateAddress(addr)) {
+        return {'error': 'Refused: cannot fetch private/loopback addresses.'};
+      }
+    }
+  } on SocketException catch (e) {
+    return {'error': 'DNS lookup failed: $e'};
+  }
+
   const maxBody = 20000;
 
   final client = HttpClient();
@@ -119,4 +133,23 @@ Future<Map<String, dynamic>> _webFetch(
   } finally {
     client.close();
   }
+}
+
+/// Returns true if the address is a private, loopback, or link-local address.
+bool _isPrivateAddress(InternetAddress addr) {
+  if (addr.isLoopback || addr.isLinkLocal) return true;
+  if (addr.type == InternetAddressType.IPv4) {
+    final bytes = addr.rawAddress;
+    // 10.0.0.0/8
+    if (bytes[0] == 10) return true;
+    // 172.16.0.0/12
+    if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
+    // 192.168.0.0/16
+    if (bytes[0] == 192 && bytes[1] == 168) return true;
+    // 169.254.0.0/16 (link-local, extra check)
+    if (bytes[0] == 169 && bytes[1] == 254) return true;
+    // 127.0.0.0/8 (extra check beyond isLoopback)
+    if (bytes[0] == 127) return true;
+  }
+  return false;
 }

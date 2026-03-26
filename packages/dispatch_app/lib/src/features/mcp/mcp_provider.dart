@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -415,7 +416,8 @@ class McpServerNotifier extends Notifier<McpServerState> {
       if (id.isNotEmpty) return id;
     }
     // Generate a UUID-like ID
-    final random = List<int>.generate(16, (_) => DateTime.now().microsecond % 256);
+    final rng = Random.secure();
+    final random = List<int>.generate(16, (_) => rng.nextInt(256));
     final id = [
       random.sublist(0, 4),
       random.sublist(4, 6),

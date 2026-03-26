@@ -4,6 +4,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../mcp_tools.dart';
 
+/// Returns true if [path] is within the user's home directory.
+/// Resolves symlinks to prevent symlink traversal attacks.
+Future<bool> _isSafePath(String path) async {
+  final home = Platform.environment['HOME'] ?? '/tmp';
+  String resolved;
+  try {
+    resolved = await File(path).resolveSymbolicLinks();
+  } on FileSystemException {
+    // File doesn't exist yet (e.g. write_file creating a new file).
+    // Resolve the parent directory instead.
+    try {
+      final parentResolved =
+          await Directory(File(path).parent.path).resolveSymbolicLinks();
+      resolved = '$parentResolved/${File(path).uri.pathSegments.last}';
+    } on FileSystemException {
+      return false;
+    }
+  }
+  return resolved.startsWith(home);
+}
+
 List<McpToolDefinition> filesystemTools() => [
       McpToolDefinition(
         name: 'read_file',
@@ -53,6 +74,10 @@ Future<Map<String, dynamic>> _readFile(
   final path = params['path'] as String?;
   if (path == null) throw ArgumentError('path is required');
 
+  if (!await _isSafePath(path)) {
+    return {'error': 'Refused: path is outside home directory.'};
+  }
+
   final file = File(path);
   if (!await file.exists()) return {'error': 'File not found: $path'};
 
@@ -73,6 +98,10 @@ Future<Map<String, dynamic>> _writeFile(
     throw ArgumentError('path and content are required');
   }
 
+  if (!await _isSafePath(path)) {
+    return {'error': 'Refused: path is outside home directory.'};
+  }
+
   final file = File(path);
   await file.parent.create(recursive: true);
   await file.writeAsString(content);
@@ -84,6 +113,10 @@ Future<Map<String, dynamic>> _listDirectory(
     Ref ref, Map<String, dynamic> params) async {
   final path = params['path'] as String?;
   if (path == null) throw ArgumentError('path is required');
+
+  if (!await _isSafePath(path)) {
+    return {'error': 'Refused: path is outside home directory.'};
+  }
 
   final recursive = (params['recursive'] as bool?) ?? false;
   final dir = Directory(path);
