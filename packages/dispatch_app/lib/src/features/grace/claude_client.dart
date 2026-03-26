@@ -62,8 +62,14 @@ class ClaudeClient {
     String? currentToolName;
     final currentToolInput = StringBuffer();
 
+    final lineBuffer = StringBuffer();
     await for (final chunk in response.transform(utf8.decoder)) {
-      for (final line in chunk.split('\n')) {
+      final combined = lineBuffer.toString() + chunk;
+      lineBuffer.clear();
+      final lines = combined.split('\n');
+      // Last element may be incomplete — buffer it for next chunk
+      lineBuffer.write(lines.removeLast());
+      for (final line in lines) {
         if (!line.startsWith('data: ')) continue;
         final data = line.substring(6).trim();
         if (data == '[DONE]' || data.isEmpty) continue;

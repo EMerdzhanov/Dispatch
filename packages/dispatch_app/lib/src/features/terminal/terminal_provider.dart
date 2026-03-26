@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/terminal_entry.dart';
 import '../projects/projects_provider.dart';
+import 'session_registry.dart';
 
 class TerminalsState {
   final Map<String, TerminalEntry> terminals;
@@ -45,6 +46,7 @@ class TerminalsNotifier extends Notifier<TerminalsState> {
   }
 
   void removeTerminal(String id) {
+    ref.read(sessionRegistryProvider.notifier).killAndUnregister(id);
     final updated = Map<String, TerminalEntry>.from(state.terminals)..remove(id);
     ref.read(projectsProvider.notifier).removeTerminalFromGroup(id);
     // Clear approval state if terminal is removed

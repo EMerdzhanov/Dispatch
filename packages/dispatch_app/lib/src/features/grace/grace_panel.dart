@@ -25,6 +25,7 @@ class _GracePanelState extends ConsumerState<GracePanel> {
   final _focusNode = FocusNode();
   String _streamingText = '';
   final List<GraceAttachment> _attachments = [];
+  ProviderSubscription<GraceState>? _graceSubscription;
 
   static const _imageExtensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'};
   static const _maxFileSize = 10 * 1024 * 1024; // 10 MB
@@ -40,7 +41,7 @@ class _GracePanelState extends ConsumerState<GracePanel> {
   @override
   void initState() {
     super.initState();
-    ref.listenManual(graceProvider, (prev, next) {
+    _graceSubscription = ref.listenManual(graceProvider, (prev, next) {
       _scrollToNewest();
 
       if (next.messages.isNotEmpty) {
@@ -56,6 +57,7 @@ class _GracePanelState extends ConsumerState<GracePanel> {
 
   @override
   void dispose() {
+    _graceSubscription?.close();
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();

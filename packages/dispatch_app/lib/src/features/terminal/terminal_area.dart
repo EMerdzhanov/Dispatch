@@ -11,11 +11,7 @@ import '../../core/models/split_node.dart';
 import '../terminal/terminal_pane.dart';
 import '../terminal/terminal_provider.dart';
 
-final _terminalPaneKeys = <String, GlobalKey>{};
-
-GlobalKey _getTerminalKey(String id) {
-  return _terminalPaneKeys.putIfAbsent(id, () => GlobalKey());
-}
+// Use ValueKey instead of GlobalKey to avoid unbounded map growth.
 
 class TerminalArea extends ConsumerWidget {
   const TerminalArea({super.key});
@@ -77,7 +73,7 @@ class TerminalArea extends ConsumerWidget {
                           .clamp(0, activeGroup.terminalIds.length - 1),
                       children: activeGroup.terminalIds.map((id) {
                         return TerminalPane(
-                          key: _getTerminalKey(id),
+                          key: ValueKey(id),
                           terminalId: id,
                         );
                       }).toList(),
@@ -105,7 +101,7 @@ class TerminalArea extends ConsumerWidget {
       }
       children.add(Expanded(
         child: TerminalPane(
-          key: _getTerminalKey(group.terminalIds[i]),
+          key: ValueKey(group.terminalIds[i]),
           terminalId: group.terminalIds[i],
         ),
       ));
@@ -240,10 +236,24 @@ class _SubTabState extends State<_SubTab> with SingleTickerProviderStateMixin {
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
+    );
     _pulseAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    if (widget.needsApproval) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(_SubTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.needsApproval && !oldWidget.needsApproval) {
+      _pulseController.repeat(reverse: true);
+    } else if (!widget.needsApproval && oldWidget.needsApproval) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
   }
 
   @override

@@ -43,7 +43,14 @@ class CommandPalette extends ConsumerStatefulWidget {
 class _CommandPaletteState extends ConsumerState<CommandPalette> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  late final FocusNode _keyboardFocusNode;
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _keyboardFocusNode = FocusNode();
+  }
 
   @override
   void didUpdateWidget(CommandPalette oldWidget) {
@@ -61,6 +68,7 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
+    _keyboardFocusNode.dispose();
     super.dispose();
   }
 
@@ -115,7 +123,7 @@ class _CommandPaletteState extends ConsumerState<CommandPalette> {
             filtered.isEmpty ? 0 : _selectedIndex.clamp(0, filtered.length - 1);
 
         return KeyboardListener(
-          focusNode: FocusNode(),
+          focusNode: _keyboardFocusNode,
           autofocus: false,
           onKeyEvent: (event) {
             if (event is! KeyDownEvent) return;

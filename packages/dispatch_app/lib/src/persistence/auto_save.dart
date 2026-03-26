@@ -39,6 +39,7 @@ class AutoSaveNotifier extends Notifier<void> {
 
   @override
   void build() {
+    ref.onDispose(() => _debounce?.cancel());
     ref.listen(projectsProvider, (_, _) => _scheduleSave());
     ref.listen(presetsProvider, (_, _) => _scheduleSave());
     ref.listen(settingsProvider, (_, _) => _scheduleSave());

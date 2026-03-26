@@ -232,6 +232,27 @@ class _TaskItem extends StatefulWidget {
 
 class _TaskItemState extends State<_TaskItem> {
   bool _hovered = false;
+  late TextEditingController _descController;
+
+  @override
+  void initState() {
+    super.initState();
+    _descController = TextEditingController(text: widget.task.description);
+  }
+
+  @override
+  void didUpdateWidget(_TaskItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.task.description != widget.task.description) {
+      _descController.text = widget.task.description;
+    }
+  }
+
+  @override
+  void dispose() {
+    _descController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -291,7 +312,7 @@ class _TaskItemState extends State<_TaskItem> {
               color: theme.surfaceLight,
               padding: const EdgeInsets.only(left: 36, right: 12, bottom: 8),
               child: TextField(
-                controller: TextEditingController(text: widget.task.description),
+                controller: _descController,
                 maxLines: 3,
                 style: TextStyle(color: theme.textSecondary, fontSize: 11),
                 decoration: InputDecoration(

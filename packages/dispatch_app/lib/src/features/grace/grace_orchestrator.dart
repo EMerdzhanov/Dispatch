@@ -97,13 +97,10 @@ class GraceOrchestrator {
 
   Future<void> initialize() async {
     final db = ref.read(databaseProvider);
-    final apiKey = await db.settingsDao.getValue('grace.api_key')
-        ?? await db.settingsDao.getValue('grace.api_key');
+    final apiKey = await db.settingsDao.getValue('grace.api_key');
     final model = await db.settingsDao.getValue('grace.model')
-        ?? await db.settingsDao.getValue('grace.model')
         ?? 'claude-sonnet-4-6';
-    final maxTurns = await db.settingsDao.getValue('grace.max_turns')
-        ?? await db.settingsDao.getValue('grace.max_turns');
+    final maxTurns = await db.settingsDao.getValue('grace.max_turns');
 
     if (apiKey == null || apiKey.isEmpty) return;
 

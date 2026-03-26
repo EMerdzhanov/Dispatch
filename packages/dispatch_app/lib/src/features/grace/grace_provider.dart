@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'grace_orchestrator.dart';
@@ -29,10 +31,16 @@ class GraceState {
 
 class GraceNotifier extends Notifier<GraceState> {
   GraceOrchestrator? _orchestrator;
+  StreamSubscription<GraceStatus>? _statusSub;
+  StreamSubscription<GraceChatEvent>? _messageSub;
 
   @override
   GraceState build() {
-    ref.onDispose(() => _orchestrator?.dispose());
+    ref.onDispose(() {
+      _statusSub?.cancel();
+      _messageSub?.cancel();
+      _orchestrator?.dispose();
+    });
     return const GraceState();
   }
 
@@ -42,11 +50,11 @@ class GraceNotifier extends Notifier<GraceState> {
 
     final configured = _orchestrator!.status != GraceStatus.error;
 
-    _orchestrator!.statusStream.listen((s) {
+    _statusSub = _orchestrator!.statusStream.listen((s) {
       state = state.copyWith(status: s);
     });
 
-    _orchestrator!.messageStream.listen((event) {
+    _messageSub = _orchestrator!.messageStream.listen((event) {
       state = state.copyWith(
         messages: [...state.messages, event],
       );

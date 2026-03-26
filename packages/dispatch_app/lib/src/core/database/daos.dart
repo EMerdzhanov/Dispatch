@@ -99,7 +99,8 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
 
   Future<void> toggleDone(int id) async {
     final task =
-        await (select(tasks)..where((t) => t.id.equals(id))).getSingle();
+        await (select(tasks)..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (task == null) return;
     await (update(tasks)..where((t) => t.id.equals(id)))
         .write(TasksCompanion(done: Value(!task.done)));
   }
