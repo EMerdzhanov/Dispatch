@@ -109,6 +109,9 @@ class EscapeParser {
     // '+'.charCode: _voidHandler(1), // TODO: G3 (vt220)
     '>'.charCode: _escHandleResetAppKeypadMode, // TODO: Normal Keypad
     '='.charCode: _escHandleSetAppKeypadMode, // TODO: Application Keypad
+    'P'.charCode: _escHandleStringSequence, // DCS - Device Control String
+    '_'.charCode: _escHandleStringSequence, // APC - Application Program Command
+    '^'.charCode: _escHandleStringSequence, // PM  - Privacy Message
   });
 
   /// `ESC 7` Save Cursor (DECSC)
@@ -241,6 +244,44 @@ class EscapeParser {
           _csi.params.add(param);
         }
         param = 0;
+        hasParam = false;
+        continue;
+      }
+
+      // Colon-separated sub-parameters (ITU T.416), e.g. \x1b[4:3m
+      // for curly underline, \x1b[58:2:R:G:Bm for underline color.
+      // Parse the first sub-parameter to handle 4:0 (clear underline).
+      if (char == Ascii.colon) {
+        // param already holds the main value (e.g. 4).
+        // Read first sub-parameter value.
+        var subParam = 0;
+        var hasSubParam = false;
+        while (_queue.isNotEmpty) {
+          final next = _queue.peek();
+          if (next >= Ascii.num0 && next <= Ascii.num9) {
+            hasSubParam = true;
+            subParam = subParam * 10 + (next - Ascii.num0);
+            _queue.consume();
+          } else if (next == Ascii.colon) {
+            // More sub-params — consume and discard the rest.
+            _queue.consume();
+            while (_queue.isNotEmpty) {
+              final n = _queue.peek();
+              if (n >= Ascii.num0 && n <= Ascii.num9 || n == Ascii.colon) {
+                _queue.consume();
+              } else {
+                break;
+              }
+            }
+            break;
+          } else {
+            break;
+          }
+        }
+        // Map 4:0 → SGR 24 (clear underline). 4:1-5 stays as SGR 4.
+        if (param == 4 && hasSubParam && subParam == 0) {
+          param = 24; // unset underline
+        }
         continue;
       }
 
@@ -1072,6 +1113,16 @@ class EscapeParser {
         case '2':
           handler.setTitle(pt);
           return true;
+        case '8':
+          // OSC 8 — Hyperlink. Format: \x1b]8;params;url\x07
+          // When URL is empty (close hyperlink), clear underline
+          // since apps often set SGR 4 for link text and rely on
+          // the hyperlink close to clear it.
+          final url = _osc.length >= 3 ? _osc[2] : pt;
+          if (url.isEmpty) {
+            handler.unsetCursorUnderline();
+          }
+          return true;
       }
     }
 
@@ -1079,6 +1130,21 @@ class EscapeParser {
     handler.unknownOSC(_osc[0], _osc.sublist(1));
 
     return true;
+  }
+
+  /// Consume and discard a string-type escape sequence (DCS, APC, PM).
+  /// These are terminated by ST (ESC \ or 0x9C) or BEL (0x07).
+  bool _escHandleStringSequence() {
+    while (true) {
+      if (_queue.isEmpty) return false;
+      final char = _queue.consume();
+      if (char == Ascii.BEL) return true;
+      if (char == Ascii.ESC) {
+        if (_queue.isEmpty) return false;
+        _queue.consume(); // consume the backslash (or whatever follows)
+        return true;
+      }
+    }
   }
 
   final _osc = <String>[];

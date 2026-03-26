@@ -206,7 +206,7 @@ class TerminalPainter {
         color: color,
         bold: isBold,
         italic: cellFlags & CellFlags.italic != 0,
-        underline: cellFlags & CellFlags.underline != 0,
+        underline: false, // TODO: disabled — Claude Code 2.1.83+ triggers persistent underline; investigate root cause
       );
 
       // Flutter does not draw an underline below a space which is not between
