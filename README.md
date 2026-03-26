@@ -80,6 +80,18 @@ cd packages/dispatch_app
 flutter run -d macos
 ```
 
+## Installation
+
+Download the latest `Dispatch.dmg` from [Releases](https://github.com/EMerdzhanov/Dispatch/releases), open it, and drag Dispatch to your Applications folder.
+
+Or build from source:
+
+```bash
+cd packages/dispatch_app
+flutter build macos
+open build/macos/Build/Products/Release/dispatch_app.app
+```
+
 ## License
 
-All rights reserved.
+[MIT](LICENSE)
